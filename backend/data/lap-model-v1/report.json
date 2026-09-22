@@ -1,0 +1,3385 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "malaysia-2017",
+  "selectedModel": "Random Forest",
+  "selectionRule": "Lowest validation MAE; test scores are never used for selection",
+  "trainEnd": 2700.0,
+  "validationEnd": 3900.0,
+  "counts": {
+    "train": 448,
+    "validation": 207,
+    "test": 275,
+    "excludedBoundary": 37
+  },
+  "features": [
+    "previousLap1",
+    "previousLap2",
+    "previousLap3",
+    "upcomingLap",
+    "lastRecordedPosition"
+  ],
+  "models": [
+    {
+      "name": "Previous-lap baseline",
+      "validation": {
+        "mae": 1.5835845410628016,
+        "rmse": 4.422984637261277,
+        "r2": -0.5339051751691726
+      },
+      "test": {
+        "mae": 0.7951563636363638,
+        "rmse": 2.162079726055028,
+        "r2": -0.36833683955035545
+      }
+    },
+    {
+      "name": "Linear Regression",
+      "validation": {
+        "mae": 1.6342465539682187,
+        "rmse": 3.3548630607307626,
+        "r2": 0.11749485410239446
+      },
+      "test": {
+        "mae": 1.0975493955455489,
+        "rmse": 1.7085782666201375,
+        "r2": 0.14548563814750248
+      }
+    },
+    {
+      "name": "Random Forest",
+      "validation": {
+        "mae": 1.5052512410214507,
+        "rmse": 2.4793202224550988,
+        "r2": 0.5180156950810341
+      },
+      "test": {
+        "mae": 1.160148810838166,
+        "rmse": 1.730751809771405,
+        "r2": 0.12316232951282491
+      }
+    },
+    {
+      "name": "XGBoost",
+      "validation": {
+        "mae": 1.8434093412684933,
+        "rmse": 2.669104898580364,
+        "r2": 0.44140256701424363
+      },
+      "test": {
+        "mae": 1.5661266606001423,
+        "rmse": 1.9337825448938637,
+        "r2": -0.09462378931293136
+      }
+    }
+  ],
+  "forecasts": [
+    {
+      "driverId": "max_verstappen",
+      "lap": 42,
+      "issuedAt": 3975.56,
+      "prediction": 96.82184262465964,
+      "baseline": 95.001,
+      "previousLaps": [
+        95.001,
+        95.56700000000001,
+        95.845
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 43,
+      "issuedAt": 4070.823,
+      "prediction": 96.82184262465964,
+      "baseline": 95.263,
+      "previousLaps": [
+        95.263,
+        95.001,
+        95.56700000000001
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 44,
+      "issuedAt": 4165.893,
+      "prediction": 96.82184262465964,
+      "baseline": 95.07,
+      "previousLaps": [
+        95.07,
+        95.263,
+        95.001
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 45,
+      "issuedAt": 4261.452,
+      "prediction": 96.82184262465964,
+      "baseline": 95.559,
+      "previousLaps": [
+        95.559,
+        95.07,
+        95.263
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 46,
+      "issuedAt": 4356.582,
+      "prediction": 96.82184262465964,
+      "baseline": 95.13,
+      "previousLaps": [
+        95.13,
+        95.559,
+        95.07
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 47,
+      "issuedAt": 4451.794,
+      "prediction": 96.82184262465964,
+      "baseline": 95.212,
+      "previousLaps": [
+        95.212,
+        95.13,
+        95.559
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 48,
+      "issuedAt": 4546.668,
+      "prediction": 96.82184262465964,
+      "baseline": 94.874,
+      "previousLaps": [
+        94.874,
+        95.212,
+        95.13
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 49,
+      "issuedAt": 4641.693,
+      "prediction": 96.82184262465964,
+      "baseline": 95.025,
+      "previousLaps": [
+        95.025,
+        94.874,
+        95.212
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 50,
+      "issuedAt": 4736.977,
+      "prediction": 96.82184262465964,
+      "baseline": 95.28399999999999,
+      "previousLaps": [
+        95.28399999999999,
+        95.025,
+        94.874
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 51,
+      "issuedAt": 4831.444,
+      "prediction": 96.82184262465964,
+      "baseline": 94.467,
+      "previousLaps": [
+        94.467,
+        95.28399999999999,
+        95.025
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 52,
+      "issuedAt": 4926.16,
+      "prediction": 96.82184262465964,
+      "baseline": 94.71600000000001,
+      "previousLaps": [
+        94.71600000000001,
+        94.467,
+        95.28399999999999
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 53,
+      "issuedAt": 5020.807,
+      "prediction": 96.82184262465964,
+      "baseline": 94.64699999999999,
+      "previousLaps": [
+        94.64699999999999,
+        94.71600000000001,
+        94.467
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 54,
+      "issuedAt": 5115.697,
+      "prediction": 96.82184262465964,
+      "baseline": 94.89,
+      "previousLaps": [
+        94.89,
+        94.64699999999999,
+        94.71600000000001
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 55,
+      "issuedAt": 5210.809,
+      "prediction": 96.82184262465964,
+      "baseline": 95.112,
+      "previousLaps": [
+        95.112,
+        94.89,
+        94.64699999999999
+      ]
+    },
+    {
+      "driverId": "max_verstappen",
+      "lap": 56,
+      "issuedAt": 5305.714,
+      "prediction": 96.82184262465964,
+      "baseline": 94.905,
+      "previousLaps": [
+        94.905,
+        95.112,
+        94.89
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 42,
+      "issuedAt": 3985.183,
+      "prediction": 96.84006990880938,
+      "baseline": 95.681,
+      "previousLaps": [
+        95.681,
+        95.19800000000001,
+        95.94800000000001
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 43,
+      "issuedAt": 4080.401,
+      "prediction": 96.84006990880938,
+      "baseline": 95.218,
+      "previousLaps": [
+        95.218,
+        95.681,
+        95.19800000000001
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 44,
+      "issuedAt": 4175.501,
+      "prediction": 96.84006990880938,
+      "baseline": 95.1,
+      "previousLaps": [
+        95.1,
+        95.218,
+        95.681
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 45,
+      "issuedAt": 4271.006,
+      "prediction": 96.84006990880938,
+      "baseline": 95.505,
+      "previousLaps": [
+        95.505,
+        95.1,
+        95.218
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 46,
+      "issuedAt": 4366.355,
+      "prediction": 96.84006990880938,
+      "baseline": 95.34899999999999,
+      "previousLaps": [
+        95.34899999999999,
+        95.505,
+        95.1
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 47,
+      "issuedAt": 4461.215,
+      "prediction": 96.84006990880938,
+      "baseline": 94.86,
+      "previousLaps": [
+        94.86,
+        95.34899999999999,
+        95.505
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 48,
+      "issuedAt": 4555.789,
+      "prediction": 96.84006990880938,
+      "baseline": 94.574,
+      "previousLaps": [
+        94.574,
+        94.86,
+        95.34899999999999
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 49,
+      "issuedAt": 4650.241,
+      "prediction": 96.84006990880938,
+      "baseline": 94.452,
+      "previousLaps": [
+        94.452,
+        94.574,
+        94.86
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 50,
+      "issuedAt": 4744.831,
+      "prediction": 96.84006990880938,
+      "baseline": 94.59,
+      "previousLaps": [
+        94.59,
+        94.452,
+        94.574
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 51,
+      "issuedAt": 4839.788,
+      "prediction": 96.84006990880938,
+      "baseline": 94.957,
+      "previousLaps": [
+        94.957,
+        94.59,
+        94.452
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 52,
+      "issuedAt": 4935.186,
+      "prediction": 96.84006990880938,
+      "baseline": 95.398,
+      "previousLaps": [
+        95.398,
+        94.957,
+        94.59
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 53,
+      "issuedAt": 5030.617,
+      "prediction": 96.84006990880938,
+      "baseline": 95.431,
+      "previousLaps": [
+        95.431,
+        95.398,
+        94.957
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 54,
+      "issuedAt": 5125.826,
+      "prediction": 96.84006990880938,
+      "baseline": 95.209,
+      "previousLaps": [
+        95.209,
+        95.431,
+        95.398
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 55,
+      "issuedAt": 5221.168,
+      "prediction": 96.84006990880938,
+      "baseline": 95.342,
+      "previousLaps": [
+        95.342,
+        95.209,
+        95.431
+      ]
+    },
+    {
+      "driverId": "hamilton",
+      "lap": 56,
+      "issuedAt": 5317.128,
+      "prediction": 96.84006990880938,
+      "baseline": 95.96000000000001,
+      "previousLaps": [
+        95.96000000000001,
+        95.342,
+        95.209
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 42,
+      "issuedAt": 3992.001,
+      "prediction": 96.8500994455504,
+      "baseline": 95.48400000000001,
+      "previousLaps": [
+        95.48400000000001,
+        95.11,
+        95.23599999999999
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 43,
+      "issuedAt": 4087.095,
+      "prediction": 96.8500994455504,
+      "baseline": 95.094,
+      "previousLaps": [
+        95.094,
+        95.48400000000001,
+        95.11
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 44,
+      "issuedAt": 4182.8,
+      "prediction": 96.8500994455504,
+      "baseline": 95.705,
+      "previousLaps": [
+        95.705,
+        95.094,
+        95.48400000000001
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 45,
+      "issuedAt": 4278.741,
+      "prediction": 96.8500994455504,
+      "baseline": 95.941,
+      "previousLaps": [
+        95.941,
+        95.705,
+        95.094
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 46,
+      "issuedAt": 4374.446,
+      "prediction": 96.8500994455504,
+      "baseline": 95.705,
+      "previousLaps": [
+        95.705,
+        95.941,
+        95.705
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 47,
+      "issuedAt": 4469.391,
+      "prediction": 96.8500994455504,
+      "baseline": 94.945,
+      "previousLaps": [
+        94.945,
+        95.705,
+        95.941
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 48,
+      "issuedAt": 4565.026,
+      "prediction": 96.8500994455504,
+      "baseline": 95.63499999999999,
+      "previousLaps": [
+        95.63499999999999,
+        94.945,
+        95.705
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 49,
+      "issuedAt": 4660.795,
+      "prediction": 96.8500994455504,
+      "baseline": 95.769,
+      "previousLaps": [
+        95.769,
+        95.63499999999999,
+        94.945
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 50,
+      "issuedAt": 4755.797,
+      "prediction": 96.8500994455504,
+      "baseline": 95.00200000000001,
+      "previousLaps": [
+        95.00200000000001,
+        95.769,
+        95.63499999999999
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 51,
+      "issuedAt": 4851.056,
+      "prediction": 96.8500994455504,
+      "baseline": 95.259,
+      "previousLaps": [
+        95.259,
+        95.00200000000001,
+        95.769
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 52,
+      "issuedAt": 4945.929,
+      "prediction": 96.8500994455504,
+      "baseline": 94.87299999999999,
+      "previousLaps": [
+        94.87299999999999,
+        95.259,
+        95.00200000000001
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 53,
+      "issuedAt": 5041.058,
+      "prediction": 96.8500994455504,
+      "baseline": 95.12899999999999,
+      "previousLaps": [
+        95.12899999999999,
+        94.87299999999999,
+        95.259
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 54,
+      "issuedAt": 5136.62,
+      "prediction": 96.8500994455504,
+      "baseline": 95.562,
+      "previousLaps": [
+        95.562,
+        95.12899999999999,
+        94.87299999999999
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 55,
+      "issuedAt": 5232.45,
+      "prediction": 96.8500994455504,
+      "baseline": 95.83,
+      "previousLaps": [
+        95.83,
+        95.562,
+        95.12899999999999
+      ]
+    },
+    {
+      "driverId": "ricciardo",
+      "lap": 56,
+      "issuedAt": 5327.22,
+      "prediction": 96.8500994455504,
+      "baseline": 94.77000000000001,
+      "previousLaps": [
+        94.77000000000001,
+        95.83,
+        95.562
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 41,
+      "issuedAt": 3903.031,
+      "prediction": 96.8500994455504,
+      "baseline": 94.22200000000001,
+      "previousLaps": [
+        94.22200000000001,
+        94.218,
+        94.311
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 42,
+      "issuedAt": 3997.111,
+      "prediction": 96.8500994455504,
+      "baseline": 94.08,
+      "previousLaps": [
+        94.08,
+        94.22200000000001,
+        94.218
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 43,
+      "issuedAt": 4091.59,
+      "prediction": 96.8500994455504,
+      "baseline": 94.479,
+      "previousLaps": [
+        94.479,
+        94.08,
+        94.22200000000001
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 44,
+      "issuedAt": 4186.457,
+      "prediction": 96.8500994455504,
+      "baseline": 94.86699999999999,
+      "previousLaps": [
+        94.86699999999999,
+        94.479,
+        94.08
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 45,
+      "issuedAt": 4281.018,
+      "prediction": 96.8500994455504,
+      "baseline": 94.561,
+      "previousLaps": [
+        94.561,
+        94.86699999999999,
+        94.479
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 46,
+      "issuedAt": 4375.404,
+      "prediction": 96.8500994455504,
+      "baseline": 94.386,
+      "previousLaps": [
+        94.386,
+        94.561,
+        94.86699999999999
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 47,
+      "issuedAt": 4470.206,
+      "prediction": 96.8500994455504,
+      "baseline": 94.80199999999999,
+      "previousLaps": [
+        94.80199999999999,
+        94.386,
+        94.561
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 48,
+      "issuedAt": 4565.761,
+      "prediction": 96.8500994455504,
+      "baseline": 95.555,
+      "previousLaps": [
+        95.555,
+        94.80199999999999,
+        94.386
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 49,
+      "issuedAt": 4661.391,
+      "prediction": 96.8500994455504,
+      "baseline": 95.63,
+      "previousLaps": [
+        95.63,
+        95.555,
+        94.80199999999999
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 50,
+      "issuedAt": 4757.045,
+      "prediction": 96.8500994455504,
+      "baseline": 95.654,
+      "previousLaps": [
+        95.654,
+        95.63,
+        95.555
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 51,
+      "issuedAt": 4852.466,
+      "prediction": 96.8500994455504,
+      "baseline": 95.42099999999999,
+      "previousLaps": [
+        95.42099999999999,
+        95.654,
+        95.63
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 52,
+      "issuedAt": 4947.841,
+      "prediction": 96.8500994455504,
+      "baseline": 95.375,
+      "previousLaps": [
+        95.375,
+        95.42099999999999,
+        95.654
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 53,
+      "issuedAt": 5044.12,
+      "prediction": 96.8500994455504,
+      "baseline": 96.279,
+      "previousLaps": [
+        96.279,
+        95.375,
+        95.42099999999999
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 54,
+      "issuedAt": 5140.485,
+      "prediction": 96.8500994455504,
+      "baseline": 96.36500000000001,
+      "previousLaps": [
+        96.36500000000001,
+        96.279,
+        95.375
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 55,
+      "issuedAt": 5237.939,
+      "prediction": 98.12009370560685,
+      "baseline": 97.45400000000001,
+      "previousLaps": [
+        97.45400000000001,
+        96.36500000000001,
+        96.279
+      ]
+    },
+    {
+      "driverId": "vettel",
+      "lap": 56,
+      "issuedAt": 5337.307,
+      "prediction": 100.35064556741503,
+      "baseline": 99.368,
+      "previousLaps": [
+        99.368,
+        97.45400000000001,
+        96.36500000000001
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 41,
+      "issuedAt": 3920.069,
+      "prediction": 96.86419033395367,
+      "baseline": 95.59100000000001,
+      "previousLaps": [
+        95.59100000000001,
+        95.9,
+        95.36
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 42,
+      "issuedAt": 4015.609,
+      "prediction": 96.86419033395367,
+      "baseline": 95.53999999999999,
+      "previousLaps": [
+        95.53999999999999,
+        95.59100000000001,
+        95.9
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 43,
+      "issuedAt": 4111.126,
+      "prediction": 96.86419033395367,
+      "baseline": 95.517,
+      "previousLaps": [
+        95.517,
+        95.53999999999999,
+        95.59100000000001
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 44,
+      "issuedAt": 4206.636,
+      "prediction": 96.86419033395367,
+      "baseline": 95.50999999999999,
+      "previousLaps": [
+        95.50999999999999,
+        95.517,
+        95.53999999999999
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 45,
+      "issuedAt": 4301.92,
+      "prediction": 96.86419033395367,
+      "baseline": 95.28399999999999,
+      "previousLaps": [
+        95.28399999999999,
+        95.50999999999999,
+        95.517
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 46,
+      "issuedAt": 4397.422,
+      "prediction": 96.86419033395367,
+      "baseline": 95.50200000000001,
+      "previousLaps": [
+        95.50200000000001,
+        95.28399999999999,
+        95.50999999999999
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 47,
+      "issuedAt": 4493.053,
+      "prediction": 96.86419033395367,
+      "baseline": 95.631,
+      "previousLaps": [
+        95.631,
+        95.50200000000001,
+        95.28399999999999
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 48,
+      "issuedAt": 4588.585,
+      "prediction": 96.86419033395367,
+      "baseline": 95.532,
+      "previousLaps": [
+        95.532,
+        95.631,
+        95.50200000000001
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 49,
+      "issuedAt": 4684.253,
+      "prediction": 96.86419033395367,
+      "baseline": 95.668,
+      "previousLaps": [
+        95.668,
+        95.532,
+        95.631
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 50,
+      "issuedAt": 4780.387,
+      "prediction": 96.86419033395367,
+      "baseline": 96.134,
+      "previousLaps": [
+        96.134,
+        95.668,
+        95.532
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 51,
+      "issuedAt": 4876.578,
+      "prediction": 96.86419033395367,
+      "baseline": 96.191,
+      "previousLaps": [
+        96.191,
+        96.134,
+        95.668
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 52,
+      "issuedAt": 4972.895,
+      "prediction": 96.86419033395367,
+      "baseline": 96.31700000000001,
+      "previousLaps": [
+        96.31700000000001,
+        96.191,
+        96.134
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 53,
+      "issuedAt": 5069.695,
+      "prediction": 97.00867842019014,
+      "baseline": 96.8,
+      "previousLaps": [
+        96.8,
+        96.31700000000001,
+        96.191
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 54,
+      "issuedAt": 5165.733,
+      "prediction": 96.87215912301878,
+      "baseline": 96.038,
+      "previousLaps": [
+        96.038,
+        96.8,
+        96.31700000000001
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 55,
+      "issuedAt": 5261.753,
+      "prediction": 96.85172198532355,
+      "baseline": 96.02000000000001,
+      "previousLaps": [
+        96.02000000000001,
+        96.038,
+        96.8
+      ]
+    },
+    {
+      "driverId": "bottas",
+      "lap": 56,
+      "issuedAt": 5359.264,
+      "prediction": 98.08878230077437,
+      "baseline": 97.511,
+      "previousLaps": [
+        97.511,
+        96.02000000000001,
+        96.038
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 41,
+      "issuedAt": 3939.347,
+      "prediction": 96.85619438703297,
+      "baseline": 96.408,
+      "previousLaps": [
+        96.408,
+        96.675,
+        96.664
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 42,
+      "issuedAt": 4035.913,
+      "prediction": 96.98112332704652,
+      "baseline": 96.566,
+      "previousLaps": [
+        96.566,
+        96.408,
+        96.675
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 43,
+      "issuedAt": 4132.269,
+      "prediction": 96.86656808395367,
+      "baseline": 96.356,
+      "previousLaps": [
+        96.356,
+        96.566,
+        96.408
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 44,
+      "issuedAt": 4228.778,
+      "prediction": 96.85586808770685,
+      "baseline": 96.509,
+      "previousLaps": [
+        96.509,
+        96.356,
+        96.566
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 45,
+      "issuedAt": 4324.926,
+      "prediction": 96.865729417287,
+      "baseline": 96.148,
+      "previousLaps": [
+        96.148,
+        96.509,
+        96.356
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 46,
+      "issuedAt": 4421.566,
+      "prediction": 97.00052371132264,
+      "baseline": 96.64,
+      "previousLaps": [
+        96.64,
+        96.148,
+        96.509
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 47,
+      "issuedAt": 4518.016,
+      "prediction": 96.84585332448394,
+      "baseline": 96.45,
+      "previousLaps": [
+        96.45,
+        96.64,
+        96.148
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 48,
+      "issuedAt": 4614.071,
+      "prediction": 96.8591763920696,
+      "baseline": 96.055,
+      "previousLaps": [
+        96.055,
+        96.45,
+        96.64
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 49,
+      "issuedAt": 4710.3,
+      "prediction": 96.86419033395367,
+      "baseline": 96.229,
+      "previousLaps": [
+        96.229,
+        96.055,
+        96.45
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 50,
+      "issuedAt": 4806.395,
+      "prediction": 96.86419033395367,
+      "baseline": 96.095,
+      "previousLaps": [
+        96.095,
+        96.229,
+        96.055
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 51,
+      "issuedAt": 4902.509,
+      "prediction": 96.86419033395367,
+      "baseline": 96.114,
+      "previousLaps": [
+        96.114,
+        96.095,
+        96.229
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 52,
+      "issuedAt": 4998.567,
+      "prediction": 96.86419033395367,
+      "baseline": 96.05799999999999,
+      "previousLaps": [
+        96.05799999999999,
+        96.114,
+        96.095
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 53,
+      "issuedAt": 5094.48,
+      "prediction": 96.86419033395367,
+      "baseline": 95.913,
+      "previousLaps": [
+        95.913,
+        96.05799999999999,
+        96.114
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 54,
+      "issuedAt": 5190.518,
+      "prediction": 96.86419033395367,
+      "baseline": 96.038,
+      "previousLaps": [
+        96.038,
+        95.913,
+        96.05799999999999
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 55,
+      "issuedAt": 5287.193,
+      "prediction": 97.00113893734661,
+      "baseline": 96.675,
+      "previousLaps": [
+        96.675,
+        96.038,
+        95.913
+      ]
+    },
+    {
+      "driverId": "perez",
+      "lap": 56,
+      "issuedAt": 5383.467,
+      "prediction": 96.86387204320276,
+      "baseline": 96.274,
+      "previousLaps": [
+        96.274,
+        96.675,
+        96.038
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 41,
+      "issuedAt": 3961.631,
+      "prediction": 97.62526059546776,
+      "baseline": 97.154,
+      "previousLaps": [
+        97.154,
+        97.08500000000001,
+        97.404
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 42,
+      "issuedAt": 4058.665,
+      "prediction": 97.1949783266158,
+      "baseline": 97.03399999999999,
+      "previousLaps": [
+        97.03399999999999,
+        97.154,
+        97.08500000000001
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 43,
+      "issuedAt": 4155.735,
+      "prediction": 97.59538983481796,
+      "baseline": 97.07,
+      "previousLaps": [
+        97.07,
+        97.03399999999999,
+        97.154
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 44,
+      "issuedAt": 4252.595,
+      "prediction": 97.09708901992306,
+      "baseline": 96.86,
+      "previousLaps": [
+        96.86,
+        97.07,
+        97.03399999999999
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 45,
+      "issuedAt": 4349.479,
+      "prediction": 97.0751460156547,
+      "baseline": 96.884,
+      "previousLaps": [
+        96.884,
+        96.86,
+        97.07
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 46,
+      "issuedAt": 4446.361,
+      "prediction": 97.08658819568886,
+      "baseline": 96.882,
+      "previousLaps": [
+        96.882,
+        96.884,
+        96.86
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 47,
+      "issuedAt": 4543.059,
+      "prediction": 97.01553788998358,
+      "baseline": 96.69800000000001,
+      "previousLaps": [
+        96.69800000000001,
+        96.882,
+        96.884
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 48,
+      "issuedAt": 4639.757,
+      "prediction": 96.9955924052114,
+      "baseline": 96.69800000000001,
+      "previousLaps": [
+        96.69800000000001,
+        96.69800000000001,
+        96.882
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 49,
+      "issuedAt": 4738.097,
+      "prediction": 99.91522764802033,
+      "baseline": 98.34,
+      "previousLaps": [
+        98.34,
+        96.69800000000001,
+        96.69800000000001
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 50,
+      "issuedAt": 4834.028,
+      "prediction": 97.2383700140983,
+      "baseline": 95.931,
+      "previousLaps": [
+        95.931,
+        98.34,
+        96.69800000000001
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 51,
+      "issuedAt": 4930.008,
+      "prediction": 96.87737998469345,
+      "baseline": 95.97999999999999,
+      "previousLaps": [
+        95.97999999999999,
+        95.931,
+        98.34
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 52,
+      "issuedAt": 5026.424,
+      "prediction": 96.8481793683151,
+      "baseline": 96.416,
+      "previousLaps": [
+        96.416,
+        95.97999999999999,
+        95.931
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 53,
+      "issuedAt": 5122.916,
+      "prediction": 96.8461513140083,
+      "baseline": 96.49199999999999,
+      "previousLaps": [
+        96.49199999999999,
+        96.416,
+        95.97999999999999
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 54,
+      "issuedAt": 5219.336,
+      "prediction": 96.84866591376965,
+      "baseline": 96.42,
+      "previousLaps": [
+        96.42,
+        96.49199999999999,
+        96.416
+      ]
+    },
+    {
+      "driverId": "vandoorne",
+      "lap": 55,
+      "issuedAt": 5316.635,
+      "prediction": 97.73673765244638,
+      "baseline": 97.299,
+      "previousLaps": [
+        97.299,
+        96.42,
+        96.49199999999999
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 41,
+      "issuedAt": 3963.786,
+      "prediction": 97.16053824456358,
+      "baseline": 96.988,
+      "previousLaps": [
+        96.988,
+        96.955,
+        96.993
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 42,
+      "issuedAt": 4060.687,
+      "prediction": 97.11789328139483,
+      "baseline": 96.90100000000001,
+      "previousLaps": [
+        96.90100000000001,
+        96.988,
+        96.955
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 43,
+      "issuedAt": 4157.608,
+      "prediction": 97.13322428821436,
+      "baseline": 96.92099999999999,
+      "previousLaps": [
+        96.92099999999999,
+        96.90100000000001,
+        96.988
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 44,
+      "issuedAt": 4254.623,
+      "prediction": 97.15868917725588,
+      "baseline": 97.015,
+      "previousLaps": [
+        97.015,
+        96.92099999999999,
+        96.90100000000001
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 45,
+      "issuedAt": 4351.485,
+      "prediction": 97.0607595509129,
+      "baseline": 96.862,
+      "previousLaps": [
+        96.862,
+        97.015,
+        96.92099999999999
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 46,
+      "issuedAt": 4448.329,
+      "prediction": 97.03099546451318,
+      "baseline": 96.844,
+      "previousLaps": [
+        96.844,
+        96.862,
+        97.015
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 47,
+      "issuedAt": 4544.956,
+      "prediction": 96.99499401046032,
+      "baseline": 96.62700000000001,
+      "previousLaps": [
+        96.62700000000001,
+        96.844,
+        96.862
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 48,
+      "issuedAt": 4643.049,
+      "prediction": 99.70874523840733,
+      "baseline": 98.093,
+      "previousLaps": [
+        98.093,
+        96.62700000000001,
+        96.844
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 49,
+      "issuedAt": 4739.929,
+      "prediction": 97.35907290883462,
+      "baseline": 96.88,
+      "previousLaps": [
+        96.88,
+        98.093,
+        96.62700000000001
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 50,
+      "issuedAt": 4836.682,
+      "prediction": 97.06116024919984,
+      "baseline": 96.753,
+      "previousLaps": [
+        96.753,
+        96.88,
+        98.093
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 51,
+      "issuedAt": 4933.72,
+      "prediction": 97.12027838948805,
+      "baseline": 97.038,
+      "previousLaps": [
+        97.038,
+        96.753,
+        96.88
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 52,
+      "issuedAt": 5032.927,
+      "prediction": 100.02510410656907,
+      "baseline": 99.207,
+      "previousLaps": [
+        99.207,
+        97.038,
+        96.753
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 53,
+      "issuedAt": 5130.039,
+      "prediction": 97.80034531678294,
+      "baseline": 97.112,
+      "previousLaps": [
+        97.112,
+        99.207,
+        97.038
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 54,
+      "issuedAt": 5227.197,
+      "prediction": 97.6218713089169,
+      "baseline": 97.158,
+      "previousLaps": [
+        97.158,
+        97.112,
+        99.207
+      ]
+    },
+    {
+      "driverId": "stroll",
+      "lap": 55,
+      "issuedAt": 5325.017,
+      "prediction": 98.1111918593963,
+      "baseline": 97.82,
+      "previousLaps": [
+        97.82,
+        97.158,
+        97.112
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 41,
+      "issuedAt": 3966.474,
+      "prediction": 97.22012218855116,
+      "baseline": 96.999,
+      "previousLaps": [
+        96.999,
+        97.11699999999999,
+        97.173
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 42,
+      "issuedAt": 4063.796,
+      "prediction": 98.06892005332162,
+      "baseline": 97.322,
+      "previousLaps": [
+        97.322,
+        96.999,
+        97.11699999999999
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 43,
+      "issuedAt": 4160.868,
+      "prediction": 97.68047175165401,
+      "baseline": 97.072,
+      "previousLaps": [
+        97.072,
+        97.322,
+        96.999
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 44,
+      "issuedAt": 4258.237,
+      "prediction": 98.16857747282573,
+      "baseline": 97.369,
+      "previousLaps": [
+        97.369,
+        97.072,
+        97.322
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 45,
+      "issuedAt": 4355.181,
+      "prediction": 97.33687623077414,
+      "baseline": 96.944,
+      "previousLaps": [
+        96.944,
+        97.369,
+        97.072
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 46,
+      "issuedAt": 4453.629,
+      "prediction": 99.72900620084934,
+      "baseline": 98.44800000000001,
+      "previousLaps": [
+        98.44800000000001,
+        96.944,
+        97.369
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 47,
+      "issuedAt": 4551.044,
+      "prediction": 98.29746092732627,
+      "baseline": 97.41499999999999,
+      "previousLaps": [
+        97.41499999999999,
+        98.44800000000001,
+        96.944
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 48,
+      "issuedAt": 4648.187,
+      "prediction": 97.75195245509713,
+      "baseline": 97.143,
+      "previousLaps": [
+        97.143,
+        97.41499999999999,
+        98.44800000000001
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 49,
+      "issuedAt": 4746.278,
+      "prediction": 99.68074246369594,
+      "baseline": 98.09100000000001,
+      "previousLaps": [
+        98.09100000000001,
+        97.143,
+        97.41499999999999
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 50,
+      "issuedAt": 4843.503,
+      "prediction": 97.75833902297649,
+      "baseline": 97.225,
+      "previousLaps": [
+        97.225,
+        98.09100000000001,
+        97.143
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 51,
+      "issuedAt": 4940.907,
+      "prediction": 98.17993536527356,
+      "baseline": 97.404,
+      "previousLaps": [
+        97.404,
+        97.225,
+        98.09100000000001
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 52,
+      "issuedAt": 5038.297,
+      "prediction": 98.28422190182036,
+      "baseline": 97.39,
+      "previousLaps": [
+        97.39,
+        97.404,
+        97.225
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 53,
+      "issuedAt": 5136.188,
+      "prediction": 98.2696748535972,
+      "baseline": 97.89099999999999,
+      "previousLaps": [
+        97.89099999999999,
+        97.39,
+        97.404
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 54,
+      "issuedAt": 5234.954,
+      "prediction": 99.73002175611715,
+      "baseline": 98.76599999999999,
+      "previousLaps": [
+        98.76599999999999,
+        97.89099999999999,
+        97.39
+      ]
+    },
+    {
+      "driverId": "massa",
+      "lap": 55,
+      "issuedAt": 5332.67,
+      "prediction": 98.2542112177152,
+      "baseline": 97.71600000000001,
+      "previousLaps": [
+        97.71600000000001,
+        98.76599999999999,
+        97.89099999999999
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 41,
+      "issuedAt": 3969.056,
+      "prediction": 98.18583710596224,
+      "baseline": 97.672,
+      "previousLaps": [
+        97.672,
+        97.491,
+        97.368
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 42,
+      "issuedAt": 4066.823,
+      "prediction": 98.22297972762695,
+      "baseline": 97.767,
+      "previousLaps": [
+        97.767,
+        97.672,
+        97.491
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 43,
+      "issuedAt": 4164.621,
+      "prediction": 98.25324930773435,
+      "baseline": 97.798,
+      "previousLaps": [
+        97.798,
+        97.767,
+        97.672
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 44,
+      "issuedAt": 4263.936,
+      "prediction": 99.88324166517715,
+      "baseline": 99.315,
+      "previousLaps": [
+        99.315,
+        97.798,
+        97.767
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 45,
+      "issuedAt": 4361.849,
+      "prediction": 98.41665599064821,
+      "baseline": 97.913,
+      "previousLaps": [
+        97.913,
+        99.315,
+        97.798
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 46,
+      "issuedAt": 4459.664,
+      "prediction": 98.40052486771837,
+      "baseline": 97.815,
+      "previousLaps": [
+        97.815,
+        97.913,
+        99.315
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 47,
+      "issuedAt": 4559.09,
+      "prediction": 99.96151186464849,
+      "baseline": 99.426,
+      "previousLaps": [
+        99.426,
+        97.815,
+        97.913
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 48,
+      "issuedAt": 4657.115,
+      "prediction": 98.66708955675125,
+      "baseline": 98.025,
+      "previousLaps": [
+        98.025,
+        99.426,
+        97.815
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 49,
+      "issuedAt": 4754.946,
+      "prediction": 98.378774309835,
+      "baseline": 97.831,
+      "previousLaps": [
+        97.831,
+        98.025,
+        99.426
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 50,
+      "issuedAt": 4855.731,
+      "prediction": 102.92208851636926,
+      "baseline": 100.785,
+      "previousLaps": [
+        100.785,
+        97.831,
+        98.025
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 51,
+      "issuedAt": 4954.083,
+      "prediction": 98.82334537369877,
+      "baseline": 98.352,
+      "previousLaps": [
+        98.352,
+        100.785,
+        97.831
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 52,
+      "issuedAt": 5052.38,
+      "prediction": 98.56188895364168,
+      "baseline": 98.297,
+      "previousLaps": [
+        98.297,
+        98.352,
+        100.785
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 53,
+      "issuedAt": 5150.854,
+      "prediction": 98.42407649181247,
+      "baseline": 98.47399999999999,
+      "previousLaps": [
+        98.47399999999999,
+        98.297,
+        98.352
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 54,
+      "issuedAt": 5249.466,
+      "prediction": 98.50265381177088,
+      "baseline": 98.612,
+      "previousLaps": [
+        98.612,
+        98.47399999999999,
+        98.297
+      ]
+    },
+    {
+      "driverId": "ocon",
+      "lap": 55,
+      "issuedAt": 5347.988,
+      "prediction": 98.53849760811346,
+      "baseline": 98.52199999999999,
+      "previousLaps": [
+        98.52199999999999,
+        98.612,
+        98.47399999999999
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 41,
+      "issuedAt": 3976.405,
+      "prediction": 97.77281826873767,
+      "baseline": 97.251,
+      "previousLaps": [
+        97.251,
+        98.12,
+        97.30199999999999
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 42,
+      "issuedAt": 4073.883,
+      "prediction": 98.16879747892261,
+      "baseline": 97.47800000000001,
+      "previousLaps": [
+        97.47800000000001,
+        97.251,
+        98.12
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 43,
+      "issuedAt": 4171.155,
+      "prediction": 97.76462776593905,
+      "baseline": 97.27199999999999,
+      "previousLaps": [
+        97.27199999999999,
+        97.47800000000001,
+        97.251
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 44,
+      "issuedAt": 4269.463,
+      "prediction": 99.6611539576119,
+      "baseline": 98.30799999999999,
+      "previousLaps": [
+        98.30799999999999,
+        97.27199999999999,
+        97.47800000000001
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 45,
+      "issuedAt": 4367.077,
+      "prediction": 98.24422378927555,
+      "baseline": 97.614,
+      "previousLaps": [
+        97.614,
+        98.30799999999999,
+        97.27199999999999
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 46,
+      "issuedAt": 4464.454,
+      "prediction": 98.3051450457349,
+      "baseline": 97.37700000000001,
+      "previousLaps": [
+        97.37700000000001,
+        97.614,
+        98.30799999999999
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 47,
+      "issuedAt": 4561.804,
+      "prediction": 98.23815158802874,
+      "baseline": 97.35,
+      "previousLaps": [
+        97.35,
+        97.37700000000001,
+        97.614
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 48,
+      "issuedAt": 4664.123,
+      "prediction": 114.53021759993311,
+      "baseline": 102.319,
+      "previousLaps": [
+        102.319,
+        97.35,
+        97.37700000000001
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 49,
+      "issuedAt": 4761.663,
+      "prediction": 98.3281282667345,
+      "baseline": 97.53999999999999,
+      "previousLaps": [
+        97.53999999999999,
+        102.319,
+        97.35
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 50,
+      "issuedAt": 4859.839,
+      "prediction": 99.90145268495691,
+      "baseline": 98.176,
+      "previousLaps": [
+        98.176,
+        97.53999999999999,
+        102.319
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 51,
+      "issuedAt": 4959.193,
+      "prediction": 99.18667374440082,
+      "baseline": 99.354,
+      "previousLaps": [
+        99.354,
+        98.176,
+        97.53999999999999
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 52,
+      "issuedAt": 5057.046,
+      "prediction": 98.39655010024086,
+      "baseline": 97.85300000000001,
+      "previousLaps": [
+        97.85300000000001,
+        99.354,
+        98.176
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 53,
+      "issuedAt": 5154.94,
+      "prediction": 98.46155445004052,
+      "baseline": 97.894,
+      "previousLaps": [
+        97.894,
+        97.85300000000001,
+        99.354
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 54,
+      "issuedAt": 5252.99,
+      "prediction": 98.95351011530089,
+      "baseline": 98.05,
+      "previousLaps": [
+        98.05,
+        97.894,
+        97.85300000000001
+      ]
+    },
+    {
+      "driverId": "alonso",
+      "lap": 55,
+      "issuedAt": 5351.194,
+      "prediction": 99.5085912825613,
+      "baseline": 98.20400000000001,
+      "previousLaps": [
+        98.20400000000001,
+        98.05,
+        97.894
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 41,
+      "issuedAt": 3983.299,
+      "prediction": 98.41988089340806,
+      "baseline": 97.369,
+      "previousLaps": [
+        97.369,
+        97.363,
+        99.583
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 42,
+      "issuedAt": 4082.696,
+      "prediction": 99.79718095636636,
+      "baseline": 99.39699999999999,
+      "previousLaps": [
+        99.39699999999999,
+        97.369,
+        97.363
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 43,
+      "issuedAt": 4179.949,
+      "prediction": 97.83630902576729,
+      "baseline": 97.253,
+      "previousLaps": [
+        97.253,
+        99.39699999999999,
+        97.369
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 44,
+      "issuedAt": 4277.205,
+      "prediction": 97.6376616941983,
+      "baseline": 97.256,
+      "previousLaps": [
+        97.256,
+        97.253,
+        99.39699999999999
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 45,
+      "issuedAt": 4377.496,
+      "prediction": 99.96511788928272,
+      "baseline": 100.291,
+      "previousLaps": [
+        100.291,
+        97.256,
+        97.253
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 46,
+      "issuedAt": 4474.89,
+      "prediction": 98.39680679023476,
+      "baseline": 97.394,
+      "previousLaps": [
+        97.394,
+        100.291,
+        97.256
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 47,
+      "issuedAt": 4572.082,
+      "prediction": 97.78565805301311,
+      "baseline": 97.19200000000001,
+      "previousLaps": [
+        97.19200000000001,
+        97.394,
+        100.291
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 48,
+      "issuedAt": 4669.343,
+      "prediction": 97.62904291001027,
+      "baseline": 97.261,
+      "previousLaps": [
+        97.261,
+        97.19200000000001,
+        97.394
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 49,
+      "issuedAt": 4767.605,
+      "prediction": 99.69116707756139,
+      "baseline": 98.262,
+      "previousLaps": [
+        98.262,
+        97.261,
+        97.19200000000001
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 50,
+      "issuedAt": 4865.114,
+      "prediction": 98.29772590672356,
+      "baseline": 97.509,
+      "previousLaps": [
+        97.509,
+        98.262,
+        97.261
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 51,
+      "issuedAt": 4963.235,
+      "prediction": 99.55795173224537,
+      "baseline": 98.12100000000001,
+      "previousLaps": [
+        98.12100000000001,
+        97.509,
+        98.262
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 52,
+      "issuedAt": 5061.138,
+      "prediction": 98.33291877994724,
+      "baseline": 97.90299999999999,
+      "previousLaps": [
+        97.90299999999999,
+        98.12100000000001,
+        97.509
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 53,
+      "issuedAt": 5158.931,
+      "prediction": 98.30254350460557,
+      "baseline": 97.793,
+      "previousLaps": [
+        97.793,
+        97.90299999999999,
+        98.12100000000001
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 54,
+      "issuedAt": 5256.954,
+      "prediction": 98.759264735654,
+      "baseline": 98.023,
+      "previousLaps": [
+        98.023,
+        97.793,
+        97.90299999999999
+      ]
+    },
+    {
+      "driverId": "kevin_magnussen",
+      "lap": 55,
+      "issuedAt": 5355.059,
+      "prediction": 99.2079640497645,
+      "baseline": 98.10499999999999,
+      "previousLaps": [
+        98.10499999999999,
+        98.023,
+        97.793
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 40,
+      "issuedAt": 3908.249,
+      "prediction": 97.26811385151045,
+      "baseline": 96.37899999999999,
+      "previousLaps": [
+        96.37899999999999,
+        99.032,
+        96.372
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 41,
+      "issuedAt": 4004.65,
+      "prediction": 96.89077990136013,
+      "baseline": 96.40100000000001,
+      "previousLaps": [
+        96.40100000000001,
+        96.37899999999999,
+        99.032
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 42,
+      "issuedAt": 4101.162,
+      "prediction": 96.85839814685602,
+      "baseline": 96.512,
+      "previousLaps": [
+        96.512,
+        96.40100000000001,
+        96.37899999999999
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 43,
+      "issuedAt": 4197.656,
+      "prediction": 96.85798319172781,
+      "baseline": 96.494,
+      "previousLaps": [
+        96.494,
+        96.512,
+        96.40100000000001
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 44,
+      "issuedAt": 4293.841,
+      "prediction": 96.86356235181083,
+      "baseline": 96.185,
+      "previousLaps": [
+        96.185,
+        96.494,
+        96.512
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 45,
+      "issuedAt": 4390.053,
+      "prediction": 96.8620232684775,
+      "baseline": 96.212,
+      "previousLaps": [
+        96.212,
+        96.185,
+        96.494
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 46,
+      "issuedAt": 4485.882,
+      "prediction": 96.86419033395367,
+      "baseline": 95.82900000000001,
+      "previousLaps": [
+        95.82900000000001,
+        96.212,
+        96.185
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 47,
+      "issuedAt": 4581.681,
+      "prediction": 96.86419033395367,
+      "baseline": 95.799,
+      "previousLaps": [
+        95.799,
+        95.82900000000001,
+        96.212
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 48,
+      "issuedAt": 4678.02,
+      "prediction": 96.86419033395367,
+      "baseline": 96.339,
+      "previousLaps": [
+        96.339,
+        95.799,
+        95.82900000000001
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 49,
+      "issuedAt": 4775.285,
+      "prediction": 97.56010022719803,
+      "baseline": 97.265,
+      "previousLaps": [
+        97.265,
+        96.339,
+        95.799
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 50,
+      "issuedAt": 4871.081,
+      "prediction": 96.96370022323391,
+      "baseline": 95.79599999999999,
+      "previousLaps": [
+        95.79599999999999,
+        97.265,
+        96.339
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 51,
+      "issuedAt": 4967.309,
+      "prediction": 96.86147885895807,
+      "baseline": 96.22800000000001,
+      "previousLaps": [
+        96.22800000000001,
+        95.79599999999999,
+        97.265
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 52,
+      "issuedAt": 5063.582,
+      "prediction": 96.86419033395367,
+      "baseline": 96.273,
+      "previousLaps": [
+        96.273,
+        96.22800000000001,
+        95.79599999999999
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 53,
+      "issuedAt": 5160.966,
+      "prediction": 98.20454503331959,
+      "baseline": 97.384,
+      "previousLaps": [
+        97.384,
+        96.273,
+        96.22800000000001
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 54,
+      "issuedAt": 5258.218,
+      "prediction": 97.74023293880016,
+      "baseline": 97.25200000000001,
+      "previousLaps": [
+        97.25200000000001,
+        97.384,
+        96.273
+      ]
+    },
+    {
+      "driverId": "grosjean",
+      "lap": 55,
+      "issuedAt": 5356.749,
+      "prediction": 99.63373116737363,
+      "baseline": 98.531,
+      "previousLaps": [
+        98.531,
+        97.25200000000001,
+        97.384
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 41,
+      "issuedAt": 3986.195,
+      "prediction": 99.63101735691887,
+      "baseline": 98.91,
+      "previousLaps": [
+        98.91,
+        97.589,
+        98.15100000000001
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 42,
+      "issuedAt": 4083.659,
+      "prediction": 98.38554791749058,
+      "baseline": 97.464,
+      "previousLaps": [
+        97.464,
+        98.91,
+        97.589
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 43,
+      "issuedAt": 4181.276,
+      "prediction": 98.3740877698094,
+      "baseline": 97.61699999999999,
+      "previousLaps": [
+        97.61699999999999,
+        97.464,
+        98.91
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 44,
+      "issuedAt": 4280.839,
+      "prediction": 99.76555379972439,
+      "baseline": 99.563,
+      "previousLaps": [
+        99.563,
+        97.61699999999999,
+        97.464
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 45,
+      "issuedAt": 4378.937,
+      "prediction": 98.89341031103582,
+      "baseline": 98.098,
+      "previousLaps": [
+        98.098,
+        99.563,
+        97.61699999999999
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 46,
+      "issuedAt": 4476.107,
+      "prediction": 97.82656075744418,
+      "baseline": 97.17,
+      "previousLaps": [
+        97.17,
+        98.098,
+        99.563
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 47,
+      "issuedAt": 4573.342,
+      "prediction": 97.62381937918,
+      "baseline": 97.235,
+      "previousLaps": [
+        97.235,
+        97.17,
+        98.098
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 48,
+      "issuedAt": 4670.8,
+      "prediction": 98.23966128864066,
+      "baseline": 97.458,
+      "previousLaps": [
+        97.458,
+        97.235,
+        97.17
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 49,
+      "issuedAt": 4768.286,
+      "prediction": 98.29550602258033,
+      "baseline": 97.48599999999999,
+      "previousLaps": [
+        97.48599999999999,
+        97.458,
+        97.235
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 50,
+      "issuedAt": 4866.673,
+      "prediction": 99.64105551999306,
+      "baseline": 98.387,
+      "previousLaps": [
+        98.387,
+        97.48599999999999,
+        97.458
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 51,
+      "issuedAt": 4964.66,
+      "prediction": 98.56278931332997,
+      "baseline": 97.987,
+      "previousLaps": [
+        97.987,
+        98.387,
+        97.48599999999999
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 52,
+      "issuedAt": 5062.436,
+      "prediction": 98.37175063554496,
+      "baseline": 97.77600000000001,
+      "previousLaps": [
+        97.77600000000001,
+        97.987,
+        98.387
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 53,
+      "issuedAt": 5159.853,
+      "prediction": 98.36309453137014,
+      "baseline": 97.417,
+      "previousLaps": [
+        97.417,
+        97.77600000000001,
+        97.987
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 54,
+      "issuedAt": 5257.973,
+      "prediction": 99.63027621387631,
+      "baseline": 98.12,
+      "previousLaps": [
+        98.12,
+        97.417,
+        97.77600000000001
+      ]
+    },
+    {
+      "driverId": "gasly",
+      "lap": 55,
+      "issuedAt": 5357.559,
+      "prediction": 99.2182964415754,
+      "baseline": 99.586,
+      "previousLaps": [
+        99.586,
+        98.12,
+        97.417
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 41,
+      "issuedAt": 3991.558,
+      "prediction": 98.79630667125211,
+      "baseline": 98.125,
+      "previousLaps": [
+        98.125,
+        99.596,
+        104.902
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 42,
+      "issuedAt": 4090.517,
+      "prediction": 99.07311724669448,
+      "baseline": 98.959,
+      "previousLaps": [
+        98.959,
+        98.125,
+        99.596
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 43,
+      "issuedAt": 4190.254,
+      "prediction": 99.48343342527676,
+      "baseline": 99.737,
+      "previousLaps": [
+        99.737,
+        98.959,
+        98.125
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 44,
+      "issuedAt": 4287.546,
+      "prediction": 97.92203119625033,
+      "baseline": 97.292,
+      "previousLaps": [
+        97.292,
+        99.737,
+        98.959
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 45,
+      "issuedAt": 4384.967,
+      "prediction": 98.3391854519953,
+      "baseline": 97.42099999999999,
+      "previousLaps": [
+        97.42099999999999,
+        97.292,
+        99.737
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 46,
+      "issuedAt": 4482.153,
+      "prediction": 97.76614771128537,
+      "baseline": 97.186,
+      "previousLaps": [
+        97.186,
+        97.42099999999999,
+        97.292
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 47,
+      "issuedAt": 4579.554,
+      "prediction": 98.2332826080851,
+      "baseline": 97.40100000000001,
+      "previousLaps": [
+        97.40100000000001,
+        97.186,
+        97.42099999999999
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 48,
+      "issuedAt": 4677.096,
+      "prediction": 98.27193845815862,
+      "baseline": 97.542,
+      "previousLaps": [
+        97.542,
+        97.40100000000001,
+        97.186
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 49,
+      "issuedAt": 4774.957,
+      "prediction": 98.31926291003072,
+      "baseline": 97.86099999999999,
+      "previousLaps": [
+        97.86099999999999,
+        97.542,
+        97.40100000000001
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 50,
+      "issuedAt": 4873.393,
+      "prediction": 99.61455888866078,
+      "baseline": 98.436,
+      "previousLaps": [
+        98.436,
+        97.86099999999999,
+        97.542
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 51,
+      "issuedAt": 4971.023,
+      "prediction": 98.3328403844403,
+      "baseline": 97.63,
+      "previousLaps": [
+        97.63,
+        98.436,
+        97.86099999999999
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 52,
+      "issuedAt": 5069.969,
+      "prediction": 99.73672876545997,
+      "baseline": 98.946,
+      "previousLaps": [
+        98.946,
+        97.63,
+        98.436
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 53,
+      "issuedAt": 5168.384,
+      "prediction": 98.77930764037546,
+      "baseline": 98.41499999999999,
+      "previousLaps": [
+        98.41499999999999,
+        98.946,
+        97.63
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 54,
+      "issuedAt": 5266.17,
+      "prediction": 98.40014533063781,
+      "baseline": 97.786,
+      "previousLaps": [
+        97.786,
+        98.41499999999999,
+        98.946
+      ]
+    },
+    {
+      "driverId": "jolyon_palmer",
+      "lap": 55,
+      "issuedAt": 5363.758,
+      "prediction": 98.33648803582282,
+      "baseline": 97.588,
+      "previousLaps": [
+        97.588,
+        97.786,
+        98.41499999999999
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 41,
+      "issuedAt": 3972.815,
+      "prediction": 98.27115783929654,
+      "baseline": 97.881,
+      "previousLaps": [
+        97.881,
+        97.878,
+        97.84
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 42,
+      "issuedAt": 4071.368,
+      "prediction": 99.58095797854854,
+      "baseline": 98.553,
+      "previousLaps": [
+        98.553,
+        97.881,
+        97.878
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 43,
+      "issuedAt": 4169.573,
+      "prediction": 99.1911933705866,
+      "baseline": 98.205,
+      "previousLaps": [
+        98.205,
+        98.553,
+        97.881
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 44,
+      "issuedAt": 4267.355,
+      "prediction": 98.2713123834279,
+      "baseline": 97.782,
+      "previousLaps": [
+        97.782,
+        98.205,
+        98.553
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 45,
+      "issuedAt": 4365.603,
+      "prediction": 99.71838508377122,
+      "baseline": 98.24799999999999,
+      "previousLaps": [
+        98.24799999999999,
+        97.782,
+        98.205
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 46,
+      "issuedAt": 4464.95,
+      "prediction": 99.07998174306881,
+      "baseline": 99.34700000000001,
+      "previousLaps": [
+        99.34700000000001,
+        98.24799999999999,
+        97.782
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 47,
+      "issuedAt": 4563.339,
+      "prediction": 98.76960359919399,
+      "baseline": 98.38900000000001,
+      "previousLaps": [
+        98.38900000000001,
+        99.34700000000001,
+        98.24799999999999
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 48,
+      "issuedAt": 4663.911,
+      "prediction": 102.3713836108806,
+      "baseline": 100.572,
+      "previousLaps": [
+        100.572,
+        98.38900000000001,
+        99.34700000000001
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 49,
+      "issuedAt": 4762.979,
+      "prediction": 99.25198267100737,
+      "baseline": 99.068,
+      "previousLaps": [
+        99.068,
+        100.572,
+        98.38900000000001
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 50,
+      "issuedAt": 4861.898,
+      "prediction": 98.84344583781902,
+      "baseline": 98.919,
+      "previousLaps": [
+        98.919,
+        99.068,
+        100.572
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 51,
+      "issuedAt": 4964.855,
+      "prediction": 114.23519181421881,
+      "baseline": 102.957,
+      "previousLaps": [
+        102.957,
+        98.919,
+        99.068
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 52,
+      "issuedAt": 5081.464,
+      "prediction": 99.22886622579601,
+      "baseline": 116.60900000000001,
+      "previousLaps": [
+        116.60900000000001,
+        102.957,
+        98.919
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 53,
+      "issuedAt": 5175.73,
+      "prediction": 97.34020394104722,
+      "baseline": 94.26599999999999,
+      "previousLaps": [
+        94.26599999999999,
+        116.60900000000001,
+        102.957
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 54,
+      "issuedAt": 5270.377,
+      "prediction": 96.89286040136014,
+      "baseline": 94.64699999999999,
+      "previousLaps": [
+        94.64699999999999,
+        94.26599999999999,
+        116.60900000000001
+      ]
+    },
+    {
+      "driverId": "hulkenberg",
+      "lap": 55,
+      "issuedAt": 5365.211,
+      "prediction": 96.86419033395367,
+      "baseline": 94.834,
+      "previousLaps": [
+        94.834,
+        94.64699999999999,
+        94.26599999999999
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 40,
+      "issuedAt": 3918.847,
+      "prediction": 97.32944280955371,
+      "baseline": 96.444,
+      "previousLaps": [
+        96.444,
+        119.607,
+        103.13499999999999
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 41,
+      "issuedAt": 4017.554,
+      "prediction": 99.82354040152536,
+      "baseline": 98.707,
+      "previousLaps": [
+        98.707,
+        96.444,
+        119.607
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 42,
+      "issuedAt": 4114.574,
+      "prediction": 97.43460648290316,
+      "baseline": 97.02000000000001,
+      "previousLaps": [
+        97.02000000000001,
+        98.707,
+        96.444
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 43,
+      "issuedAt": 4211.227,
+      "prediction": 97.09565920638151,
+      "baseline": 96.65299999999999,
+      "previousLaps": [
+        96.65299999999999,
+        97.02000000000001,
+        98.707
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 44,
+      "issuedAt": 4307.909,
+      "prediction": 96.99865184932283,
+      "baseline": 96.682,
+      "previousLaps": [
+        96.682,
+        96.65299999999999,
+        97.02000000000001
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 45,
+      "issuedAt": 4404.678,
+      "prediction": 96.99815001281578,
+      "baseline": 96.769,
+      "previousLaps": [
+        96.769,
+        96.682,
+        96.65299999999999
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 46,
+      "issuedAt": 4501.282,
+      "prediction": 97.00464242578481,
+      "baseline": 96.604,
+      "previousLaps": [
+        96.604,
+        96.769,
+        96.682
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 47,
+      "issuedAt": 4597.967,
+      "prediction": 97.00327365106276,
+      "baseline": 96.685,
+      "previousLaps": [
+        96.685,
+        96.604,
+        96.769
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 48,
+      "issuedAt": 4694.604,
+      "prediction": 96.9979259625952,
+      "baseline": 96.637,
+      "previousLaps": [
+        96.637,
+        96.685,
+        96.604
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 49,
+      "issuedAt": 4791.235,
+      "prediction": 97.00009219626429,
+      "baseline": 96.631,
+      "previousLaps": [
+        96.631,
+        96.637,
+        96.685
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 50,
+      "issuedAt": 4888.102,
+      "prediction": 97.05310047806617,
+      "baseline": 96.86699999999999,
+      "previousLaps": [
+        96.86699999999999,
+        96.631,
+        96.637
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 51,
+      "issuedAt": 4984.841,
+      "prediction": 97.00064925651655,
+      "baseline": 96.739,
+      "previousLaps": [
+        96.739,
+        96.86699999999999,
+        96.631
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 52,
+      "issuedAt": 5082.349,
+      "prediction": 98.16073060689878,
+      "baseline": 97.50800000000001,
+      "previousLaps": [
+        97.50800000000001,
+        96.739,
+        96.86699999999999
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 53,
+      "issuedAt": 5180.082,
+      "prediction": 98.27193694004643,
+      "baseline": 97.733,
+      "previousLaps": [
+        97.733,
+        97.50800000000001,
+        96.739
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 54,
+      "issuedAt": 5276.477,
+      "prediction": 97.18626475765292,
+      "baseline": 96.39500000000001,
+      "previousLaps": [
+        96.39500000000001,
+        97.733,
+        97.50800000000001
+      ]
+    },
+    {
+      "driverId": "wehrlein",
+      "lap": 55,
+      "issuedAt": 5373.108,
+      "prediction": 97.03181744660289,
+      "baseline": 96.631,
+      "previousLaps": [
+        96.631,
+        96.39500000000001,
+        97.733
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 40,
+      "issuedAt": 3944.289,
+      "prediction": 99.3643449162722,
+      "baseline": 116.076,
+      "previousLaps": [
+        116.076,
+        105.52000000000001,
+        98.826
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 41,
+      "issuedAt": 4041.79,
+      "prediction": 98.53652602657966,
+      "baseline": 97.501,
+      "previousLaps": [
+        97.501,
+        116.076,
+        105.52000000000001
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 42,
+      "issuedAt": 4138.982,
+      "prediction": 97.78922316214008,
+      "baseline": 97.19200000000001,
+      "previousLaps": [
+        97.19200000000001,
+        97.501,
+        116.076
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 43,
+      "issuedAt": 4235.808,
+      "prediction": 97.10479289078334,
+      "baseline": 96.826,
+      "previousLaps": [
+        96.826,
+        97.19200000000001,
+        97.501
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 44,
+      "issuedAt": 4332.671,
+      "prediction": 97.05819375833028,
+      "baseline": 96.863,
+      "previousLaps": [
+        96.863,
+        96.826,
+        97.19200000000001
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 45,
+      "issuedAt": 4429.866,
+      "prediction": 97.58009620781463,
+      "baseline": 97.195,
+      "previousLaps": [
+        97.195,
+        96.863,
+        96.826
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 46,
+      "issuedAt": 4527.28,
+      "prediction": 98.2390472069307,
+      "baseline": 97.414,
+      "previousLaps": [
+        97.414,
+        97.195,
+        96.863
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 47,
+      "issuedAt": 4624.761,
+      "prediction": 98.30104025869144,
+      "baseline": 97.481,
+      "previousLaps": [
+        97.481,
+        97.414,
+        97.195
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 48,
+      "issuedAt": 4722.002,
+      "prediction": 97.76878955401212,
+      "baseline": 97.241,
+      "previousLaps": [
+        97.241,
+        97.481,
+        97.414
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 49,
+      "issuedAt": 4819.268,
+      "prediction": 97.62797719572454,
+      "baseline": 97.26599999999999,
+      "previousLaps": [
+        97.26599999999999,
+        97.241,
+        97.481
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 50,
+      "issuedAt": 4916.817,
+      "prediction": 98.16640409121307,
+      "baseline": 97.549,
+      "previousLaps": [
+        97.549,
+        97.26599999999999,
+        97.241
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 51,
+      "issuedAt": 5014.664,
+      "prediction": 98.31728998957617,
+      "baseline": 97.84700000000001,
+      "previousLaps": [
+        97.84700000000001,
+        97.549,
+        97.26599999999999
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 52,
+      "issuedAt": 5112.231,
+      "prediction": 98.30570222249317,
+      "baseline": 97.56700000000001,
+      "previousLaps": [
+        97.56700000000001,
+        97.84700000000001,
+        97.549
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 53,
+      "issuedAt": 5209.892,
+      "prediction": 98.27148720797298,
+      "baseline": 97.661,
+      "previousLaps": [
+        97.661,
+        97.56700000000001,
+        97.84700000000001
+      ]
+    },
+    {
+      "driverId": "ericsson",
+      "lap": 54,
+      "issuedAt": 5308.681,
+      "prediction": 99.63486518496543,
+      "baseline": 98.789,
+      "previousLaps": [
+        98.789,
+        97.661,
+        97.56700000000001
+      ]
+    }
+  ],
+  "createdAt": "2026-09-20T06:04:25.114007+00:00",
+  "sourceSha256": "4892064945af6b3ee547fd8d89f23de44985e51e36a9ce0513a45a37ec0f3198",
+  "versions": {
+    "python": "3.12.10",
+    "sklearn": "1.9.1",
+    "xgboost": "3.4.1"
+  },
+  "limitations": "One race only. All recorded laps, including pit and slow laps, are retained. No tyre, weather, traffic or planned pit inputs. Scores are retrospective, not an uncertainty interval."
+}

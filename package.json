@@ -1,0 +1,31 @@
+{
+  "name": "sepang-vision-lab",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "preview": "vite preview --host 127.0.0.1",
+    "train:ml": "python -m backend.train_lap_model",
+    "dev:api": "python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000",
+    "test:api": "python -m unittest backend.test_api backend.test_historical backend.test_lap_model backend.test_stints backend.test_strategy backend.test_monte_carlo"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "1.0.1",
+    "@react-three/drei": "^10.7.0",
+    "@react-three/fiber": "^9.4.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/three": "^0.180.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.0"
+  }
+}

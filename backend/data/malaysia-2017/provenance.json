@@ -1,0 +1,28 @@
+{
+  "provider": "Jolpica F1 (Ergast-compatible)",
+  "race": "2017 Malaysian Grand Prix",
+  "retrievedAt": "2026-09-20T04:52:00.428037+00:00",
+  "urls": [
+    "https://api.jolpi.ca/ergast/f1/2017/15/results/",
+    "https://api.jolpi.ca/ergast/f1/2017/15/laps/",
+    "https://api.jolpi.ca/ergast/f1/2017/15/pitstops/"
+  ],
+  "rawHashes": {
+    "laps-0.json": "27161d1051e78959106e5465da81791d964bd4e10a50fdddfa1e43d17b7f09a9",
+    "laps-100.json": "0035a2caa9daea415e7fa43e5cdeae7eec5511bc33f871e52e024d718abf62d9",
+    "laps-1000.json": "0fd113bc3e52e2120c2eddacef64f3ff04a5f1ed920625b1761ed47a5bea1699",
+    "laps-200.json": "64a814f47cea26d14338d66c3a9b64d40d72747e5836418547da3aab457f76fc",
+    "laps-300.json": "5606c46186ad8515959df0b32db19e79ce79d1dfe2c4667df0694b80c2da8145",
+    "laps-400.json": "c0ca7f0de3920e5df1e430a435226080210bb1be0a232875eb2ee56f05d6e60a",
+    "laps-500.json": "884f5943c31572f4b65f3ae2b8b812a1695d0d9df6eb2c21507a7e665cffa3a1",
+    "laps-600.json": "2c023917da050d4530d4a9bb0e7d6868aa317ccd937f818f4555336909a1df42",
+    "laps-700.json": "d651981e7671a2511c88c5c8b590530bc62d0a41c741e5f76a2a5035efeda1cf",
+    "laps-800.json": "6e00892ffebf60b8d8d536c10e58ed72c944aa89a46e1c43e07b2384970007a0",
+    "laps-900.json": "bf36fc1ab6d77a9e7fb259c91fb68ea33b5f22fb4785ff3a556a5fc2ef994fa7",
+    "pitstops-0.json": "66ea70cc24b8c4b75621569ee73051d73f8284f58de881bfd84df6e35e6dfcb2",
+    "results-0.json": "bcfec2284fcb395872bf6b78c74efe1c2822cbb8c1942740c9c319e76732f30d"
+  },
+  "lapRecords": 1024,
+  "pitRecords": 20,
+  "winnerElapsedSeconds": 5401.29
+}

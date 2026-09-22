@@ -1,0 +1,6 @@
+fastapi==0.115.14
+uvicorn==0.32.1
+httpx==0.28.1
+pyarrow==25.0.1
+scikit-learn==1.9.1
+xgboost==3.4.1

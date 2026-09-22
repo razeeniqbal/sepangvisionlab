@@ -1,0 +1,17 @@
+# Milestone 13 — Weather scenarios
+
+Weather Lab appears after a successful frozen Strategy Lab comparison. Capture a branch at lap 52 or earlier, compare strategies, then configure and compare weather strategies. The four states are Dry → Light rain → Wet → Drying, with user-selected first laps. At least one lap is reserved for each state. Later branches show an explanation instead of invalid controls.
+
+Five deterministic candidates are compared: stay on slicks; early intermediates; delayed intermediates; early wets; delayed wets. Early means switching immediately before the first light-rain lap. Delayed means that boundary plus the requested number of laps, strictly before drying. All switching candidates return to slicks immediately before the first drying lap. Stop schedules are explicit in the results; each stop is charged once on its first new-tyre lap. There is no intermediate-to-wet third stop or optimization over all possible schedules.
+
+All tyre/weather penalties are editable, finite, bounded 0–120 seconds per lap. Defaults are illustrative: dry slick/inter/wet 0/8/15; light rain 12/2/6; wet 35/12/3; drying 4/6/12. These are not calibrated performance values or safe-driving models. Weather is a lap-indexed assumed sequence, not a time-based forecast, historical reconstruction, rainfall measurement or inference from the archive.
+
+For each lap: baseline pace + weather/tyre penalty + shared wear rate × laps since branch or last switch + pit loss if switching. Baseline is the existing Strategy Lab median of three completed clean laps; no future historical data enters this calculation. Wear starts at zero at the branch and resets on stops. This tracks extra modeled wear, not actual tyre age. Pit loss starts from the strategy assumption and can be edited independently. All other deterministic strategy assumptions and Monte Carlo settings are intentionally outside this separate experiment; the interface explains this.
+
+Outputs include five remaining-time totals, differences from slicks, every tied fastest candidate, a labeled lap/weather strip, cumulative difference chart and expandable per-lap tyre/weather/pit cost audit. Editing any weather input immediately clears results. Editing the original branch or strategy unmounts weather results; moving the replay does not move a frozen branch. Reset restores illustrative defaults.
+
+The bounded calculation is pure TypeScript in src/domain/weather.ts, using the already validated server baseline. It requires no additional endpoint, external weather service, library or remote call. WeatherPanel handles controls and presentation; StrategyLab integrates it. HistoricalWorkspace footer, stylesheet, README and tests are updated. Existing historical and Monte Carlo calculations remain separate.
+
+Tests verify exact transition and stop boundaries, two pit charges, reset wear, deterministic totals, zero-cost ties, known crossover differences, immutable snapshots, invalid/nonfinite inputs, and the four-lap boundary. Run npm test, npm run test:api, npm run build; browser checks cover comparison, edits clearing results, reset and per-lap inspection.
+
+Limitations: deterministic assumed weather known to every candidate, no calibrated uncertainty, traffic, grip physics, aquaplaning, incidents, safety cars or race-control rules. No real-race recommendation or probability is claimed. Next milestone: M14 hand tracking with conventional controls preserved.

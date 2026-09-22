@@ -1,0 +1,12 @@
+{
+  "provider": "Tomislav Bacinger / f1-circuits",
+  "sourceUrl": "https://raw.githubusercontent.com/bacinger/f1-circuits/master/circuits/my-1999.geojson",
+  "retrievedAt": "2026-09-19",
+  "license": "MIT",
+  "sha256": "79b46ccbc5f668f042f8b82f9cf4450a85a3c711c5e52e3b0a031ea5a64a4fef",
+  "startFinish": [
+    101.735641,
+    2.760529
+  ],
+  "verification": "docs/CIRCUIT_DATA.md"
+}

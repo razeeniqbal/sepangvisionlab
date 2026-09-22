@@ -1,0 +1,182 @@
+[
+  {
+    "id": "car-07",
+    "number": "07",
+    "color": "#00a19c",
+    "initialProgress": 0,
+    "lapSeconds": 24,
+    "compound": "MEDIUM",
+    "initialTyreAge": 0
+  },
+  {
+    "id": "car-88",
+    "number": "88",
+    "color": "#efaa58",
+    "initialProgress": 0.012,
+    "lapSeconds": 23.939999999999998,
+    "compound": "SOFT",
+    "initialTyreAge": 3
+  },
+  {
+    "id": "car-12",
+    "number": "12",
+    "color": "#afbad0",
+    "initialProgress": 0.1,
+    "lapSeconds": 25.479999999999997,
+    "compound": "HARD",
+    "initialTyreAge": 6
+  },
+  {
+    "id": "car-24",
+    "number": "24",
+    "color": "#a68ed4",
+    "initialProgress": 0.15,
+    "lapSeconds": 22.619999999999997,
+    "compound": "MEDIUM",
+    "initialTyreAge": 9
+  },
+  {
+    "id": "car-31",
+    "number": "31",
+    "color": "#8299be",
+    "initialProgress": 0.2,
+    "lapSeconds": 24.16,
+    "compound": "SOFT",
+    "initialTyreAge": 0
+  },
+  {
+    "id": "car-44",
+    "number": "44",
+    "color": "#b9b6a0",
+    "initialProgress": 0.25,
+    "lapSeconds": 25.7,
+    "compound": "HARD",
+    "initialTyreAge": 3
+  },
+  {
+    "id": "car-55",
+    "number": "55",
+    "color": "#ba817b",
+    "initialProgress": 0.3,
+    "lapSeconds": 22.84,
+    "compound": "MEDIUM",
+    "initialTyreAge": 6
+  },
+  {
+    "id": "car-63",
+    "number": "63",
+    "color": "#99ad86",
+    "initialProgress": 0.35,
+    "lapSeconds": 24.38,
+    "compound": "SOFT",
+    "initialTyreAge": 9
+  },
+  {
+    "id": "car-16",
+    "number": "16",
+    "color": "#929fae",
+    "initialProgress": 0.4,
+    "lapSeconds": 25.919999999999998,
+    "compound": "HARD",
+    "initialTyreAge": 0
+  },
+  {
+    "id": "car-27",
+    "number": "27",
+    "color": "#c99aaf",
+    "initialProgress": 0.45,
+    "lapSeconds": 23.06,
+    "compound": "MEDIUM",
+    "initialTyreAge": 3
+  },
+  {
+    "id": "car-81",
+    "number": "81",
+    "color": "#00a19c",
+    "initialProgress": 0.5,
+    "lapSeconds": 24.599999999999998,
+    "compound": "SOFT",
+    "initialTyreAge": 6
+  },
+  {
+    "id": "car-03",
+    "number": "03",
+    "color": "#efaa58",
+    "initialProgress": 0.55,
+    "lapSeconds": 26.14,
+    "compound": "HARD",
+    "initialTyreAge": 9
+  },
+  {
+    "id": "car-19",
+    "number": "19",
+    "color": "#afbad0",
+    "initialProgress": 0.6,
+    "lapSeconds": 23.279999999999998,
+    "compound": "MEDIUM",
+    "initialTyreAge": 0
+  },
+  {
+    "id": "car-22",
+    "number": "22",
+    "color": "#a68ed4",
+    "initialProgress": 0.65,
+    "lapSeconds": 24.82,
+    "compound": "SOFT",
+    "initialTyreAge": 3
+  },
+  {
+    "id": "car-36",
+    "number": "36",
+    "color": "#8299be",
+    "initialProgress": 0.7,
+    "lapSeconds": 26.36,
+    "compound": "HARD",
+    "initialTyreAge": 6
+  },
+  {
+    "id": "car-48",
+    "number": "48",
+    "color": "#b9b6a0",
+    "initialProgress": 0.75,
+    "lapSeconds": 23.5,
+    "compound": "MEDIUM",
+    "initialTyreAge": 9
+  },
+  {
+    "id": "car-52",
+    "number": "52",
+    "color": "#ba817b",
+    "initialProgress": 0.8,
+    "lapSeconds": 25.04,
+    "compound": "SOFT",
+    "initialTyreAge": 0
+  },
+  {
+    "id": "car-69",
+    "number": "69",
+    "color": "#99ad86",
+    "initialProgress": 0.85,
+    "lapSeconds": 26.58,
+    "compound": "HARD",
+    "initialTyreAge": 3
+  },
+  {
+    "id": "car-75",
+    "number": "75",
+    "color": "#929fae",
+    "initialProgress": 0.9,
+    "lapSeconds": 23.72,
+    "compound": "MEDIUM",
+    "initialTyreAge": 6
+  },
+  {
+    "id": "car-90",
+    "number": "90",
+    "color": "#c99aaf",
+    "initialProgress": 0.95,
+    "lapSeconds": 25.259999999999998,
+    "compound": "SOFT",
+    "initialTyreAge": 9
+  }
+]
