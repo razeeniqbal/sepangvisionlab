@@ -1,3 +1,6 @@
+import { useState } from "react";
+import GestureRecorder from "./GestureRecorder";
+import GestureControls from "./GestureControls";
 import useHandTracking from "../../hooks/useHandTracking";
 import {
   fingerTips,
@@ -7,11 +10,17 @@ import {
 } from "../../domain/hands";
 export default function HandTrackingPanel() {
   const tracking = useHandTracking();
+  const [collecting, setCollecting] = useState(false);
   const active = ["loading", "checking", "requesting", "live"].includes(
     tracking.status,
   );
   return (
-    <section className="hand-panel" aria-label="Hand tracking lab">
+    <section
+      id="hand-lab"
+      tabIndex={-1}
+      className="hand-panel"
+      aria-label="Hand tracking lab"
+    >
       <div className="telemetry-heading">
         <h2>
           HAND TRACKING <span>/ OPTIONAL CAMERA INPUT</span>
@@ -37,6 +46,12 @@ export default function HandTrackingPanel() {
       <p role={tracking.status === "error" ? "alert" : "status"}>
         {tracking.message}
       </p>
+      <GestureControls
+        hands={tracking.hands}
+        live={tracking.status === "live" && !collecting}
+        latency={tracking.latency}
+        aspect={tracking.size.width / tracking.size.height}
+      />
       <div className="hand-layout">
         <div
           className="hand-preview"
@@ -106,6 +121,15 @@ export default function HandTrackingPanel() {
           </svg>
         </div>
         <div className="hand-readout">
+          <GestureRecorder
+            hands={tracking.hands}
+            live={tracking.status === "live"}
+            latency={tracking.latency}
+            aspect={tracking.size.width / tracking.size.height}
+            enabled={collecting}
+            onEnabled={setCollecting}
+          />
+
           <h3>{tracking.hands.length} / 2 hands detected</h3>
           <p>
             Inference:{" "}
@@ -169,8 +193,8 @@ export default function HandTrackingPanel() {
       </p>
       <p>
         Stop camera, Escape, hiding this tab, switching session, or leaving the
-        page releases the camera. Tracking does not operate replay or strategy
-        controls in this milestone. Mouse and keyboard remain available.
+        page releases the camera and disarms gestures. Gesture actions require a
+        separate enable switch. Mouse and keyboard remain available.
       </p>
     </section>
   );

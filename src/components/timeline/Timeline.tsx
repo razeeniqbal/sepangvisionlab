@@ -27,7 +27,12 @@ export default function Timeline({
 }: Props) {
   const markers = lapMarkers(car);
   return (
-    <section className="timeline-panel" aria-label="Synthetic session replay">
+    <section
+      id="race-replay"
+      tabIndex={-1}
+      className="timeline-panel"
+      aria-label="Synthetic session replay"
+    >
       <div className="timeline-heading">
         <h2>
           SESSION REPLAY <span>/ SYNTHETIC · 10 MIN</span>

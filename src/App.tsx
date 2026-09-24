@@ -1,7 +1,12 @@
+import {
+  GestureProvider,
+  useGestureReceiver,
+} from "./components/handtracking/GestureContext";
 import HandTrackingPanel from "./components/handtracking/HandTrackingPanel";
 import { Component, useState, type ReactNode } from "react";
 import HistoricalWorkspace from "./components/historical/HistoricalWorkspace";
-import CircuitScene from "./components/circuit/CircuitScene";
+import CircuitScene from "./components/circuit/CircuitViewport";
+import WorkspaceNav from "./components/WorkspaceNav";
 import Standings from "./components/standings/Standings";
 import CarInspector from "./components/driver/CarInspector";
 import TelemetryPanel from "./components/telemetry/TelemetryPanel";
@@ -50,8 +55,11 @@ export default function App() {
           Synthetic development session
         </button>
       </nav>
-      {mode === "historical" ? <HistoricalWorkspace /> : <SyntheticApp />}
-      <HandTrackingPanel key={mode} />
+      <WorkspaceNav historical={mode === "historical"} />
+      <GestureProvider key={mode}>
+        {mode === "historical" ? <HistoricalWorkspace /> : <SyntheticApp />}
+        <HandTrackingPanel />
+      </GestureProvider>
     </>
   );
 }
@@ -66,6 +74,23 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
   const { time, running, speed } = replay;
   const cars = sampleRace(data, time);
   const [selectedId, setSelectedId] = useState("car-07");
+  useGestureReceiver((action) => {
+    if (action === "select") {
+      setSelectedId(
+        (id) =>
+          syntheticCars[
+            (syntheticCars.findIndex((c) => c.id === id) + 1) %
+              syntheticCars.length
+          ].id,
+      );
+      return true;
+    }
+    if (action === "inspect") {
+      document.querySelector(".inspector")?.scrollIntoView({ block: "center" });
+      return true;
+    }
+    return false;
+  });
   const selected = cars.find((car) => car.id === selectedId)!;
   const definition = syntheticCars.find((car) => car.id === selectedId)!;
   const leader = cars.find((car) => car.position === 1)!;
@@ -92,7 +117,7 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
         </div>
         <span className="tag">SYNTHETIC</span>
       </div>
-      <main className="race-workspace">
+      <main id="race-view" tabIndex={-1} className="race-workspace">
         <Standings
           cars={cars}
           definitions={syntheticCars}
@@ -105,7 +130,7 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
         >
           <div className="view-top">
             <span>{cars.length} CARS / CIRCUIT VIEW</span>
-            <span>NORTH UP</span>
+            <span>ADJUSTABLE CIRCUIT VIEW</span>
           </div>
           <SceneBoundary>
             <CircuitScene

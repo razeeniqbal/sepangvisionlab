@@ -1,8 +1,9 @@
+import { useGestureReceiver } from "../handtracking/GestureContext";
 import { useEffect, useState } from "react";
 import StrategyLab from "./StrategyLab";
 import StintAnalysisPanel from "./StintAnalysisPanel";
 import LapPredictionPanel from "./LapPredictionPanel";
-import CircuitScene from "../circuit/CircuitScene";
+import CircuitScene from "../circuit/CircuitViewport";
 import useReplay from "../../hooks/useReplay";
 import {
   parseHistorical,
@@ -62,6 +63,28 @@ export default function HistoricalWorkspace() {
 function HistoricalRace({ data }: { data: HistoricalReplay }) {
   const replay = useReplay(data.duration, false);
   const [selectedId, setSelectedId] = useState("max_verstappen");
+  useGestureReceiver((action) => {
+    if (action === "select") {
+      const ordered = [...data.drivers].sort((a, b) => a.grid - b.grid);
+      setSelectedId(
+        (id) =>
+          ordered[(ordered.findIndex((d) => d.id === id) + 1) % ordered.length]
+            .id,
+      );
+      return true;
+    }
+    if (action === "inspect") {
+      document.querySelector(".inspector")?.scrollIntoView({ block: "center" });
+      return true;
+    }
+    if (action === "strategy") {
+      document
+        .querySelector(".strategy-panel")
+        ?.scrollIntoView({ block: "start" });
+      return true;
+    }
+    return false;
+  });
   const selected = data.drivers.find((d) => d.id === selectedId)!;
   const state = historicalState(selected, replay.time);
   const entries = markerEntries(data);
@@ -90,7 +113,7 @@ function HistoricalRace({ data }: { data: HistoricalReplay }) {
         interpolated between timing lines, not GPS. Cars disappear after their
         last recorded lap; their stopping locations are unknown.
       </p>
-      <main className="race-workspace">
+      <main id="race-view" tabIndex={-1} className="race-workspace">
         <section
           className="standings-panel"
           aria-label="Historical driver list"
@@ -129,7 +152,7 @@ function HistoricalRace({ data }: { data: HistoricalReplay }) {
         >
           <div className="view-top">
             <span>{activeIds.length} CARS WITH TIMING COVERAGE</span>
-            <span>NORTH UP</span>
+            <span>ADJUSTABLE CIRCUIT VIEW</span>
           </div>
           <CircuitScene
             clock={replay.clock}
@@ -203,6 +226,8 @@ function HistoricalRace({ data }: { data: HistoricalReplay }) {
         </aside>
       </main>
       <section
+        id="race-replay"
+        tabIndex={-1}
         className="timeline-panel"
         aria-label="Historical replay controls"
       >
@@ -278,7 +303,7 @@ function HistoricalRace({ data }: { data: HistoricalReplay }) {
           entry/exit times are unavailable.
         </p>
       </section>
-      <section className="historical-records">
+      <section id="race-analysis" tabIndex={-1} className="historical-records">
         <h2>{selected.name} / RECORDED LAPS</h2>
         <p>
           Click a lap to inspect its completion. Future lap records are
@@ -319,7 +344,7 @@ function HistoricalRace({ data }: { data: HistoricalReplay }) {
       />
       <StrategyLab driver={selected} completed={state.completedLaps} />
       <footer>
-        <span>MILESTONE 14 · HAND TRACKING</span>
+        <span>SEPANG VISION LAB · HISTORICAL WORKSPACE</span>
         <a
           href="https://github.com/jolpica/jolpica-f1"
           target="_blank"

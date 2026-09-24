@@ -1,3 +1,4 @@
+import RaceEngineer from "./RaceEngineer";
 import WeatherPanel from "./WeatherPanel";
 import MonteCarloPanel from "./MonteCarloPanel";
 import { useEffect, useRef, useState } from "react";
@@ -184,7 +185,12 @@ export default function StrategyLab({
     }
   }
   return (
-    <section className="strategy-panel" aria-label="Strategy Lab">
+    <section
+      id="race-strategy"
+      tabIndex={-1}
+      className="strategy-panel"
+      aria-label="Strategy Lab"
+    >
       <div className="telemetry-heading">
         <h2>
           STRATEGY LAB <span>/ HYPOTHETICAL BRANCH</span>
@@ -374,7 +380,16 @@ export default function StrategyLab({
         <MonteCarloPanel key={JSON.stringify(result)} strategy={result} />
       )}
       {result && (
-        <WeatherPanel key={"weather:" + JSON.stringify(result)} strategy={result} />
+        <WeatherPanel
+          key={"weather:" + JSON.stringify(result)}
+          strategy={result}
+        />
+      )}
+      {result && (
+        <RaceEngineer
+          key={"engineer:" + JSON.stringify(result)}
+          strategy={result}
+        />
       )}
       <p className="strategy-limit">
         The original strategy comparison and Monte Carlo use single-driver,

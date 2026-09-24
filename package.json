@@ -10,7 +10,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "train:ml": "python -m backend.train_lap_model",
     "dev:api": "python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000",
-    "test:api": "python -m unittest backend.test_api backend.test_historical backend.test_lap_model backend.test_stints backend.test_strategy backend.test_monte_carlo"
+    "test:api": "python -m unittest backend.test_api backend.test_historical backend.test_lap_model backend.test_stints backend.test_strategy backend.test_monte_carlo backend.test_gesture_training backend.test_race_engineer",
+    "train:gestures": "python -m backend.gesture_training"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.0.1",

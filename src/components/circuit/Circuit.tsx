@@ -34,9 +34,10 @@ export default function Circuit() {
           </mesh>
         ))}
       </group>
-      <Html position={[start.x, start.y + 0.8, 0]} center>
+      <Html position={[start.x, start.y + 0.8, 0]} center zIndexRange={[50, 40]}>
         <span className="track-label">START / FINISH</span>
       </Html>
     </>
   );
 }
+

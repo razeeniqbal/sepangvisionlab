@@ -76,3 +76,26 @@ def get_monte_carlo(request:MonteCarloRequest):
         raise HTTPException(status_code=422,detail=str(error))
     except FileNotFoundError:
         raise HTTPException(status_code=503,detail="Historical cache unavailable")
+
+
+from .race_engineer import EngineerRequest, EngineerResult, run_engineer, configured
+import httpx
+
+@app.get('/api/v1/engineer/status')
+def engineer_status():
+    return {'aiConfigured':configured()}
+
+@app.post('/api/v1/engineer/explain',response_model=EngineerResult)
+def engineer_explain(request:EngineerRequest):
+    try:
+        return run_engineer(request)
+    except PermissionError as error:
+        raise HTTPException(status_code=503,detail=str(error))
+    except KeyError:
+        raise HTTPException(status_code=404,detail='Unknown historical driver')
+    except FileNotFoundError:
+        raise HTTPException(status_code=503,detail='Historical cache unavailable')
+    except ValueError as error:
+        raise HTTPException(status_code=422,detail=str(error))
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502,detail='AI connection unavailable. Try the local simulator explanation.')

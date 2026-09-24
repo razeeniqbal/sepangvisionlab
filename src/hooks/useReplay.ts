@@ -1,3 +1,4 @@
+import { useGestureReceiver } from "../components/handtracking/GestureContext";
 import { useEffect, useRef, useState } from "react";
 import { advanceReplay, clampTime, SESSION_DURATION } from "../domain/replay";
 export default function useReplay(
@@ -60,5 +61,16 @@ export default function useReplay(
       setRunning(true);
     }
   }
+  useGestureReceiver((action) => {
+    if (action === "rewind" || action === "forward") {
+      seek(clock.current + (action === "rewind" ? -10 : 10));
+      return true;
+    }
+    if (action === "cancel") {
+      seek(clock.current);
+      return true;
+    }
+    return false;
+  });
   return { clock, time, running, speed, setSpeed, seek, toggle };
 }

@@ -52,4 +52,10 @@ Weather scenarios, tyre penalties and crossover assumptions: docs/MILESTONE_13.m
 
 Hand tracking setup, privacy, engine check and limitations: docs/MILESTONE_14.md.
 
-Next: gesture controls and labeled data for M15 gesture ML. Pedal/GPS telemetry and actual tyre data remain unavailable.
+Rule-based gesture controls and limitations: docs/GESTURE_CONTROLS.md.
+
+M15 landmark recorder and offline four-model training workflow: docs/MILESTONE_15.md. Awaiting real labeled recordings and evaluation; no trained gesture model is installed. Pedal/GPS telemetry and actual tyre data remain unavailable.
+
+M16 race engineer: docs/MILESTONE_16.md. Local simulator explanations are available; optional AI needs backend configuration. M15 real-data evaluation is deferred.
+
+M17 interface and loading polish: docs/MILESTONE_17.md. M15 real-data evaluation and M16 live AI verification remain open.

@@ -16,6 +16,8 @@ export default function TelemetryPanel({ number, samples, running }: Props) {
   const start = Math.max(0, end - TELEMETRY_WINDOW);
   return (
     <section
+      id="race-analysis"
+      tabIndex={-1}
       className="telemetry-panel"
       aria-label={`Telemetry for car ${number}`}
     >

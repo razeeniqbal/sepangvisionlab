@@ -1541,3 +1541,87 @@ button.car-label:focus-visible {
     margin: 16px;
   }
 }
+
+.gesture-controls {
+  border-block: 1px solid #375144;
+  padding: 14px 0;
+  margin: 18px 0;
+}
+.gesture-controls table {
+  width: 100%;
+  text-align: left;
+  font-size: 12px;
+  border-collapse: collapse;
+}
+.gesture-controls td,
+.gesture-controls th {
+  padding: 7px 12px;
+  border-bottom: 1px solid #293c32;
+}
+.gesture-controls summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: #c5d9ce;
+}
+.gesture-controls label {
+  font-size: 13px;
+}
+.circuit-view-controls {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+}
+.circuit-camera-toolbar {
+  position: absolute;
+  z-index: 2;
+  left: 10px;
+  right: 10px;
+  bottom: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.circuit-camera-toolbar button {
+  padding: 6px 8px;
+  color: #d6e8dc;
+  background: #12352d;
+  border: 1px solid #37785e;
+  cursor: pointer;
+  font-size: 10px;
+}
+.circuit-camera-toolbar span {
+  font: 10px monospace;
+  color: #e7eeec;
+  background: #101c18;
+  padding: 6px;
+}
+
+.gesture-controls textarea { display: block; width: 100%; max-width: 680px; min-height: 76px; margin: 8px 0; padding: 10px; color: #dce7e1; background: #0c1511; border: 1px solid #375144; font: inherit; resize: vertical; }
+.gesture-controls textarea:focus-visible { outline: 2px solid #00c4b4; outline-offset: 2px; }
+
+/* M17: section navigation, keyboard focus and compact-screen controls. */
+.workspace-nav { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 6px; padding: 10px 32px; background: #0c1514; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.workspace-nav span { color: #8eaaa3; font: 10px "IBM Plex Mono", monospace; letter-spacing: 1.5px; margin-right: 12px; }
+.workspace-nav a { flex: 0 0 auto; color: #cce0da; font-size: 12px; text-decoration: none; padding: 9px 12px; border: 1px solid transparent; }
+.workspace-nav a:hover { color: #65e2ce; background: #152321; border-color: #334b45; }
+[id="race-view"], [id="race-replay"], [id="race-analysis"], [id="race-strategy"], [id="hand-lab"] { scroll-margin-top: 76px; }
+:where(button,a,input,select,textarea,summary):focus-visible { outline: 2px solid #64ddc7; outline-offset: 3px; }
+.gesture-controls select { color: #dce7e1; background: #0c1511; border: 1px solid #375144; padding: 7px; font: inherit; }
+.gesture-controls input[type="checkbox"] { accent-color: var(--accent); }
+.circuit-camera-toolbar { max-width: calc(100% - 20px); flex-wrap: wrap; }
+@media(max-width:600px) {
+ .workspace-nav { padding: 6px 12px; } .workspace-nav span { display: none; }
+ .session-switch { padding: 10px 12px; } .session-switch button { flex: 1 1 145px; font-size: 11px; }
+ .workspace-heading { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+ .circuit-camera-toolbar { gap: 4px; left: 10px; } .circuit-camera-toolbar button { min-height: 34px; }
+ .hand-actions { gap: 8px; } .hand-actions button { min-height: 40px; }
+ .hand-readout { min-width: 0; } .gesture-controls p { overflow-wrap: anywhere; }
+ .timeline-heading { flex-wrap: wrap; gap: 8px; }
+}
+@media(prefers-reduced-motion:reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+
+.circuit-view-controls { isolation: isolate; }
+.circuit-camera-toolbar { z-index: 200; }
+@media(max-width:600px) { .timeline-controls > button.primary { flex-basis: 100%; order: -1; min-height: 42px; } }
