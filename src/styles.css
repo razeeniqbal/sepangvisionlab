@@ -1625,3 +1625,7 @@ button.car-label:focus-visible {
 .circuit-view-controls { isolation: isolate; }
 .circuit-camera-toolbar { z-index: 200; }
 @media(max-width:600px) { .timeline-controls > button.primary { flex-basis: 100%; order: -1; min-height: 42px; } }
+
+/* V2.4 physical foundation: local viewport annotation, no dashboard changes. */
+.circuit-accuracy-note { position:absolute;top:45px;left:12px;z-index:200;pointer-events:none;background:#14201bd9;color:#b3c0b7;font:9px monospace;padding:5px 7px; }
+.circuit-camera-toolbar button[aria-pressed="true"] { border-color:#62aaa0;background:#22423b; }

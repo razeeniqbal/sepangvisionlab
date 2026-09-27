@@ -1,66 +1,78 @@
+import {
+  visualTyreCompound,
+  carIdentityText,
+  type CarVisualIdentity,
+} from "./carVisualState";
+import CarRepresentation, { CarIdentifier } from "./CarRepresentation";
+import { carDetail, type CarDetail } from "./carDetail";
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
-import { Group } from "three";
+import { Group, OrthographicCamera, Vector3 } from "three";
 import { trackCurve } from "../circuit/trackCurve";
-import { brand } from "../../data/brand";
 import type { CarDefinition, CarState } from "../../domain/field";
 interface Props {
   car: CarDefinition;
+  tyresKnown?: boolean;
+  identity?: CarVisualIdentity;
   index: number;
   field: React.RefObject<CarState[]>;
   selected: boolean;
   onSelect: (id: string) => void;
 }
-export function CarBody({ color }: { color: string }) {
-  return (
-    <>
-      <mesh>
-        <boxGeometry args={[0.8, 0.26, 0.12]} />
-        <meshBasicMaterial color={brand.silver} />
-      </mesh>
-      <mesh position={[0.25, 0, 0.08]}>
-        <boxGeometry args={[0.65, 0.1, 0.08]} />
-        <meshBasicMaterial color={color} />
-      </mesh>
-      {[-0.27, 0.3].flatMap((x) =>
-        [-0.22, 0.22].map((y) => (
-          <mesh key={x + "," + y} position={[x, y, 0]}>
-            <boxGeometry args={[0.23, 0.14, 0.15]} />
-            <meshBasicMaterial color="#080b0b" />
-          </mesh>
-        )),
-      )}
-      {[-0.45, 0.5].map((x) => (
-        <mesh key={x} position={[x, 0, 0]}>
-          <boxGeometry args={[0.1, 0.58, 0.07]} />
-          <meshBasicMaterial color={color} />
-        </mesh>
-      ))}
-      <mesh position={[-0.03, 0, 0.12]}>
-        <boxGeometry args={[0.22, 0.17, 0.08]} />
-        <meshBasicMaterial color={brand.carbon} />
-      </mesh>
-    </>
-  );
-}
 export default function CarMarker({
   car,
+  tyresKnown = true,
+  identity,
   index,
   field,
   selected,
   onSelect,
 }: Props) {
+  const visualIdentity = identity ?? { number: car.number, driverId: car.id };
+  const [compound, setCompound] = useState(() =>
+    visualTyreCompound(field.current[index].compound, tyresKnown),
+  );
+  const compoundRef = useRef(compound);
   const group = useRef<Group>(null);
   const body = useRef<Group>(null);
   const [hovered, setHovered] = useState(false);
   const active = selected || hovered;
+  const [detail, setDetail] = useState<CarDetail>("far");
+  const detailRef = useRef<CarDetail>("far");
+  const marker = useRef<Group>(null);
+  const cameraPoint = useRef(new Vector3());
   const labelOffset = selected ? 0 : [-12, 0, 12][index % 3];
-  useFrame(() => {
+  useFrame(({ camera, size }) => {
+    const nextCompound = visualTyreCompound(
+      field.current[index].compound,
+      tyresKnown,
+    );
+    if (nextCompound !== compoundRef.current) {
+      compoundRef.current = nextCompound;
+      setCompound(nextCompound);
+    }
     const p = trackCurve.getPointAt(field.current[index].progress);
     const t = trackCurve.getTangentAt(field.current[index].progress);
-    group.current?.position.set(p.x, p.y, selected ? 0.4 : 0.2 + index * 0.001);
+    group.current?.position.set(p.x, p.y, 0.015 + index * 0.0001);
     if (body.current) body.current.rotation.z = Math.atan2(t.y, t.x);
+    cameraPoint.current
+      .set(p.x, p.y, 0.015)
+      .applyMatrix4(camera.matrixWorldInverse);
+    const depth =
+      camera instanceof OrthographicCamera
+        ? 1
+        : Math.max(0.01, -cameraPoint.current.z);
+    const pixelsPerUnit =
+      (Math.abs(camera.projectionMatrix.elements[5]) * size.height) /
+      (2 * depth);
+    const next = carDetail(0.504 * pixelsPerUnit, detailRef.current);
+    if (next !== detailRef.current) {
+      detailRef.current = next;
+      setDetail(next);
+    }
+    // Constant screen-size identification, without moving the camera or race anchor.
+    marker.current?.scale.setScalar(1 / Math.max(1, pixelsPerUnit));
   });
   return (
     <group
@@ -77,16 +89,28 @@ export default function CarMarker({
     >
       <mesh>
         <circleGeometry args={[0.4, 16]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        <meshBasicMaterial visible={false} />
       </mesh>
+      {(detail !== "near" || selected) && (
+        <group ref={marker}>
+          <CarIdentifier
+            selected={selected}
+            radius={selected ? 6 : detail === "far" ? 4 : 3}
+          />
+        </group>
+      )}
       {active && (
-        <mesh position={[0, 0, -0.03]}>
+        <mesh position={[0, 0, -0.003]}>
           <ringGeometry args={[0.36, 0.4, 32]} />
-          <meshBasicMaterial color={selected ? car.color : "#ffffff"} />
+          <meshBasicMaterial color={selected ? "#00a69c" : "#a5b6b2"} />
         </mesh>
       )}
       <group ref={body} scale={active ? 0.7 : 0.48}>
-        <CarBody color={car.color} />
+        <CarRepresentation
+          detail={detail}
+          identity={visualIdentity}
+          compound={compound}
+        />
       </group>
       <Html
         position={[0, selected ? 0.85 : 0.5, 0]}
@@ -101,10 +125,13 @@ export default function CarMarker({
               : "car-label car-label-compact"
           }
           style={{
-            borderColor: car.color,
+            borderColor: selected ? "#00a69c" : car.color,
             transform: "translateY(" + labelOffset + "px)",
           }}
           data-car-number={car.number}
+          data-car-detail={detail}
+          data-car-compound={compound}
+          title={carIdentityText(visualIdentity)}
           aria-label={"Select car " + car.number + " on circuit"}
           aria-pressed={selected}
           onClick={(event) => {
