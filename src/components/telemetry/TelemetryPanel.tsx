@@ -96,9 +96,9 @@ export default function TelemetryPanel({ number, samples, running }: Props) {
         })}
       </div>
       <p>
-        Last 60 session seconds · constant-speed simulation · modeled inputs:
-        50% throttle, 0% brake. These are demonstration signals, not measured
-        race telemetry. Traces are reconstructed from the synthetic session at
+        Last 60 session seconds · quasi steady state lap model · throttle and
+        brake are modeled from the physics speed trace. These are demonstration
+        signals, not measured race telemetry. Traces are reconstructed from the synthetic session at
         the replay time.
       </p>
     </section>

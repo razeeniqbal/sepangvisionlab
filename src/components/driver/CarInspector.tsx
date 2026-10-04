@@ -138,8 +138,9 @@ export default function CarInspector({
         <button onClick={onReset}>Reset</button>
       </div>
       <p className="note">
-        Synthetic replay. Constant pace; gaps are estimated from distance to the
-        leader. Last lap appears after a full lap.
+        Synthetic replay. Pace from a lap physics model with a fictional setup
+        per car; gaps are estimated from distance to the leader. Last lap
+        appears after a full lap.
       </p>
     </aside>
   );

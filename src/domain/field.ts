@@ -1,4 +1,5 @@
 import { advanceMotion, type MotionState } from "./movement.ts";
+import type { CarSetup } from "./lapPhysics.ts";
 
 export type TyreCompound = "SOFT" | "MEDIUM" | "HARD";
 export interface CarDefinition {
@@ -9,6 +10,8 @@ export interface CarDefinition {
   lapSeconds: number;
   compound: TyreCompound;
   initialTyreAge: number;
+  // Present when the car is paced by the lap physics model (lapSeconds is then derived from it).
+  setup?: CarSetup;
 }
 export interface CarState extends MotionState {
   id: string;
@@ -22,7 +25,7 @@ export interface CarState extends MotionState {
 export const SIMULATION_RATE = 5;
 export const CIRCUIT_LENGTH_METERS = 5543;
 
-function rankField(cars: CarState[]): CarState[] {
+export function rankField<T extends CarState>(cars: T[]): T[] {
   const order = [...cars].sort(
     (a, b) =>
       b.completedLaps + b.progress - (a.completedLaps + a.progress) ||

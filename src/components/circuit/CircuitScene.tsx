@@ -26,6 +26,10 @@ const showSpatialReferences =
 interface Props {
   clock: RefObject<number>;
   data?: ReplayData;
+  synthetic?: {
+    entries: CarDefinition[];
+    sample: (time: number) => CarState[];
+  };
   historical?: {
     entries: CarDefinition[];
     sample: (time: number) => CarState[];
@@ -37,14 +41,18 @@ interface Props {
 function Scene({
   clock,
   data,
+  synthetic,
   historical,
   selectedId,
   onSelect,
   view,
 }: Props & { view: EngineeringView }) {
-  const syntheticCars = historical?.entries ?? data!.entries;
+  const syntheticCars =
+    historical?.entries ?? synthetic?.entries ?? data!.entries;
   const sample =
-    historical?.sample ?? ((time: number) => sampleRace(data!, time));
+    historical?.sample ??
+    synthetic?.sample ??
+    ((time: number) => sampleRace(data!, time));
   const field = useRef<CarState[]>(sample(clock.current));
 
   const { camera, size } = useThree();
@@ -118,6 +126,7 @@ export default function CircuitScene(props: Props) {
   const focusSelected = () => {
     const cars =
       props.historical?.sample(props.clock.current) ??
+      props.synthetic?.sample(props.clock.current) ??
       sampleRace(props.data!, props.clock.current);
     const selected = cars.find((c) => c.id === props.selectedId);
     if (

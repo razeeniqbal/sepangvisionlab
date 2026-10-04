@@ -3,18 +3,20 @@ import {
   useGestureReceiver,
 } from "./components/handtracking/GestureContext";
 import HandTrackingPanel from "./components/handtracking/HandTrackingPanel";
-import { Component, useState, type ReactNode } from "react";
+import { Component, useMemo, useState, type ReactNode } from "react";
 import HistoricalWorkspace from "./components/historical/HistoricalWorkspace";
 import CircuitScene from "./components/circuit/CircuitViewport";
 import WorkspaceNav from "./components/WorkspaceNav";
 import Standings from "./components/standings/Standings";
 import CarInspector from "./components/driver/CarInspector";
 import TelemetryPanel from "./components/telemetry/TelemetryPanel";
+import type { ReplayData } from "./services/raceState";
 import {
-  sampleRace,
-  sampleTelemetry,
-  type ReplayData,
-} from "./services/raceState";
+  physicsFieldAtTime,
+  physicsTelemetryAtTime,
+  withPhysicsSetups,
+} from "./domain/physicsField";
+import { sepangPace } from "./data/sepangPace";
 import SessionLoader from "./components/session/SessionLoader";
 import useReplay from "./hooks/useReplay";
 import Timeline from "./components/timeline/Timeline";
@@ -69,10 +71,18 @@ function SyntheticApp() {
   );
 }
 function RaceWorkspace({ data }: { data: ReplayData }) {
-  const syntheticCars = data.entries;
+  // The service supplies the entries; motion comes from the lap physics model.
+  const syntheticCars = useMemo(
+    () => withPhysicsSetups(data.entries, sepangPace),
+    [data],
+  );
+  const sample = useMemo(
+    () => (t: number) => physicsFieldAtTime(syntheticCars, sepangPace, t),
+    [syntheticCars],
+  );
   const replay = useReplay();
   const { time, running, speed } = replay;
-  const cars = sampleRace(data, time);
+  const cars = sample(time);
   const [selectedId, setSelectedId] = useState("car-07");
   useGestureReceiver((action) => {
     if (action === "select") {
@@ -135,7 +145,7 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
           <SceneBoundary>
             <CircuitScene
               clock={replay.clock}
-              data={data}
+              synthetic={{ entries: syntheticCars, sample }}
               selectedId={selectedId}
               onSelect={setSelectedId}
             />
@@ -160,7 +170,7 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
       </main>
       <TelemetryPanel
         number={selected.number}
-        samples={sampleTelemetry(data, selectedId, time)}
+        samples={physicsTelemetryAtTime(definition, sepangPace, time)}
         running={running}
       />
       <Timeline
