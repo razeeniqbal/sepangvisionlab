@@ -1,5 +1,12 @@
 import { useGestureReceiver } from "../handtracking/GestureContext";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrthographicCamera } from "three";
 import Circuit from "./Circuit";
@@ -8,6 +15,13 @@ import { trackSize, trackCenter, trackCurve } from "./trackCurve";
 import CarMarker from "../cars/CarMarker";
 import type { CarState, CarDefinition } from "../../domain/field";
 import { sampleRace, type ReplayData } from "../../services/raceState";
+
+const SpatialReferenceDebug = import.meta.env.DEV
+  ? lazy(() => import("./SpatialReferenceDebug"))
+  : null;
+const showSpatialReferences =
+  import.meta.env.DEV &&
+  new URLSearchParams(window.location.search).get("spatialRefs") === "1";
 
 interface Props {
   clock: RefObject<number>;
@@ -45,8 +59,16 @@ function Scene({
       const projectedWidth =
         Math.abs(Math.cos(a)) * (trackSize.x + 4.4) +
         Math.abs(Math.sin(a)) * (trackSize.y + 4.4);
-      const projectedHeight = (Math.abs(Math.sin(a)) * (trackSize.x + 4.4) + Math.abs(Math.cos(a)) * (trackSize.y + 4.4)) * Math.cos(view.tilt * Math.PI / 180) + .15;
-      camera.zoom = Math.min(camera.zoom, size.width / (projectedWidth + 1), size.height / (projectedHeight + 1));
+      const projectedHeight =
+        (Math.abs(Math.sin(a)) * (trackSize.x + 4.4) +
+          Math.abs(Math.cos(a)) * (trackSize.y + 4.4)) *
+          Math.cos((view.tilt * Math.PI) / 180) +
+        0.15;
+      camera.zoom = Math.min(
+        camera.zoom,
+        size.width / (projectedWidth + 1),
+        size.height / (projectedHeight + 1),
+      );
       camera.zoom *= view.zoom;
       const pose = engineeringCamera(view);
       camera.up.copy(pose.up);
@@ -63,6 +85,11 @@ function Scene({
       <hemisphereLight args={["#ffffff", "#60756d", 2.2]} />
       <directionalLight position={[8, -12, 20]} intensity={3} />
       <Circuit />
+      {showSpatialReferences && SpatialReferenceDebug && (
+        <Suspense fallback={null}>
+          <SpatialReferenceDebug />
+        </Suspense>
+      )}
       {syntheticCars.map(
         (car, index) =>
           (!historical || historical.activeIds.includes(car.id)) && (

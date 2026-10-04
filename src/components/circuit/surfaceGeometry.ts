@@ -36,7 +36,8 @@ export function surfaceRibbon(
 ) {
   if (
     profile.length < 2 ||
-    !Number.isFinite(from) || !Number.isFinite(to) ||
+    !Number.isFinite(from) ||
+    !Number.isFinite(to) ||
     steps < 1 ||
     !Number.isInteger(steps) ||
     from < 0 ||
