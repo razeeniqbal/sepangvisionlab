@@ -31,11 +31,11 @@ export default function Timeline({
       id="race-replay"
       tabIndex={-1}
       className="timeline-panel"
-      aria-label="Synthetic session replay"
+      aria-label="Simulated session replay"
     >
       <div className="timeline-heading">
         <h2>
-          SESSION REPLAY <span>/ SYNTHETIC · 10 MIN</span>
+          Session replay <span>/ Simulated · 10 min</span>
         </h2>
         <strong data-testid="replay-time">{formatTime(time)} / 10:00</strong>
       </div>
@@ -74,7 +74,7 @@ export default function Timeline({
           </select>
         </label>
         <label>
-          CAR {car.number} · LAP {lap}{" "}
+          Car {car.number} · Lap {lap}{" "}
           <select
             aria-label="Jump to selected car lap"
             value={lap}
@@ -119,7 +119,7 @@ export default function Timeline({
       </div>
       <p>
         Lap markers follow CAR {car.number}. Seeking pauses playback. Pit
-        events: none · Race-control events: none in this synthetic session.
+        events: none · Race-control events: none in this simulated session.
       </p>
     </section>
   );

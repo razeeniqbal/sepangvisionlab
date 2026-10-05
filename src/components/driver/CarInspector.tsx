@@ -6,6 +6,7 @@ import {
   formatLap,
 } from "../../domain/inspection";
 import { brand } from "../../data/brand";
+import type { FictionalDriver } from "../../data/fictionalGrid";
 interface Props {
   car: CarState;
   definition: CarDefinition;
@@ -14,6 +15,7 @@ interface Props {
   running: boolean;
   onToggle: () => void;
   onReset: () => void;
+  driver?: FictionalDriver;
 }
 export default function CarInspector({
   car,
@@ -23,6 +25,7 @@ export default function CarInspector({
   running,
   onToggle,
   onReset,
+  driver,
 }: Props) {
   const petronas = car.number === "07";
   return (
@@ -32,15 +35,19 @@ export default function CarInspector({
       data-testid="inspector"
     >
       <div className="panel-heading">
-        CAR INSPECTOR <span className="live-dot" />
+        Car inspector <span className="live-dot" />
       </div>
       <div className="vehicle">
         <div className="car-number" style={{ color: definition.color }}>
           {car.number}
         </div>
         <div>
-          <span className="eyebrow">SELECTED VEHICLE</span>
-          <h3>{petronas ? brand.name : "CAR " + car.number}</h3>
+          <span className="eyebrow">
+            {driver ? driver.team.name : "Selected vehicle"}
+          </span>
+          <h3>
+            {driver ? driver.name : petronas ? brand.name : "Car " + car.number}
+          </h3>
           <span className="muted">
             {petronas
               ? "Turquoise / Silver / Carbon"
@@ -68,17 +75,17 @@ export default function CarInspector({
           className="entry-block"
           style={{ borderLeftColor: definition.color }}
         >
-          <span>SYNTHETIC ENTRY</span>
+          <span>Fictional entry</span>
           <b>Independent test vehicle</b>
         </div>
       )}
       <div className="inspector-primary">
         <div>
-          <span>POSITION</span>
+          <span>Position</span>
           <strong data-testid="position">P{car.position}</strong>
         </div>
         <div>
-          <span>CURRENT LAP</span>
+          <span>Current lap</span>
           <strong data-testid="lap">
             {String(car.completedLaps + 1).padStart(2, "0")}
           </strong>
@@ -86,7 +93,7 @@ export default function CarInspector({
       </div>
       <div className="progress-section">
         <div>
-          <span>TRACK PROGRESS</span>
+          <span>Track progress</span>
           <b data-testid="progress">{(car.progress * 100).toFixed(1)}%</b>
         </div>
         <progress
@@ -97,7 +104,7 @@ export default function CarInspector({
       </div>
       <dl className="inspector-values">
         <div>
-          <dt>Speed · synthetic</dt>
+          <dt>Speed · simulated</dt>
           <dd data-testid="speed">{car.speedKph.toFixed(1)} km/h</dd>
         </div>
         <div>
@@ -114,7 +121,7 @@ export default function CarInspector({
           <dt>Gap to leader · est.</dt>
           <dd>
             {car.id === leader.id
-              ? "LEADER"
+              ? "Leader"
               : "+" +
                 estimatedGap(car, leader, leaderDefinition).toFixed(2) +
                 " s"}
@@ -138,9 +145,9 @@ export default function CarInspector({
         <button onClick={onReset}>Reset</button>
       </div>
       <p className="note">
-        Synthetic replay. Pace from a lap physics model with a fictional setup
-        per car; gaps are estimated from distance to the leader. Last lap
-        appears after a full lap.
+        Simulated session · physics pace. Each car runs a fictional setup; gaps
+        are estimated from distance to the leader. Last lap appears after a full
+        lap.
       </p>
     </aside>
   );

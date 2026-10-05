@@ -8,6 +8,7 @@ import {
 import {
   sampleAtTime,
   solveSpeedProfile,
+  timeAtDistance,
   type CarSetup,
   type SpeedProfile,
   type TrackProfile,
@@ -141,4 +142,52 @@ export function physicsTelemetryAtTime(
   for (let t = Math.max(0, end - TELEMETRY_WINDOW); t < end; t += 0.5) add(t);
   add(end);
   return samples;
+}
+
+// Ghost: the same car replayed with a saved setup from the same starting point. Both runs
+// start where the live car is at time zero, so the gap reflects the setup difference only.
+function startDistance(definition: CarDefinition, model: PaceModel) {
+  return sampleCar(definition, model, 0).distance;
+}
+
+/** Ghost position at a replay time, as a car state for drawing (progress and lap count). */
+export function ghostCarAtTime(
+  definition: CarDefinition,
+  ghost: CarSetup,
+  model: PaceModel,
+  time: number,
+): PhysicsCarState {
+  const start = startDistance(definition, model);
+  const profile = model.profile(ghost);
+  return physicsCarAtTime(
+    {
+      ...definition,
+      setup: ghost,
+      initialProgress:
+        timeAtDistance(model.track, profile, start) / profile.lapSeconds,
+    },
+    model,
+    time,
+  );
+}
+
+/**
+ * Live gap to the ghost in seconds: positive means the car is behind (it reached its
+ * current point later than the ghost did). Measured at the car's own distance travelled.
+ */
+export function ghostGap(
+  definition: CarDefinition,
+  ghost: CarSetup,
+  model: PaceModel,
+  time: number,
+) {
+  const t = clampTime(time);
+  const car = sampleCar(definition, model, t);
+  const profile = model.profile(ghost);
+  const absolute = (laps: number, d: number) =>
+    laps * profile.lapSeconds + timeAtDistance(model.track, profile, d);
+  const ghostStart = absolute(0, startDistance(definition, model));
+  // Laps are counted from the line in the car's own frame; distance alone fixes the ghost time.
+  const reached = absolute(car.completedLaps, car.distance) - ghostStart;
+  return t - reached;
 }

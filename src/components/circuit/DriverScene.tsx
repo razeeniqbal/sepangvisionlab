@@ -1,6 +1,14 @@
 import { useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { DirectionalLight, Fog, Group, Mesh, PerspectiveCamera } from "three";
+import { Html } from "@react-three/drei";
+import {
+  DirectionalLight,
+  Fog,
+  Group,
+  Mesh,
+  MeshBasicMaterial,
+  PerspectiveCamera,
+} from "three";
 import sepang from "../../data/circuits/sepang.json";
 import { sepangTrack } from "../../data/sepangPace";
 import { poseAtDistance } from "../../domain/lapPhysics";
@@ -58,6 +66,9 @@ export interface DriverSceneProps {
   onSelect: (id: string) => void;
   rig: RefObject<CameraRigState>;
   mode: CameraMode;
+  /** Short broadcast tag per entry (same order as entries). */
+  tags?: readonly string[];
+  ghost?: { id: string; sample: (time: number) => CarState };
 }
 
 function pose(car: CarState) {
@@ -76,6 +87,7 @@ function DriverCar({
   clock,
   selected,
   ring,
+  tag,
   tyresKnown,
   onSelect,
 }: {
@@ -85,10 +97,13 @@ function DriverCar({
   clock: RefObject<number>;
   selected: boolean;
   ring: boolean;
+  tag: string;
   tyresKnown: boolean;
   onSelect: (id: string) => void;
 }) {
   const group = useRef<Group>(null);
+  const label = useRef<HTMLDivElement>(null);
+  const shown = useRef("");
   const body = useRef<Group>(null);
   const attitude = useRef<Group>(null);
   const compound = visualTyreCompound(
@@ -107,9 +122,23 @@ function DriverCar({
     roll: 0,
     model: null as ReturnType<typeof modelWheelDriver>,
   });
-  useFrame((_, delta) => {
+  useFrame(({ camera }, delta) => {
     const state = field.current[index];
     if (!group.current || !state) return;
+    // Broadcast tag: nearby cars only, never over the onboard camera's own car.
+    if (label.current) {
+      const near =
+        ring || !selected
+          ? camera.position.distanceTo(group.current.position) < 240
+          : false;
+      const text = near ? "P" + state.position + " " + tag : "";
+      if (text !== shown.current) {
+        shown.current = text;
+        label.current.textContent = text.replace(/^P\d+ /, "");
+        label.current.dataset.position = "P" + state.position;
+        label.current.hidden = !near;
+      }
+    }
     const m = motion.current,
       distance = state.progress * sepangTrack.length,
       p = poseAtDistance(sepangTrack, distance);
@@ -179,12 +208,55 @@ function DriverCar({
         </group>
         <primitive object={wheels.root} />
       </group>
+      <Html position={[0, 0, 2.4]} center zIndexRange={[20, 0]}>
+        <div
+          ref={label}
+          className={"bc-car-tag" + (selected ? " is-selected" : "")}
+          hidden
+        />
+      </Html>
       {ring && (
         <mesh position={[0, 0, 0.02]}>
           <ringGeometry args={[3.1, 3.25, 40]} />
           <meshBasicMaterial color="#00a19c" transparent opacity={0.45} />
         </mesh>
       )}
+    </group>
+  );
+}
+
+// Translucent replay of a saved setup. Shares the GLB geometry; its own material only.
+const ghostMaterial = new MeshBasicMaterial({
+  color: "#00a19c",
+  transparent: true,
+  opacity: 0.32,
+  depthWrite: false,
+});
+function GhostCar({
+  ghost,
+  clock,
+}: {
+  ghost: { sample: (time: number) => CarState };
+  clock: RefObject<number>;
+}) {
+  const group = useRef<Group>(null);
+  useFrame(() => {
+    if (!group.current) return;
+    const p = pose(ghost.sample(clock.current));
+    group.current.position.set(p.x, p.y, LAYER.asphalt + 0.01);
+    group.current.rotation.z = p.heading;
+    group.current.traverse((object) => {
+      if (object instanceof Mesh && object.material !== ghostMaterial) {
+        object.material = ghostMaterial;
+        object.castShadow = false;
+      }
+    });
+  });
+  return (
+    <group ref={group} renderOrder={2}>
+      <group scale={CAR_SCALE}>
+        <FormulaCar fallback={<SimplifiedCar />} />
+      </group>
     </group>
   );
 }
@@ -269,6 +341,8 @@ function World({
   onSelect,
   rig,
   mode,
+  tags,
+  ghost,
 }: DriverSceneProps) {
   const field = useRef<CarState[]>(sample(clock.current));
   const layout = useEnvironmentLayout(sepangTrack, coordinates);
@@ -284,6 +358,7 @@ function World({
         rig={rig}
       />
       <Environment track={sepangTrack} layout={layout} />
+      {ghost && <GhostCar ghost={ghost} clock={clock} />}
       {entries.map(
         (car, index) =>
           (!activeIds || activeIds.includes(car.id)) && (
@@ -295,6 +370,7 @@ function World({
               clock={clock}
               selected={car.id === selectedId}
               ring={car.id === selectedId && mode !== "onboard"}
+              tag={tags?.[index] ?? "#" + car.number}
               tyresKnown={tyresKnown}
               onSelect={onSelect}
             />

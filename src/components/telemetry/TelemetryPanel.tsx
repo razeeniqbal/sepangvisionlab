@@ -6,9 +6,9 @@ interface Props {
   running: boolean;
 }
 const channels = [
-  { key: "speed", label: "SPEED", unit: "km/h", max: 360, color: "#00c4b4" },
-  { key: "throttle", label: "THROTTLE", unit: "%", max: 100, color: "#b8cf87" },
-  { key: "brake", label: "BRAKE", unit: "%", max: 100, color: "#efaa58" },
+  { key: "speed", label: "Speed", unit: "km/h", max: 360, color: "#00a19c" },
+  { key: "throttle", label: "Throttle", unit: "%", max: 100, color: "#3fc18a" },
+  { key: "brake", label: "Brake", unit: "%", max: 100, color: "#d1243a" },
 ] as const;
 export default function TelemetryPanel({ number, samples, running }: Props) {
   const latest = samples.at(-1);
@@ -23,9 +23,9 @@ export default function TelemetryPanel({ number, samples, running }: Props) {
     >
       <div className="telemetry-heading">
         <h2>
-          CAR {number} <span>/ TELEMETRY</span>
+          Car {number} <span>/ Telemetry</span>
         </h2>
-        <span>{running ? "PLAYING" : "PAUSED"} · SYNTHETIC REPLAY</span>
+        <span>{running ? "Playing" : "Paused"} · Simulated session</span>
       </div>
       <div className="telemetry-charts">
         {channels.map((channel) => {
@@ -98,8 +98,8 @@ export default function TelemetryPanel({ number, samples, running }: Props) {
       <p>
         Last 60 session seconds · quasi steady state lap model · throttle and
         brake are modeled from the physics speed trace. These are demonstration
-        signals, not measured race telemetry. Traces are reconstructed from the synthetic session at
-        the replay time.
+        signals, not measured race telemetry. Traces are reconstructed from the
+        synthetic session at the replay time.
       </p>
     </section>
   );

@@ -59,3 +59,7 @@ M15 landmark recorder and offline four-model training workflow: docs/MILESTONE_1
 M16 race engineer: docs/MILESTONE_16.md. Local simulator explanations are available; optional AI needs backend configuration. M15 real-data evaluation is deferred.
 
 M17 interface and loading polish: docs/MILESTONE_17.md. M15 real-data evaluation and M16 live AI verification remain open.
+
+M18 3D driver simulation and broadcast interface: docs/MILESTONE_18.md (plan: docs/MILESTONE_18_PLAN.md). The synthetic workspace is a simulated session with physics pace and fictional driver names, teams and glyphs; it is not recorded or live data. All driver-view scenery is generated in code; the car GLB, circuit GeoJSON and MediaPipe files are unchanged.
+
+Fonts: Barlow Condensed and Inter are bundled through @fontsource/barlow-condensed and @fontsource/inter and served locally (no font CDN request). Both are licensed under the SIL Open Font License 1.1 (Barlow: The Barlow Project Authors; Inter: The Inter Project Authors).

@@ -106,3 +106,42 @@ Limitations:
 - Onboard shows the selected car's own bodywork in the lower part of the frame; the T-cam position is illustrative.
 
 Files: `src/components/circuit/cameraRig.ts`, `DriverScene.tsx` (rig in the frame loop, near 0.3), `CircuitScene.tsx` (mode toolbar, gesture routing), `src/domain/gestures.ts`, `src/domain/gestureDataset.ts`, `App.tsx` and `HistoricalWorkspace.tsx` (inspect at 0.5×), `backend/gesture_training.py`, `backend/test_gesture_training.py`, `tests/cameraRig.test.ts`, `tests/gestures.test.ts`, `docs/GESTURE_CONTROLS.md`, this file.
+
+## Phase 5 — broadcast UI refresh
+
+The synthetic workspace is laid out like a TV broadcast pit wall. The 3D viewport is the hero and the information sits on it as glass overlays (`--panel` with backdrop blur). All of it is scoped under `.bc`, so the historical workspace keeps its layout and only picks up the shared tokens and fonts.
+
+- **Identity bar**: SVL logo, circuit name, the "Simulated session · physics pace" pill, session clock and replay speed, on a teal rule.
+- **Camera strip** across the top of the viewport: the six camera modes plus zoom and orbit (Phase 4 controls, restyled).
+- **Timing tower** (`Standings.tsx`, same selection behaviour): lap counter `Lap n / total`, an Interval / Leader toggle, gain and loss arrows against positions 10 s earlier, team colour bar, geometric team glyph, three-letter code and a round tyre marker. Gaps are still estimates from distance.
+- **Mini map**: the metric profile outline with every car, the selected car ringed, the ghost as a dashed ring; clicking a dot selects the car.
+- **Lower third**: position block, team glyph and name, driver name, number, lap and last lap, speed, throttle and brake bars, and the live ghost gap.
+- **Floating car tags** in the 3D view (`P18 SVL`) for cars within 240 m of the camera; the selected car's tag is teal. Hidden for the onboard car.
+- **Right drawer** with Inspector and Car setup tabs. The inspect gesture opens the Inspector tab.
+- **Car setup drawer**: power, wing, fuel, compound, dry or wet; predicted lap, delta to the original setup and top speed; a one-lap speed trace with the ghost dashed over it; "Save as ghost", "Clear ghost", "Reset setup"; a live gap readout. Changes re-solve the car's lap and apply to the simulated car immediately.
+- **Ghost**: the same car replayed with the saved setup from the car's own starting point (`ghostCarAtTime`, `ghostGap` in `physicsField.ts`, tested). Positive gap means the car is behind. It is drawn as a translucent teal car in the 3D view.
+- **Telemetry dash and replay timeline** sit under the stage, restyled, with sentence-case labels.
+
+Fictional grid (`src/data/fictionalGrid.ts`): invented driver names and codes, ten generic teams marked by circle, square, triangle, diamond or hexagon glyphs (filled or outlined) in the entry colour. Car 07 remains the SVL development car. No real drivers, teams, sponsors or logos are added. The footer states that the names and teams are fictional.
+
+Tokens and type: `--accent #00a19c`, `--carbon`, `--silver`, `--panel`, `--warn`, `--danger`, `--good` added to `:root`. Barlow Condensed (numbers and headings, tabular figures) and Inter (body) are bundled locally (SIL OFL 1.1, noted in the README) and the Google Fonts `@import` is removed, so the app no longer calls a font CDN. IBM Plex Mono data labels (23 rules) now use Barlow Condensed. Labels in the synthetic workspace are sentence case.
+
+Accessibility and layout:
+
+- Contrast was computed for the overlay colours. White on `#00a19c` is only 3.2:1, so filled controls with small white text use `#007a76` (5.2:1); `#00a19c` stays for lines, rings and large figures. Muted text on panels is 8.1:1.
+- Visible `:focus-visible` outlines; `prefers-reduced-motion` removes transitions.
+- Up to 1100 px the drawer drops below the viewport. Under 760 px the viewport sits on top, and the tower, lower third, drawer, telemetry and replay stack below it; the mini map is hidden. Checked at 375 px with no horizontal overflow.
+
+Checks: the setup drawer re-solved car 07 from 1:31.477 to 1:29.754 with +100 kW, and after 200 s the live ghost gap read −3.84 s (≈1.72 s/lap × 2.2 laps). Chase and Heli screenshots show every overlay in place. The historical workspace still renders.
+
+Limitations:
+
+- Gap, interval and position-change values are estimates from distance and from positions 10 s earlier, not timing loops.
+- The ghost starts from the car's starting point at session time 0. Editing the live setup after saving a ghost shifts that start slightly, because start offsets are a phase of the car's own lap time.
+- Setup edits and the ghost are held in memory and lost on reload.
+- The floating tags are not occluded by scenery.
+- The plan's bottom workspace tabs (Strategy, Monte Carlo, Weather, Historical, Hands) are not built for the synthetic workspace. Those panels live in the historical workspace; the existing workspace navigation stays.
+- No visual comparison against `docs/reference/raceview/`, which is still absent.
+- Frame rates with the full overlay set were not measured: the browser pane only rendered on screenshots.
+
+Files: `src/App.tsx`, `src/main.tsx`, `src/styles.css`, `src/components/broadcast/{TeamGlyph,MiniMap,LowerThird,SetupDrawer}.tsx`, `src/components/standings/Standings.tsx`, `src/components/driver/CarInspector.tsx`, `src/components/telemetry/TelemetryPanel.tsx`, `src/components/timeline/Timeline.tsx`, `src/components/circuit/{CircuitScene,DriverScene}.tsx`, `src/data/fictionalGrid.ts`, `src/domain/physicsField.ts`, `tests/physicsField.test.ts`, `package.json`, `package-lock.json`, `README.md`, this file.

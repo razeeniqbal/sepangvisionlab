@@ -25,6 +25,7 @@ import {
 } from "./cameraRig";
 import { trackSize, trackCenter, trackCurve } from "./trackCurve";
 import CarMarker from "../cars/CarMarker";
+import { fictionalDriver } from "../../data/fictionalGrid";
 import type { CarState, CarDefinition } from "../../domain/field";
 import { sampleRace, type ReplayData } from "../../services/raceState";
 
@@ -61,6 +62,7 @@ interface Props {
   synthetic?: {
     entries: CarDefinition[];
     sample: (time: number) => CarState[];
+    ghost?: { id: string; sample: (time: number) => CarState };
   };
   historical?: {
     entries: CarDefinition[];
@@ -336,6 +338,16 @@ export default function CircuitScene(props: Props) {
                 ((time: number) => sampleRace(props.data!, time))
               }
               activeIds={props.historical?.activeIds}
+              tags={(
+                props.historical?.entries ??
+                props.synthetic?.entries ??
+                props.data!.entries
+              ).map((car, i) =>
+                props.synthetic
+                  ? fictionalDriver(i, car.number).code
+                  : "#" + car.number,
+              )}
+              ghost={props.synthetic?.ghost}
               tyresKnown={!props.historical}
               selectedId={props.selectedId}
               onSelect={props.onSelect}
