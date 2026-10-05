@@ -212,3 +212,51 @@ Tests: `tests/theme.test.ts` (4): defaults and hostile storage, failed saves, co
 Limitations: the historical (2017) workspace keeps its older styling, with only the shared tokens applying. The 3D scenery is not re-themed.
 
 Files: `src/theme.ts`, `src/themeRuntime.ts`, `src/components/broadcast/ThemeToggle.tsx`, `src/main.tsx`, `src/App.tsx`, `src/components/recorded/RecordedWorkspace.tsx`, `src/components/circuit/DriverScene.tsx`, `src/components/cars/{CarMarker,CarRepresentation}.tsx`, `src/components/telemetry/TelemetryPanel.tsx`, `src/styles.css`, `tests/theme.test.ts`, this file.
+
+## Step 6 — scenery, quality presets, Present mode, saved setups
+
+**Scenery** (all generated in code, ILLUSTRATIVE; placement rules in `layout.ts`, tested):
+
+- **Gravel traps** on the outside of all fifteen numbered corner exits: about 100 m from the apex, from 1 m beyond the kerb to the run-off edge, between run-off and asphalt in depth.
+- **Low-poly broadleaf clumps** behind the barriers: a clump of 3 to 6 trees every ~100 m on alternating sides, 46 to 62 m out. Every tree keeps 38 m from the centre line (the barrier line is 27 m), 14 m from every trackside camera position (so TV shots stay open) and 14 m from the buildings. 205 trees, four greens, one draw call for the crowns; they count as occluders for TV picking and tag fading.
+- **Oil-palm plantation in rows**: a 12 m grid with alternate rows offset, 90 to 330 m from the track and clear of the buildings (8,609 positions). The list is a seeded shuffle, so each quality preset takes an evenly spread subset rather than one corner.
+- **Grandstand**: a generic seat mosaic (canvas texture, no pattern or text) and a canopy fascia on both frontages.
+- **Pit building**: garage bays with doors and colour bands on the side facing the circuit. No source gives the garage order, so the bands are a generic palette and imply no team.
+- **Sky**: warm haze low on the horizon, strongest towards the sun, and a sun disc lined up with the shadow-casting light. Both switch off in the wet.
+
+**Quality presets** (camera strip, saved as `svl-quality`; Balanced by default):
+
+| Preset | Pixel ratio | Shadows | Plantation | Broadleaf clumps | Sun disc |
+|---|---|---|---|---|---|
+| Low | 1 | off | 700 | off | off |
+| Balanced | up to 1.25 | 1024 map | 2,000 | on | on |
+| High detail | up to 1.5 | 2048 map | 4,500 | on | on |
+
+**Fullscreen and Present mode.** ⤢ puts the viewport (with its overlays) in browser fullscreen. **Present** (button, or the P key; Escape leaves) keeps the 3D view and its overlays and hides the session switch, header, drawer, replay bar and footer, at any screen width. The key is ignored while typing in a field or with Ctrl, Cmd or Alt held.
+
+**Saved setups and ghost** (gap 17). The simulated session's setup edits and ghost are saved in `localStorage` (`svl-setups-v1`) and restored on load. Every saved field is validated against the drawer's ranges and the current car ids; anything invalid, unknown or unreadable is ignored, and an empty state clears the key. Blocked storage means no saving, never an error.
+
+**Checked in the browser** (1440 × 900):
+
+- Main straight in Chase: seat mosaic, haze, plantation rows, pit building.
+- Slow corner in TV: broadleaf clumps behind the barriers, kerbs.
+- Present mode: P gave a 1440 × 900 viewport with the overlays and hid the chrome; Escape restored it.
+- Saving: power at 860 kW and a saved ghost survived a reload (predicted lap 1:30.074, 1.402 s faster), as did the quality preset. Test values were cleared afterwards.
+
+**Frame rate.** Measured with `requestAnimationFrame` in the browser pane on a 1044 × 657 canvas at a pixel ratio of 1: High 60 fps, Balanced 60 fps, Low 30 fps. Low does the least work, so its 30 fps shows the pane was capping frames intermittently. These figures are not a full-screen measurement. **The "Done when" target (60 fps full screen in Chase with 22 cars, webcam off) still needs a run on a real display**: open `/?perf` and pick a preset.
+
+Tests (`tests/step6.test.ts`, 6): gravel on the outside of all fifteen exits; tree clearance from the track and from cameras, deterministic; plantation band and an evenly spread low-preset prefix; quality defaults and hostile storage; saved setups validated, scoped to known cars and round-tripped, with an empty state clearing the key; Present keys (P toggles, Escape exits, ignored while typing or with modifiers).
+
+Limitations: the scenery is illustrative (no surveyed tree lines, plantation boundaries, grandstand seating or garage allocation). The sun direction is fixed, not computed from date and time. Present mode leaves the browser's own chrome, so use fullscreen as well for a clean feed.
+
+Files: `src/components/circuit/environment/{layout.ts,Environment.tsx,textures.ts}`, `src/components/circuit/{quality.ts,CircuitScene.tsx,DriverScene.tsx}`, `src/components/broadcast/presentMode.ts`, `src/domain/setupStore.ts`, `src/App.tsx`, `src/styles.css`, `tests/step6.test.ts`, this file.
+
+## Milestone 19 status
+
+| Done when | Status |
+|---|---|
+| Recorded mode replays FP1 to Race with real names, colours, telemetry, race control and weather, labelled and attributed | Done (Step 4) |
+| Alignment residuals documented and within target | Done: RMS 3.09 m, p95 5.69 m (Step 3) |
+| Simulated mode unchanged apart from Step 1 fixes | Done; plus the "Modelled" note, theme tokens and saved setups |
+| Build clean, all previously passing tests pass, new tests for pipeline, alignment, interpolation and markers | Done: 153 frontend, 11 pipeline and the backend gesture tests pass |
+| 60 fps full screen in Chase with 22 cars, webcam off | **Open**: needs a measurement on a real display with `?perf` |

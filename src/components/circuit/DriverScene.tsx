@@ -41,6 +41,7 @@ import {
 } from "./cameraRig";
 import FormulaCar from "../cars/FormulaCar";
 import PerfStats from "./PerfStats";
+import { QUALITY, type QualitySettings } from "./quality";
 import { themedAccent } from "../../themeRuntime";
 import { SimplifiedCar } from "../cars/CarRepresentation";
 import { FORMULA_VISUAL_LENGTH } from "../cars/formulaVisual";
@@ -87,6 +88,7 @@ export interface DriverSceneProps {
   trails?: boolean;
   /** Real rainfall (recorded sessions): wetter asphalt, greyer sky, shorter fog. */
   wet?: boolean;
+  quality?: QualitySettings;
 }
 
 // Line-of-sight test against scenery tagged as an occluder (buildings, gantry, boards, trees).
@@ -430,6 +432,7 @@ function CameraRig({
   layout,
   occluders,
   wet,
+  quality,
 }: {
   field: RefObject<CarState[]>;
   entries: readonly CarDefinition[];
@@ -438,6 +441,7 @@ function CameraRig({
   layout: EnvironmentLayout;
   occluders: RefObject<Object3D[]>;
   wet: boolean;
+  quality: QualitySettings;
 }) {
   const { camera, scene } = useThree();
   const sun = useRef<DirectionalLight>(null);
@@ -509,8 +513,8 @@ function CameraRig({
         ref={sun}
         intensity={2.6}
         color="#fff6e6"
-        castShadow
-        shadow-mapSize={[2048, 2048]}
+        castShadow={quality.shadows}
+        shadow-mapSize={[quality.shadowMap, quality.shadowMap]}
         shadow-bias={-0.0004}
         shadow-camera-left={-60}
         shadow-camera-right={60}
@@ -538,6 +542,7 @@ function World({
   labels = true,
   trails = false,
   wet = false,
+  quality = QUALITY.balanced,
 }: DriverSceneProps) {
   const field = useRef<CarState[]>(sample(clock.current));
   const layout = useEnvironmentLayout(sepangTrack, coordinates);
@@ -563,8 +568,14 @@ function World({
         layout={layout}
         occluders={occluders}
         wet={wet}
+        quality={quality}
       />
-      <Environment track={sepangTrack} layout={layout} wet={wet} />
+      <Environment
+        track={sepangTrack}
+        layout={layout}
+        wet={wet}
+        quality={quality}
+      />
       {ghost && <GhostCar ghost={ghost} clock={clock} />}
       {entries.map(
         (car, index) =>
@@ -593,8 +604,8 @@ function World({
 export default function DriverScene(props: DriverSceneProps) {
   return (
     <Canvas
-      shadows
-      dpr={[1, 1.5]}
+      shadows={(props.quality ?? QUALITY.balanced).shadows}
+      dpr={(props.quality ?? QUALITY.balanced).dpr}
       // near ≥ 0.3 keeps depth precision for asphalt over grass on mobile GPUs.
       camera={{ fov: 55, near: 0.3, far: 7000, position: [0, 0, 50] }}
       fallback={

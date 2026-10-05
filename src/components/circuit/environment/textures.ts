@@ -77,3 +77,19 @@ export const turnBoardTexture = (turn: number, left: boolean) =>
     c.lineTo(64 - dir * 20, 146);
     c.stroke();
   });
+
+/** Stadium seats: a mosaic of generic seat colours, no pattern, text or sponsor mark. */
+export const seatTexture = () => {
+  const texture = canvasTexture(64, 32, (c) => {
+    const colours = ["#2f5f8a", "#3a6fa0", "#c9cfd2", "#b23a3a", "#2b8a83", "#d8b245", "#24486b"];
+    let seed = 11;
+    for (let y = 0; y < 32; y += 4)
+      for (let x = 0; x < 64; x += 4) {
+        seed = (seed * 16807) % 2147483647;
+        c.fillStyle = colours[seed % colours.length];
+        c.fillRect(x, y, 4, 3);
+      }
+  });
+  texture.repeat.set(24, 2);
+  return texture;
+};

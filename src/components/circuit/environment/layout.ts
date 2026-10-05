@@ -297,3 +297,103 @@ export function officialTurnBoards(
   const boards = cornerBoards(track, normals, turns);
   return boards.map((b, n) => ({ ...b, turn: n + 1, apex: turns[n] }));
 }
+
+// ---- M19 Step 6: scenery placement ----
+
+/** Distance from a point to the nearest profile sample (4 m apart), on a 60 m grid. */
+export function distanceToTrack(track: TrackProfile) {
+  const cell = 60, grid = new Map<string, number[]>();
+  for (let i = 0; i < track.count; i++) {
+    const key = Math.floor(track.x[i] / cell) + ":" + Math.floor(track.y[i] / cell);
+    (grid.get(key) ?? grid.set(key, []).get(key)!).push(i);
+  }
+  return (x: number, y: number, reach = 400) => {
+    const gx = Math.floor(x / cell), gy = Math.floor(y / cell), rings = Math.ceil(reach / cell);
+    let best = Infinity;
+    for (let dx = -rings; dx <= rings; dx++)
+      for (let dy = -rings; dy <= rings; dy++)
+        for (const i of grid.get(gx + dx + ":" + (gy + dy)) ?? [])
+          best = Math.min(best, (track.x[i] - x) ** 2 + (track.y[i] - y) ** 2);
+    return Math.sqrt(best);
+  };
+}
+
+/** Gravel on the outside of each corner exit: ~100 m from the apex, beyond the kerb. */
+export function gravelTraps(track: TrackProfile, apexes: readonly number[]): KerbRun[] {
+  return apexes.map((apex) => ({
+    from: apex,
+    to: apex + 25,
+    side: (track.curvature[apex] > 0 ? -1 : 1) as -1 | 1,
+  }));
+}
+
+export interface Tree {
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+  shade: number; // 0..1, picks a green
+}
+function inBuildings(x: number, y: number, buildings: readonly Building[], pad: number) {
+  return buildings.some((b) => {
+    const c = Math.cos(-b.heading), s = Math.sin(-b.heading), dx = x - b.x, dy = y - b.y;
+    return Math.abs(dx * c - dy * s) < b.length / 2 + pad && Math.abs(dx * s + dy * c) < b.depth / 2 + pad;
+  });
+}
+
+/**
+ * Low-poly broadleaf clumps behind the barriers: a clump every ~100 m on alternating sides,
+ * 46-62 m out. Trees keep 38 m from the centre line and 14 m from cameras and buildings.
+ */
+export function treeClumps(
+  track: TrackProfile,
+  normals: { nx: Float64Array; ny: Float64Array },
+  options: { avoid?: readonly { x: number; y: number }[]; buildings?: readonly Building[]; seed?: number } = {},
+): Tree[] {
+  const { avoid = [], buildings = [], seed = 19 } = options;
+  const next = random(seed), distance = distanceToTrack(track), out: Tree[] = [];
+  const clear = (x: number, y: number) =>
+    distance(x, y, 120) >= 38 &&
+    avoid.every((a) => Math.hypot(a.x - x, a.y - y) >= 14) &&
+    !inBuildings(x, y, buildings, 14);
+  for (let i = 0, k = 0; i < track.count; i += 25, k++) {
+    const side = k % 2 === 0 ? 1 : -1, offset = side * (46 + next() * 16);
+    const cx = track.x[i] + normals.nx[i] * offset, cy = track.y[i] + normals.ny[i] * offset;
+    const size = 3 + Math.floor(next() * 4);
+    for (let t = 0; t < size; t++) {
+      const x = cx + (next() - 0.5) * 18, y = cy + (next() - 0.5) * 18;
+      if (clear(x, y)) out.push({ x, y, scale: 0.8 + next() * 0.6, rotation: next() * Math.PI * 2, shade: next() });
+    }
+  }
+  return out;
+}
+
+/**
+ * Oil-palm plantation in rows (12 m grid, alternate rows offset), 90-330 m from the track.
+ * Returned in a seeded shuffle so a lower quality preset takes an even subset.
+ */
+export function palmRows(
+  track: TrackProfile,
+  options: { spacing?: number; near?: number; far?: number; buildings?: readonly Building[]; seed?: number } = {},
+): Palm[] {
+  const { spacing = 12, near = 90, far = 330, buildings = [], seed = 21 } = options;
+  const next = random(seed), distance = distanceToTrack(track);
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (let i = 0; i < track.count; i++) {
+    minX = Math.min(minX, track.x[i]); maxX = Math.max(maxX, track.x[i]);
+    minY = Math.min(minY, track.y[i]); maxY = Math.max(maxY, track.y[i]);
+  }
+  const out: Palm[] = [];
+  for (let row = 0, y = minY - far; y <= maxY + far; y += spacing, row++)
+    for (let x = minX - far + (row % 2) * spacing * 0.5; x <= maxX + far; x += spacing) {
+      const d = distance(x, y, far + 60);
+      if (d < near || d > far || inBuildings(x, y, buildings, 15)) continue;
+      out.push({ x: x + (next() - 0.5) * 1.5, y: y + (next() - 0.5) * 1.5, scale: 0.85 + next() * 0.35, rotation: next() * Math.PI * 2 });
+    }
+  // Seeded Fisher-Yates shuffle.
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}

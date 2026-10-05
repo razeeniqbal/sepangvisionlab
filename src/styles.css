@@ -3192,3 +3192,70 @@ button.car-label:focus-visible {
   color: #fff;
   background: var(--accent-fill);
 }
+
+/* ===== M19 step 6: quality, fullscreen, Present mode ===== */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.bc .quality-select select {
+  font: 600 13px var(--font-num);
+  color: var(--silver);
+  background: var(--panel-raise);
+  border: 1px solid var(--panel-line);
+  padding: 4px 6px;
+}
+.bc .circuit-camera-toolbar kbd {
+  font: 600 10px var(--font-num);
+  padding: 0 3px;
+  margin-left: 3px;
+  border: 1px solid color-mix(in srgb, var(--silver) 40%, transparent);
+}
+/* The fullscreen viewport keeps its overlays. */
+.bc-viewport:fullscreen {
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Present mode (P): the viewport and its overlays fill the window; other chrome hides. */
+:root[data-present="true"] body {
+  overflow: hidden;
+}
+:root[data-present="true"] .shell-broadcast {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+:root[data-present="true"] .shell-broadcast > .session-switch,
+:root[data-present="true"] .shell-broadcast > .workspace-nav,
+:root[data-present="true"] .shell-broadcast .bc-header,
+:root[data-present="true"] .shell-broadcast .bc-drawer,
+:root[data-present="true"] .shell-broadcast .bc-dash,
+:root[data-present="true"] .shell-broadcast .bc-footer,
+:root[data-present="true"] .shell-broadcast .disclaimer,
+:root[data-present="true"] .shell-broadcast .hands-sheet {
+  display: none !important;
+}
+:root[data-present="true"] .shell-broadcast .bc {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  padding: 0;
+}
+:root[data-present="true"] .shell-broadcast .bc .bc-stage {
+  flex: 1;
+  display: flex;
+  margin: 0;
+  min-height: 0;
+}
+:root[data-present="true"] .shell-broadcast .bc .bc-viewport {
+  flex: 1;
+  height: 100vh;
+  max-height: none;
+  border: 0;
+}

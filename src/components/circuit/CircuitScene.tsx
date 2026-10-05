@@ -25,6 +25,23 @@ import {
 } from "./cameraRig";
 import { trackSize, trackCenter, trackCurve } from "./trackCurve";
 import CarMarker from "../cars/CarMarker";
+import {
+  QUALITY,
+  QUALITY_LABELS,
+  QUALITY_LEVELS,
+  readQuality,
+  writeQuality,
+  type Quality,
+} from "./quality";
+import { presentKeyAction, type KeyLike } from "../broadcast/presentMode";
+
+const browserStorage = () => {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+};
 import PerfStats from "./PerfStats";
 import { fictionalDriver } from "../../data/fictionalGrid";
 import type { CarState, CarDefinition } from "../../domain/field";
@@ -166,6 +183,43 @@ export default function CircuitScene(props: Props) {
   // Ref-based rig read by the frame loop; React state only mirrors the mode for the toolbar.
   const rig = useRef<CameraRigState>(createRig());
   const [mode, setCameraMode] = useState<CameraMode>("engineering");
+  const [quality, setQualityState] = useState<Quality>(() =>
+    readQuality(browserStorage()),
+  );
+  const setQuality = (q: Quality) => {
+    setQualityState(q);
+    writeQuality(browserStorage(), q);
+  };
+  const [presenting, setPresenting] = useState(false);
+  const present = (on: boolean) => {
+    setPresenting(on);
+    if (on) document.documentElement.dataset.present = "true";
+    else delete document.documentElement.dataset.present;
+  };
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const action = presentKeyAction(
+        event as unknown as KeyLike,
+        document.documentElement.dataset.present === "true",
+      );
+      if (action === "toggle")
+        present(document.documentElement.dataset.present !== "true");
+      if (action === "exit") present(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      delete document.documentElement.dataset.present;
+    };
+  }, []);
+  const fullscreen = () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else
+      void document
+        .querySelector<HTMLElement>(".bc-viewport, .viewport")
+        ?.requestFullscreen?.()
+        .catch(() => undefined);
+  };
   const [labels, setLabels] = useState(true);
   const [trails, setTrails] = useState(false);
   const changeMode = (next: CameraMode) => {
@@ -278,6 +332,30 @@ export default function CircuitScene(props: Props) {
             >
               ⟳
             </button>
+            <label className="quality-select">
+              <span className="visually-hidden">Quality</span>
+              <select
+                aria-label="Rendering quality"
+                value={quality}
+                onChange={(e) => setQuality(e.target.value as Quality)}
+              >
+                {QUALITY_LEVELS.map((q) => (
+                  <option key={q} value={q}>
+                    {QUALITY_LABELS[q]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button aria-label="Fullscreen viewport" onClick={fullscreen}>
+              ⤢
+            </button>
+            <button
+              aria-pressed={presenting}
+              onClick={() => present(!presenting)}
+              title="Present mode (P)"
+            >
+              Present <kbd>P</kbd>
+            </button>
             <span className="view-toggles" role="group" aria-label="Overlays">
               <button
                 className="toggle"
@@ -379,6 +457,7 @@ export default function CircuitScene(props: Props) {
               mode={mode}
               labels={labels}
               trails={trails}
+              quality={QUALITY[quality]}
             />
           </Suspense>
         </DriverBoundary>

@@ -16,10 +16,14 @@ import {
   PlaneGeometry,
   ShaderMaterial,
   SphereGeometry,
+  Vector3,
 } from "three";
 import { useFrame } from "@react-three/fiber";
 import type { TrackProfile } from "../../../domain/lapPhysics";
 import { anchorInProfile } from "./anchors";
+import { findCorners } from "../../../domain/lapPhysics";
+import { tvPoints } from "../cameraRig";
+import { QUALITY, type QualitySettings } from "../quality";
 import {
   KERB_WIDTH,
   LAYER,
@@ -29,10 +33,15 @@ import {
   barrierOffset,
   cornerBoards,
   officialTurnBoards,
+  gravelTraps,
+  nearestSample,
+  palmRows,
+  treeClumps,
+  type Palm,
+  type Tree,
   fitBuilding,
   gantryAt,
   kerbRuns,
-  scatterPalms,
   trackBearing,
   type Building,
   type Placement,
@@ -46,6 +55,7 @@ import {
   type StripSpec,
 } from "./ribbon";
 import {
+  seatTexture,
   asphaltTexture,
   chevronTexture,
   kerbTexture,
@@ -55,6 +65,7 @@ import {
 // Objects that block a camera's view of a car: used by TV camera picking and tag fading.
 export const OCCLUDER = { occluder: true };
 export const SKY = Object.freeze({
+  haze: "#e9d6b8",
   wetHorizon: "#9aa6aa",
   wetZenith: "#5f6e78",
   wetFogNear: 160,
@@ -88,6 +99,9 @@ export interface EnvironmentLayout {
   gantry: Placement;
   boards: Placement[];
   turns: TurnBoard[];
+  apexes: number[];
+  trees: Tree[];
+  palms: Palm[];
   bounds: { minX: number; maxX: number; minY: number; maxY: number };
 }
 
@@ -138,11 +152,30 @@ export function useEnvironmentLayout(
         };
       })(),
       bounds: { minX, maxX, minY, maxY },
+      ...(() => {
+        const turns = officialTurnBoards(track, normals);
+        const pit = fitBuilding(track, { ...pitAnchor, heading: trackBearing(track, pitAnchor.x, pitAnchor.y) }, 420, 24);
+        const stand = fitBuilding(track, { ...standAnchor, heading: 0 }, 320, 44, TRACK_HALF_WIDTH + 10);
+        return {
+          apexes: turns.length ? turns.map((t) => t.apex) : findCorners(track),
+          // Clumps keep clear of every trackside camera position, so TV shots stay open.
+          trees: treeClumps(track, normals, { avoid: tvPoints(track, normals), buildings: [pit, stand] }),
+          palms: palmRows(track, { buildings: [pit, stand] }),
+        };
+      })(),
     };
   }, [track, coordinates]);
 }
 
-function Surfaces({ track, wet }: { track: TrackProfile; wet: boolean }) {
+function Surfaces({
+  track,
+  wet,
+  apexes,
+}: {
+  track: TrackProfile;
+  wet: boolean;
+  apexes: readonly number[];
+}) {
   const meshes = useMemo(() => {
     const normals = leftNormals(track);
     const strip = (spec: StripSpec) => buildStrip(track, normals, spec);
@@ -158,6 +191,20 @@ function Surfaces({ track, wet }: { track: TrackProfile; wet: boolean }) {
         from: run.from,
         to: run.to,
         uLength: 6,
+      });
+    });
+    // Gravel traps outside the corner exits, from beyond the kerb to the run-off edge.
+    const gravel = gravelTraps(track, apexes).map((run) => {
+      const a = run.side * (w + KERB_WIDTH + 1),
+        b = run.side * (RUNOFF_OUTER - 1);
+      return strip({
+        edges: [
+          { offset: Math.min(a, b), z: LAYER.runoff + 0.02 },
+          { offset: Math.max(a, b), z: LAYER.runoff + 0.02 },
+        ],
+        from: run.from,
+        to: run.to,
+        uLength: 8,
       });
     });
     const barriers = ([-1, 1] as const).map((side) =>
@@ -210,6 +257,7 @@ function Surfaces({ track, wet }: { track: TrackProfile; wet: boolean }) {
         ]),
       ),
       kerbs: toGeometry(mergeStrips(kerbs)),
+      gravel: toGeometry(mergeStrips(gravel)),
       barriers: toGeometry(mergeStrips(barriers)),
     };
   }, [track]);
@@ -252,6 +300,7 @@ function Surfaces({ track, wet }: { track: TrackProfile; wet: boolean }) {
       />
       <mesh geometry={meshes.lines} material={materials.lines} receiveShadow />
       <mesh geometry={meshes.kerbs} material={materials.kerbs} receiveShadow />
+      <mesh geometry={meshes.gravel} material={gravelMaterial} receiveShadow />
       <mesh geometry={meshes.barriers} material={materials.barriers} />
     </>
   );
@@ -266,7 +315,20 @@ const glass = new MeshStandardMaterial({
   roughness: 0.25,
   metalness: 0.4,
 });
-const seats = new MeshStandardMaterial({ color: "#3d4f5a", roughness: 0.8 });
+// Seat mosaic: generic coloured seats (canvas texture), not a sponsor or team pattern.
+const seats = new MeshStandardMaterial({ map: seatTexture(), roughness: 0.8 });
+const gravelMaterial = new MeshStandardMaterial({
+  color: "#c8a46b",
+  roughness: 1,
+  polygonOffset: true,
+  polygonOffsetFactor: 1,
+  polygonOffsetUnits: 1,
+});
+const garageDoor = new MeshStandardMaterial({ color: "#1b2226", roughness: 0.7 });
+// Generic garage bands: no source gives garage order, so no team is implied.
+const GARAGE_BANDS = ["#8a9aa3", "#c9b37a", "#7aa38f", "#a3858a", "#7f8fb5", "#b0b8bc"].map(
+  (c) => new MeshStandardMaterial({ color: c, roughness: 0.5 }),
+);
 const roof = new MeshStandardMaterial({
   color: "#eef0ec",
   roughness: 0.6,
@@ -278,7 +340,13 @@ const steel = new MeshStandardMaterial({
   metalness: 0.5,
 });
 
-function PitBuilding({ b }: { b: Building }) {
+function PitBuilding({ b, track }: { b: Building; track: TrackProfile }) {
+  // Which long side faces the circuit (local +y or -y)?
+  const { index } = nearestSample(track, b.x, b.y);
+  const c = Math.cos(-b.heading), s = Math.sin(-b.heading);
+  const face = (track.x[index] - b.x) * s + (track.y[index] - b.y) * c > 0 ? 1 : -1;
+  const bays = Math.max(4, Math.floor(b.length / 14));
+  const bay = b.length / bays;
   return (
     <group
       position={[b.x, b.y, 0]}
@@ -294,6 +362,19 @@ function PitBuilding({ b }: { b: Building }) {
       <mesh material={roof} position={[0, 0, 14.4]} castShadow>
         <boxGeometry args={[b.length * 1.02, b.depth * 1.25, 0.8]} />
       </mesh>
+      {Array.from({ length: bays }, (_, i) => {
+        const x = -b.length / 2 + bay * (i + 0.5);
+        return (
+          <group key={i} position={[x, face * (b.depth / 2 + 0.05), 0]}>
+            <mesh material={garageDoor} position={[0, 0, 2.6]}>
+              <boxGeometry args={[bay * 0.82, 0.2, 5.2]} />
+            </mesh>
+            <mesh material={GARAGE_BANDS[i % GARAGE_BANDS.length]} position={[0, 0, 6]}>
+              <boxGeometry args={[bay * 0.92, 0.3, 0.9]} />
+            </mesh>
+          </group>
+        );
+      })}
     </group>
   );
 }
@@ -329,6 +410,12 @@ function Grandstand({ b }: { b: Building }) {
       <mesh material={roof} position={[0, 0, 26]} castShadow>
         <boxGeometry args={[b.length * 1.02, b.depth * 0.95, 0.6]} />
       </mesh>
+      {/* Canopy fascia on both frontages. */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} material={steel} position={[0, side * b.depth * 0.475, 25.2]}>
+          <boxGeometry args={[b.length * 1.02, 0.4, 1.6]} />
+        </mesh>
+      ))}
       {Array.from({ length: columns }, (_, i) => (
         <mesh
           key={i}
@@ -488,9 +575,9 @@ function CornerBoards({ boards }: { boards: Placement[] }) {
   );
 }
 
-function Palms({ track, avoid }: { track: TrackProfile; avoid: Building[] }) {
+function Palms({ palms: all, count }: { palms: readonly Palm[]; count: number }) {
   const parts = useMemo(() => {
-    const palms = scatterPalms(track, { avoid });
+    const palms = all.slice(0, count);
     const trunk = new CylinderGeometry(0.22, 0.38, 9, 6)
       .rotateX(Math.PI / 2)
       .translate(0, 0, 4.5);
@@ -516,7 +603,7 @@ function Palms({ track, avoid }: { track: TrackProfile; avoid: Building[] }) {
         flatShading: true,
       }),
     };
-  }, [track, avoid]);
+  }, [all, count]);
   return (
     <>
       <Instanced
@@ -533,7 +620,56 @@ function Palms({ track, avoid }: { track: TrackProfile; avoid: Building[] }) {
   );
 }
 
-function Sky({ wet }: { wet: boolean }) {
+// Low-poly broadleaf trees: chunky crowns in a few greens (one draw call for crowns).
+function TreeClumps({ trees }: { trees: readonly Tree[] }) {
+  const parts = useMemo(() => {
+    const trunk = new CylinderGeometry(0.35, 0.5, 4, 5).rotateX(Math.PI / 2).translate(0, 0, 2);
+    const crown = new IcosahedronGeometry(3.6, 0).scale(1, 1, 0.85).translate(0, 0, 6.2);
+    const o = new Object3D();
+    const matrices = trees.map((t) => {
+      o.position.set(t.x, t.y, 0);
+      o.rotation.set(0, 0, t.rotation);
+      o.scale.setScalar(t.scale);
+      o.updateMatrix();
+      return o.matrix.clone();
+    });
+    const greens = ["#3f6b34", "#4c7a3a", "#36602f", "#58864a"].map((g) => new Color(g));
+    return {
+      trunk, crown, matrices,
+      colours: trees.map((t) => greens[Math.floor(t.shade * greens.length) % greens.length]),
+      bark: new MeshStandardMaterial({ color: "#5d4a38", roughness: 1 }),
+      leaves: new MeshStandardMaterial({ roughness: 0.9, flatShading: true }),
+    };
+  }, [trees]);
+  const crowns = useRef<InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const mesh = crowns.current;
+    if (!mesh) return;
+    parts.matrices.forEach((m, i) => {
+      mesh.setMatrixAt(i, m);
+      mesh.setColorAt(i, parts.colours[i]);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [parts]);
+  return (
+    <>
+      <Instanced geometry={parts.trunk} material={parts.bark} matrices={parts.matrices} />
+      <instancedMesh
+        ref={crowns}
+        args={[parts.crown, parts.leaves, parts.matrices.length]}
+        frustumCulled={false}
+        userData={OCCLUDER}
+      />
+    </>
+  );
+}
+
+// Sun direction matches the directional light's offset in DriverScene (-140, -220, 320).
+const SUN_DIRECTION = new Vector3(-140, -220, 320).normalize();
+
+function Sky({ wet, sunDisc }: { wet: boolean; sunDisc: boolean }) {
   const material = useMemo(
     () =>
       new ShaderMaterial({
@@ -543,11 +679,21 @@ function Sky({ wet }: { wet: boolean }) {
         uniforms: {
           horizon: { value: new Color(SKY.horizon) },
           zenith: { value: new Color(SKY.zenith) },
+          haze: { value: new Color(SKY.haze) },
+          sunDir: { value: SUN_DIRECTION },
+          sunOn: { value: 1 },
         },
         vertexShader:
           "varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
         fragmentShader:
-          "uniform vec3 horizon; uniform vec3 zenith; varying vec3 vDir; void main(){ float h = clamp(vDir.z, 0.0, 1.0); gl_FragColor = vec4(mix(horizon, zenith, pow(h, 0.6)), 1.0); }",
+          "uniform vec3 horizon; uniform vec3 zenith; uniform vec3 haze; uniform vec3 sunDir; uniform float sunOn; varying vec3 vDir;" +
+          "void main(){ float h = clamp(vDir.z, 0.0, 1.0); vec3 sky = mix(horizon, zenith, pow(h, 0.6));" +
+          // Warm haze low on the horizon, strongest towards the sun.
+          "float toward = max(dot(normalize(vec3(vDir.xy, 0.0)), normalize(vec3(sunDir.xy, 0.0))), 0.0);" +
+          "sky = mix(sky, haze, (1.0 - smoothstep(0.0, 0.22, h)) * (0.35 + 0.4 * toward) * sunOn);" +
+          // Sun disc with a soft glow.
+          "float d = dot(normalize(vDir), sunDir); sky += sunOn * (smoothstep(0.9992, 0.9996, d) * vec3(1.0, 0.96, 0.86) + pow(max(d, 0.0), 180.0) * vec3(0.35, 0.3, 0.22));" +
+          "gl_FragColor = vec4(sky, 1.0); }",
       }),
     [],
   );
@@ -559,7 +705,8 @@ function Sky({ wet }: { wet: boolean }) {
   useLayoutEffect(() => {
     material.uniforms.horizon.value.set(wet ? SKY.wetHorizon : SKY.horizon);
     material.uniforms.zenith.value.set(wet ? SKY.wetZenith : SKY.zenith);
-  }, [material, wet]);
+    material.uniforms.sunOn.value = !wet && sunDisc ? 1 : 0;
+  }, [material, wet, sunDisc]);
   // The sky follows the camera so it never clips at the far plane.
   useFrame(({ camera }) => sky.current?.position.copy(camera.position));
   return (
@@ -571,10 +718,12 @@ export default function Environment({
   track,
   layout,
   wet = false,
+  quality = QUALITY.balanced,
 }: {
   track: TrackProfile;
   layout: EnvironmentLayout;
   wet?: boolean;
+  quality?: QualitySettings;
 }) {
   const ground = useMemo(() => {
     const { minX, maxX, minY, maxY } = layout.bounds,
@@ -591,18 +740,17 @@ export default function Environment({
       }),
     };
   }, [layout]);
-  const avoid = useMemo(() => [layout.pit, layout.stand], [layout]);
   return (
     <>
-      <Sky wet={wet} />
+      <Sky wet={wet} sunDisc={quality.sunDisc} />
       <mesh
         geometry={ground.geometry}
         material={ground.material}
         position={[...ground.position]}
         receiveShadow
       />
-      <Surfaces track={track} wet={wet} />
-      <PitBuilding b={layout.pit} />
+      <Surfaces track={track} wet={wet} apexes={layout.apexes} />
+      <PitBuilding b={layout.pit} track={track} />
       <Grandstand b={layout.stand} />
       <Gantry p={layout.gantry} />
       {layout.turns.length ? (
@@ -610,7 +758,8 @@ export default function Environment({
       ) : (
         <CornerBoards boards={layout.boards} />
       )}
-      <Palms track={track} avoid={avoid} />
+      <Palms palms={layout.palms} count={quality.palms} />
+      {quality.trees && <TreeClumps trees={layout.trees} />}
     </>
   );
 }

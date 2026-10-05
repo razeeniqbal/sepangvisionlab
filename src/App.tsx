@@ -3,7 +3,22 @@ import {
   useGestureReceiver,
 } from "./components/handtracking/GestureContext";
 import HandTrackingPanel from "./components/handtracking/HandTrackingPanel";
-import { Component, useMemo, useState, type ReactNode } from "react";
+import {
+  Component,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { loadSetups, saveSetups } from "./domain/setupStore";
+
+const storage = () => {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+};
 import HistoricalWorkspace from "./components/historical/HistoricalWorkspace";
 import CircuitScene from "./components/circuit/CircuitViewport";
 import WorkspaceNav from "./components/WorkspaceNav";
@@ -138,10 +153,19 @@ function RaceWorkspace({
     [data],
   );
   // Setup drawer edits, keyed by car id. Applying one re-solves only that car's lap.
-  const [overrides, setOverrides] = useState<Record<string, CarSetup>>({});
-  const [ghost, setGhost] = useState<{ carId: string; setup: CarSetup } | null>(
-    null,
+  // Saved in this browser (validated on load); a blocked storage just means no saving.
+  const [saved] = useState(() =>
+    loadSetups(storage(), new Set(data.entries.map((e) => e.id))),
   );
+  const [overrides, setOverrides] = useState<Record<string, CarSetup>>(
+    saved.overrides,
+  );
+  const [ghost, setGhost] = useState<{ carId: string; setup: CarSetup } | null>(
+    saved.ghost,
+  );
+  useEffect(() => {
+    saveSetups(storage(), { overrides, ghost });
+  }, [overrides, ghost]);
   const [drawer, setDrawer] = useState<"inspector" | "setup" | "telemetry">(
     "inspector",
   );
