@@ -25,6 +25,7 @@ import {
 } from "./cameraRig";
 import { trackSize, trackCenter, trackCurve } from "./trackCurve";
 import CarMarker from "../cars/CarMarker";
+import PerfStats from "./PerfStats";
 import { fictionalDriver } from "../../data/fictionalGrid";
 import type { CarState, CarDefinition } from "../../domain/field";
 import { sampleRace, type ReplayData } from "../../services/raceState";
@@ -369,6 +370,7 @@ export default function CircuitScene(props: Props) {
           }
         >
           <Scene {...props} view={view} />
+        <PerfStats />
         </Canvas>
       )}
     </div>

@@ -5,3 +5,6 @@ dist/
 
 __pycache__/
 .venv/
+
+# Reference screenshots: third-party branding, never commit.
+docs/reference/

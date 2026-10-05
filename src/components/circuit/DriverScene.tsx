@@ -28,6 +28,7 @@ import {
   type CameraRigState,
 } from "./cameraRig";
 import FormulaCar from "../cars/FormulaCar";
+import PerfStats from "./PerfStats";
 import { SimplifiedCar } from "../cars/CarRepresentation";
 import { FORMULA_VISUAL_LENGTH } from "../cars/formulaVisual";
 import { visualTyreCompound } from "../cars/carVisualState";
@@ -395,6 +396,7 @@ export default function DriverScene(props: DriverSceneProps) {
       }
     >
       <World {...props} />
+      <PerfStats />
     </Canvas>
   );
 }
