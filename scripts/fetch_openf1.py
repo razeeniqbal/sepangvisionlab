@@ -27,11 +27,28 @@ BEFORE = timedelta(minutes=75)
 AFTER = timedelta(minutes=30)
 
 
+def actual_end(session: dict, base: Path):
+    """Latest moment the session really ran: scheduled end, last timed lap, last race-control
+    message. Delayed sessions (the 2026 race started 93 minutes late) run past the schedule."""
+    end = parse_time(session["date_end"])
+    laps_path, control_path = ROOT / base / "laps.json.gz", ROOT / base / "race_control.json.gz"
+    if laps_path.exists():
+        for lap in read_cache(laps_path)["rows"]:
+            if lap.get("date_start") and lap.get("lap_duration"):
+                end = max(end, parse_time(lap["date_start"]) + timedelta(seconds=lap["lap_duration"]))
+    if control_path.exists():
+        for row in read_cache(control_path)["rows"]:
+            if row.get("date"):
+                end = max(end, parse_time(row["date"]))
+    return end
+
+
 def plan(session: dict, drivers: list[int], minutes: int) -> list[tuple[str, Path]]:
     key = session["session_key"]
     base = Path("data/raw/openf1") / str(session["meeting_key"]) / str(key)
     start = parse_time(session["date_start"]) - BEFORE
-    end = parse_time(session["date_end"]) + AFTER
+    # Window grid stays anchored at `start`, so cached windows are reused when `end` grows.
+    end = actual_end(session, base) + AFTER
     jobs = [(url(e, {"session_key": key}), base / f"{e}.json.gz") for e in SESSION_ENDPOINTS]
     for e in WINDOWED_ENDPOINTS:
         for i, w in enumerate(windows(start, end, minutes)):
@@ -124,6 +141,10 @@ def main() -> None:
             rows, retrieved = fetch(address, limiter)
             write_cache(drivers_path, rows, {"url": address, "retrieved": retrieved, "rows": len(rows)})
         drivers = sorted({r["driver_number"] for r in read_cache(drivers_path)["rows"]})
+        # Session-level data first: laps and race control decide how far the windows must reach.
+        session_jobs = [j for j in plan(session, drivers, args.window_minutes) if j[1].parent.name == str(session["session_key"])]
+        if not args.dry_run:
+            run(session_jobs, limiter, args.workers)
         jobs = plan(session, drivers, args.window_minutes)
         if args.dry_run:
             print(f"  {len(drivers)} drivers, {len(jobs)} requests")
