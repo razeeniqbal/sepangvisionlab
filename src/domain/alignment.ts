@@ -130,7 +130,9 @@ export function nearestOnTrack(track: TrackProfile, p: Point) {
   const g = grid(track);
   const gx = Math.floor(p.x / CELL),
     gy = Math.floor(p.y / CELL);
-  let best: ReturnType<typeof segment> | null = null;
+  // Start from segment 0 (always valid) so the best hit is never null.
+  let best = segment(track, 0, p);
+  let found = false;
   // Grow the search ring until a hit is found and the ring is beyond the best distance.
   for (let r = 0; r < 200; r++) {
     for (let dx = -r; dx <= r; dx++)
@@ -138,12 +140,15 @@ export function nearestOnTrack(track: TrackProfile, p: Point) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
         for (const i of g.get(gx + dx + ":" + (gy + dy)) ?? []) {
           const s = segment(track, i, p);
-          if (!best || s.d2 < best.d2) best = s;
+          if (!found || s.d2 < best.d2) {
+            best = s;
+            found = true;
+          }
         }
       }
-    if (best && Math.sqrt(best.d2) <= r * CELL) break;
+    if (found && Math.sqrt(best.d2) <= r * CELL) break;
   }
-  if (!best) throw new RangeError("Point is far from the track");
+  if (!found) throw new RangeError("Point is far from the track");
   return {
     x: best.x,
     y: best.y,
