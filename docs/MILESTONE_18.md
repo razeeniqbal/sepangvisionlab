@@ -47,3 +47,30 @@ Limitations:
 - The reference screenshots in `docs/reference/raceview/` were not in the repository, so no visual comparison against them was possible.
 
 Files: `src/domain/lapPhysics.ts` (profile `scale`, `poseAtDistance`), `src/components/circuit/environment/{ribbon,layout,anchors,textures}.ts`, `environment/Environment.tsx`, `src/components/circuit/DriverScene.tsx`, `CircuitScene.tsx` (view toggle, session label), `App.tsx` (session label), `src/data/circuits/sepangSpatialReferences.ts` (register entries), `tests/environment.test.ts`, `docs/MILESTONE_18_PLAN.md` (copied from the kit), this file.
+
+## Phase 3 — car that moves like a car
+
+The GLB is still the body and is not modified. Because it is one merged mesh, its wheels cannot move, so four wheels are generated in code (`src/components/cars/wheels/`) and drawn 4% larger at the GLB's own hub positions to cover the static wheels. Each wheel is a single vertex-coloured mesh (tyre, rim, three spokes, compound-coloured sidewall band using the existing `TYRE_COLOURS`), one draw call per wheel and shared geometry per compound and side.
+
+Hub positions are DERIVED by reading the GLB vertex buffer in the `createFormulaVisual` frame (tyre equator extremes and lateral faces, symmetric left/right to 0.1 mm). At the 5.6 m display length they give a 3.54 m wheelbase and a 0.37 m tyre radius.
+
+Motion (`src/domain/carMotion.ts`, pure and tested), visual only and never fed back into race state:
+
+- Steer: kinematic bicycle model from the heading change over the next 6 m, `δ = atan(L · Δψ / Δs)`, clamped to ±0.38 rad, eased.
+- Spin: distance covered since the last frame / tyre radius. Pausing stops the wheels, rewinding turns them backward, and jumps over 60 m (seeks) add no spin.
+- Pitch: nose down under braking from acceleration measured in replay time (a paused replay holds still), gain 0.012 rad/g, clamped to ±0.03 rad.
+- Roll: toward the outside from v²κ/g, gain 0.009 rad/g, clamped to ±0.035 rad. Pitch and roll pivot at hub height and move only the body, so the wheels stay planted.
+- All easing is exponential in wall-clock time, so it is frame-rate independent.
+
+`wheels: "generated" | "model"` (`WHEELS` in `DriverScene.tsx`): `"model"` drives nodes named `wheel_FL`, `wheel_FR`, `wheel_RL`, `wheel_RR` in a future GLB, assuming each node's rest frame has its axle along y, and falls back to generated wheels if any node is missing. Today it is `"generated"`.
+
+The Phase 2 chase camera now snaps to the car heading when its eased heading is more than ~35° off (after a seek or a long frame hitch) instead of swinging round from a stale direction.
+
+Limitations:
+
+- The generated wheels are simpler than the GLB's: no brake ducts, tread or tyre text. The GLB's static wheels can show at the edges at extreme steer angles.
+- Pitch and roll are kinematic gains, not a suspension model. The body does not heave with downforce or kerbs.
+- Historical sessions use lap-average speeds, so their cars roll in corners but barely pitch.
+- No measured frame rate this phase: the browser pane was in the background, so frames arrived only when screenshots were taken. Phase 2 measured 60 fps with the pane visible. The 80 added wheel meshes are small next to 20 GLB clones.
+
+Files: `src/domain/carMotion.ts`, `src/components/cars/wheels/{wheelLayout,generatedWheels}.ts`, `src/components/circuit/DriverScene.tsx`, `tests/carMotion.test.ts`, this file.
