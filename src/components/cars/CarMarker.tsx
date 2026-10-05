@@ -8,9 +8,17 @@ import { carDetail, type CarDetail } from "./carDetail";
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
-import { Group, OrthographicCamera, Vector3 } from "three";
+import {
+  Group,
+  MeshBasicMaterial,
+  OrthographicCamera,
+  Vector3,
+} from "three";
+import { themedAccent } from "../../themeRuntime";
 import { trackCurve } from "../circuit/trackCurve";
 import type { CarDefinition, CarState } from "../../domain/field";
+const selectedRing = new MeshBasicMaterial({ color: themedAccent() });
+const hoverRing = new MeshBasicMaterial({ color: "#a5b6b2" });
 interface Props {
   car: CarDefinition;
   tyresKnown?: boolean;
@@ -102,7 +110,10 @@ export default function CarMarker({
       {active && (
         <mesh position={[0, 0, -0.003]}>
           <ringGeometry args={[0.36, 0.4, 32]} />
-          <meshBasicMaterial color={selected ? "#00a69c" : "#a5b6b2"} />
+          <primitive
+            object={selected ? selectedRing : hoverRing}
+            attach="material"
+          />
         </mesh>
       )}
       <group ref={body} scale={active ? 0.7 : 0.48}>
@@ -125,7 +136,7 @@ export default function CarMarker({
               : "car-label car-label-compact"
           }
           style={{
-            borderColor: selected ? "#00a69c" : car.color,
+            borderColor: selected ? "var(--accent)" : car.color,
             transform: "translateY(" + labelOffset + "px)",
           }}
           data-car-number={car.number}

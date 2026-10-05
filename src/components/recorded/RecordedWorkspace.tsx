@@ -24,6 +24,7 @@ import {
 import RecordedTelemetryCard from "./RecordedTelemetryCard";
 import RaceControlTicker from "./RaceControlTicker";
 import WeatherStrip from "./WeatherStrip";
+import ThemeToggle from "../broadcast/ThemeToggle";
 import RecordedTimeline, { clockText } from "./RecordedTimeline";
 
 export const RECORDED_LABEL = "Recorded session · interpolated motion · data via OpenF1";
@@ -173,6 +174,7 @@ function RecordedReplay({
             {clockText(time * 1000)}
           </span>
           <b className="bc-speed">{speed}×</b>
+          <ThemeToggle />
           <button className="bc-hands-button" aria-pressed={handsOpen} onClick={onHands}>
             Hands
           </button>

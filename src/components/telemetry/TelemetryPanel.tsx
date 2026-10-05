@@ -6,7 +6,7 @@ interface Props {
   running: boolean;
 }
 const channels = [
-  { key: "speed", label: "Speed", unit: "km/h", max: 360, color: "#00a19c" },
+  { key: "speed", label: "Speed", unit: "km/h", max: 360, color: "var(--accent)" },
   { key: "throttle", label: "Throttle", unit: "%", max: 100, color: "#3fc18a" },
   { key: "brake", label: "Brake", unit: "%", max: 100, color: "#d1243a" },
 ] as const;
@@ -70,7 +70,7 @@ export default function TelemetryPanel({ number, samples, running }: Props) {
                   data-testid={`trace-${channel.key}`}
                   points={points}
                   fill="none"
-                  stroke={channel.color}
+                  style={{ stroke: channel.color }}
                   strokeWidth="2"
                 />
                 {latest && (
@@ -78,7 +78,7 @@ export default function TelemetryPanel({ number, samples, running }: Props) {
                     cx={40 + ((end - start) / 60) * 430}
                     cy={110 - (latest[channel.key] / channel.max) * 90}
                     r="3"
-                    fill={channel.color}
+                    style={{ fill: channel.color }}
                   />
                 )}
                 <text x="40" y="132">

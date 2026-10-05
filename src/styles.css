@@ -14,6 +14,15 @@
   --danger: #d1243a;
   --good: #3fc18a;
   --font-num: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  --accent-fill: #007a76; /* behind small white text: 5.2:1 */
+  --accent-text: #00a19c; /* small accent text on panels */
+  --accent-strong: #00c4b4; /* pressed text and focus outlines */
+  --best-session: #c79cff;
+  --best-personal: #3fc18a;
+  --pill-text: #c9f1ee;
+  --panel-raise: #142022;
+  --panel-edge: #1c2a2b;
+  --panel-line: #2a3a3c;
   font-variant-numeric: tabular-nums;
 }
 * {
@@ -319,8 +328,9 @@ button {
 }
 .primary {
   flex: 1;
-  background: #00958f;
-  border-color: #00958f;
+  /* Was #00958f (white text 3.6:1); the accent fill gives 5.2:1 (SVL) and 5.0:1 (Broadcast). */
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
   color: #fff;
 }
 button:hover {
@@ -901,7 +911,7 @@ button.car-label:focus-visible {
   cursor: pointer;
 }
 .timeline-controls button.primary {
-  background: #008f89;
+  background: var(--accent-fill);
 }
 .timeline-controls label {
   font-size: 11px;
@@ -924,7 +934,7 @@ button.car-label:focus-visible {
   transform: translateX(-50%);
   background: none;
   border: 0;
-  border-top: 5px solid #00a19c;
+  border-top: 5px solid var(--accent);
   color: #acc7c3;
   padding: 5px 2px;
   cursor: pointer;
@@ -961,7 +971,7 @@ button.car-label:focus-visible {
   color: #a6bdb7;
 }
 .session-loading button {
-  background: #00a19c;
+  background: var(--accent);
   border: 0;
   padding: 10px 24px;
   color: #071210;
@@ -985,8 +995,8 @@ button.car-label:focus-visible {
   cursor: pointer;
 }
 .session-switch button[aria-pressed="true"] {
-  border-color: #00a19c;
-  color: #00c4b4;
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 .historical-note {
   font-size: 12px;
@@ -1092,7 +1102,7 @@ button.car-label:focus-visible {
   display: block;
   font:
     32px var(--font-num);
-  color: #00c4b4;
+  color: var(--accent-strong);
   margin-top: 12px;
 }
 .ml-panel button {
@@ -1189,7 +1199,7 @@ button.car-label:focus-visible {
   display: block;
   font:
     30px var(--font-num);
-  color: #00c4b4;
+  color: var(--accent-strong);
   margin: 12px 0;
 }
 .stint-summary strong small {
@@ -1280,7 +1290,7 @@ button.car-label:focus-visible {
 }
 .strategy-anchor {
   padding: 12px;
-  border-left: 3px solid #00a19c;
+  border-left: 3px solid var(--accent);
 }
 .strategy-inputs {
   display: grid;
@@ -1588,7 +1598,7 @@ button.car-label:focus-visible {
 }
 
 .gesture-controls textarea { display: block; width: 100%; max-width: 680px; min-height: 76px; margin: 8px 0; padding: 10px; color: #dce7e1; background: #0c1511; border: 1px solid #375144; font: inherit; resize: vertical; }
-.gesture-controls textarea:focus-visible { outline: 2px solid #00c4b4; outline-offset: 2px; }
+.gesture-controls textarea:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 
 /* M17: section navigation, keyboard focus and compact-screen controls. */
 .workspace-nav { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 6px; padding: 10px 32px; background: #0c1514; border-bottom: 1px solid var(--border); overflow-x: auto; }
@@ -1623,7 +1633,7 @@ button.car-label:focus-visible {
 .bc {
   padding: 0 20px;
   background:
-    radial-gradient(1200px 500px at 70% -10%, rgba(0, 161, 156, 0.08), transparent 60%),
+    radial-gradient(1200px 500px at 70% -10%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 60%),
     var(--carbon);
 }
 .bc :focus-visible {
@@ -1662,9 +1672,9 @@ button.car-label:focus-visible {
   align-items: center;
   font: 600 13px var(--font-num);
   letter-spacing: 0.04em;
-  color: #c9f1ee;
-  background: rgba(0, 161, 156, 0.14);
-  border: 1px solid rgba(0, 161, 156, 0.55);
+  color: var(--pill-text);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
   padding: 4px 10px;
 }
 .bc-clock {
@@ -1693,7 +1703,7 @@ button.car-label:focus-visible {
   height: clamp(560px, calc(100vh - 120px), 920px);
   min-height: 0;
   background: #0a1011;
-  border: 1px solid #1c2a2b;
+  border: 1px solid var(--panel-edge);
 }
 .bc .bc-viewport .view-top,
 .bc .bc-viewport .view-bottom {
@@ -1781,7 +1791,7 @@ button.car-label:focus-visible {
   justify-content: space-between;
   align-items: center;
   padding: 8px 10px;
-  background: linear-gradient(90deg, var(--accent), #007a76);
+  background: var(--accent-fill);
   color: #fff;
 }
 .bc-tower-lap {
@@ -1829,7 +1839,7 @@ button.car-label:focus-visible {
   background: rgba(220, 227, 226, 0.08);
 }
 .bc .bc-tower .standing-row[aria-pressed="true"] {
-  background: rgba(0, 161, 156, 0.3);
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
   color: #fff;
 }
 .bc .bc-tower .standing-position {
@@ -2075,12 +2085,12 @@ button.car-label:focus-visible {
   max-height: clamp(560px, calc(100vh - 120px), 920px);
   overflow: hidden;
   background: var(--panel-solid);
-  border: 1px solid #1c2a2b;
+  border: 1px solid var(--panel-edge);
 }
 .bc-drawer-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border-bottom: 1px solid #1c2a2b;
+  border-bottom: 1px solid var(--panel-edge);
 }
 .bc-drawer-tabs button {
   font: 600 15px var(--font-num);
@@ -2147,21 +2157,21 @@ button.car-label:focus-visible {
   grid-column: 2 / 4;
   font: 600 14px var(--font-num);
   color: var(--silver);
-  background: #142022;
-  border: 1px solid #2a3a3c;
+  background: var(--panel-raise);
+  border: 1px solid var(--panel-line);
   padding: 5px 6px;
 }
 .bc-segmented {
   grid-column: 2 / 4;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border: 1px solid #2a3a3c;
+  border: 1px solid var(--panel-line);
 }
 .bc-segmented button,
 .bc-setup-actions button {
   font: 600 14px var(--font-num);
   color: var(--silver);
-  background: #142022;
+  background: var(--panel-raise);
   border: 0;
   padding: 6px 8px;
   cursor: pointer;
@@ -2177,7 +2187,7 @@ button.car-label:focus-visible {
   margin-top: 4px;
 }
 .bc-setup-result > div {
-  background: #142022;
+  background: var(--panel-raise);
   padding: 8px 10px;
 }
 .bc-setup-result small {
@@ -2199,7 +2209,7 @@ button.car-label:focus-visible {
   width: 100%;
   height: auto;
   background: #0a1213;
-  border: 1px solid #1c2a2b;
+  border: 1px solid var(--panel-edge);
 }
 .bc-trace line {
   stroke: rgba(220, 227, 226, 0.1);
@@ -2242,7 +2252,7 @@ button.car-label:focus-visible {
   gap: 6px;
 }
 .bc-setup-actions button {
-  border: 1px solid #2a3a3c;
+  border: 1px solid var(--panel-line);
 }
 .bc-setup-actions button.primary {
   color: #fff;
@@ -2272,7 +2282,7 @@ button.car-label:focus-visible {
 .bc .telemetry-panel,
 .bc .timeline-panel {
   background: var(--panel-solid);
-  border: 1px solid #1c2a2b;
+  border: 1px solid var(--panel-edge);
   margin: 0;
 }
 .bc .telemetry-value strong,
@@ -2412,10 +2422,7 @@ button.car-label:focus-visible {
     max-width: calc(100% - 16px);
   }
 }
-/* Contrast: white small text sits on the deeper teal (5.2:1); #00a19c stays for lines and large figures. */
-.bc {
-  --accent-fill: #007a76;
-}
+/* Contrast: white small text sits on the deeper teal (5.2:1); var(--accent) stays for lines and large figures. */
 .bc .circuit-camera-toolbar button[aria-pressed="true"],
 .bc-segmented button[aria-pressed="true"],
 .bc-setup-actions button.primary,
@@ -2649,7 +2656,7 @@ button.car-label:focus-visible {
     max-height: 72vh;
     overflow-y: auto;
     background: var(--panel-solid);
-    border: 1px solid #1c2a2b;
+    border: 1px solid var(--panel-edge);
     border-top: 3px solid var(--accent);
     box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.5);
     transform: translateY(105%);
@@ -2670,8 +2677,8 @@ button.car-label:focus-visible {
     margin-left: auto;
     font: 600 13px var(--font-num);
     color: var(--silver);
-    background: #142022;
-    border: 1px solid #2a3a3c;
+    background: var(--panel-raise);
+    border: 1px solid var(--panel-line);
     padding: 4px 12px;
     cursor: pointer;
     z-index: 1;
@@ -2743,7 +2750,7 @@ button.car-label:focus-visible {
   text-align: right;
 }
 .bc-best.is-session-best {
-  color: #c79cff;
+  color: var(--best-session);
 }
 .bc .standing-row.is-pit .bc-best {
   color: var(--warn);
@@ -2755,9 +2762,9 @@ button.car-label:focus-visible {
   margin: 0;
   padding: 6px 10px;
   font: 600 13px var(--font-num);
-  color: #c79cff;
-  background: rgba(150, 90, 255, 0.12);
-  border-top: 1px solid rgba(199, 156, 255, 0.35);
+  color: var(--best-session);
+  background: color-mix(in srgb, var(--best-session) 12%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--best-session) 35%, transparent);
 }
 .bc-car-tag.is-stale {
   opacity: 0.4;
@@ -2993,7 +3000,7 @@ button.car-label:focus-visible {
   font: 700 18px var(--font-num);
 }
 .rec-laps .is-best {
-  color: #c79cff;
+  color: var(--best-session);
 }
 .rec-card-foot {
   display: flex;
@@ -3056,7 +3063,7 @@ button.car-label:focus-visible {
   text-align: left;
 }
 .rec-laps-list tr.is-session-best td {
-  color: #c79cff;
+  color: var(--best-session);
 }
 .rec-laps-list tr.is-personal-best td {
   color: var(--good);
@@ -3131,4 +3138,57 @@ button.car-label:focus-visible {
 }
 .bc .standing-row.is-pit .bc-best {
   color: #c4d0ce;
+}
+
+
+/* ===== M19 step 5: Broadcast theme (tokens only; SVL teal is the default) ===== */
+/* Contrast on #0d0f12: white 19.2:1, silver 13.8:1, muted 8.1:1, accent text 5.9:1,
+   white on accent fill 5.0:1, session best 6.0:1, personal best 8.4:1, flags 10.0:1. */
+:root[data-theme="broadcast"] {
+  --accent: #e10600;
+  --accent-fill: #e10600;
+  --accent-text: #ff4d4d;
+  --accent-strong: #ff4d4d;
+  --carbon: #08090b;
+  --silver: #d7dbe0;
+  --muted: #a3a9b1;
+  --panel: rgba(13, 15, 18, 0.86);
+  --panel-solid: #0d0f12;
+  --panel-raise: #16191e;
+  --panel-edge: #23272e;
+  --panel-line: #30353d;
+  --border: #23272e;
+  --best-session: #b46cff;
+  --best-personal: #3fc18a;
+  --good: #3fc18a;
+  --warn: #e8b400;
+  --pill-text: #ffffff;
+  background: #08090b;
+}
+:root[data-theme="broadcast"] .bc {
+  background: var(--carbon);
+}
+:root[data-theme="broadcast"] .bc-header {
+  border-bottom-color: var(--accent);
+}
+
+/* Theme switch (both broadcast workspaces). */
+.theme-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid color-mix(in srgb, var(--silver) 20%, transparent);
+}
+.theme-toggle button {
+  font: 600 12px var(--font-num);
+  letter-spacing: 0.03em;
+  color: var(--silver);
+  background: transparent;
+  border: 0;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.theme-toggle button[aria-pressed="true"] {
+  color: #fff;
+  background: var(--accent-fill);
 }

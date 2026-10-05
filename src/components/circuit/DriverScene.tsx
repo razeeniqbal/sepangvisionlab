@@ -41,6 +41,7 @@ import {
 } from "./cameraRig";
 import FormulaCar from "../cars/FormulaCar";
 import PerfStats from "./PerfStats";
+import { themedAccent } from "../../themeRuntime";
 import { SimplifiedCar } from "../cars/CarRepresentation";
 import { FORMULA_VISUAL_LENGTH } from "../cars/formulaVisual";
 import { visualTyreCompound } from "../cars/carVisualState";
@@ -319,7 +320,7 @@ function DriverCar({
       {ring && (
         <mesh position={[0, 0, 0.02]}>
           <ringGeometry args={[3.1, 3.25, 40]} />
-          <meshBasicMaterial color="#00a19c" transparent opacity={0.45} />
+          <primitive object={ringMaterial} attach="material" />
         </mesh>
       )}
     </group>
@@ -329,10 +330,16 @@ function DriverCar({
 
 // Translucent replay of a saved setup. Shares the GLB geometry; its own material only.
 const ghostMaterial = new MeshBasicMaterial({
-  color: "#00a19c",
+  color: themedAccent(),
   transparent: true,
   opacity: 0.32,
   depthWrite: false,
+});
+// Selection ring under the followed car, in the theme accent.
+const ringMaterial = new MeshBasicMaterial({
+  color: themedAccent(),
+  transparent: true,
+  opacity: 0.45,
 });
 function GhostCar({
   ghost,

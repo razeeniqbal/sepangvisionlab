@@ -23,6 +23,7 @@ import { formatTime, lapMarkers } from "./domain/replay";
 import { formatLap, lastFullLapSeconds } from "./domain/inspection";
 import { fictionalDriver } from "./data/fictionalGrid";
 import MiniMap from "./components/broadcast/MiniMap";
+import ThemeToggle from "./components/broadcast/ThemeToggle";
 import LowerThird from "./components/broadcast/LowerThird";
 import SetupDrawer from "./components/broadcast/SetupDrawer";
 import { sepangPace } from "./data/sepangPace";
@@ -229,6 +230,7 @@ function RaceWorkspace({
             {formatTime(time)}
           </span>
           <b className="bc-speed">{speed}×</b>
+          <ThemeToggle />
           <button
             className="bc-hands-button"
             aria-pressed={handsOpen}

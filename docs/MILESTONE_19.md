@@ -181,3 +181,34 @@ Limitations:
 - Frame rate with 22 recorded cars was not measured: the pane only painted on screenshots. `?perf` is available for your machine.
 
 Files: `src/domain/recordedSession.ts`, `src/domain/field.ts` (wider `TyreCompound`), `src/domain/physicsField.ts` (non-slick setups), `src/services/recordedLoader.ts`, `src/components/recorded/{RecordedWorkspace,RecordedTelemetryCard,RaceControlTicker,WeatherStrip,RecordedTimeline}.tsx`, `src/components/standings/Standings.tsx` (identity, gap and extras options), `src/components/broadcast/LowerThird.tsx` (Modelled note), `src/components/circuit/{CircuitScene,DriverScene}.tsx` and `environment/Environment.tsx` (recorded poses, presence, staleness, wet look), `src/App.tsx`, `src/styles.css`, `tests/recordedSession.test.ts`, this file.
+
+## Step 5 — Broadcast theme
+
+A theme switch (**SVL | Broadcast**) sits in the header of both broadcast workspaces (simulated and recorded). The choice is saved in `localStorage` under `svl-theme` and applied to `<html data-theme>` before the first render, so there is no flash. SVL (teal) is the default. Reading and saving go through `src/theme.ts`, which takes the storage as an argument and never throws: missing, blocked or throwing storage falls back to SVL, and a failed save returns false while the switch still works for the visit.
+
+Only tokens change. The broadcast workspace colours in `styles.css` are now tokens on `:root` (`--accent`, `--accent-fill`, `--accent-text`, `--accent-strong`, `--panel*`, `--best-session`, `--best-personal`, `--pill-text`, …), with teal tints written as `color-mix` of the accent. `:root[data-theme="broadcast"]` overrides the values only:
+
+| Token | SVL | Broadcast |
+|---|---|---|
+| accent (lines, rings, large figures) | #00a19c | #e10600 |
+| accent fill (behind small white text) | #007a76 | #e10600 |
+| accent text (small text on panels) | #00a19c | #ff4d4d (red text at #e10600 is only 3.9:1) |
+| panels | #0e1618 | #0d0f12 |
+| session best | #c79cff | #b46cff |
+| personal best / flags | #3fc18a / #e8b400 | #3fc18a / #e8b400 |
+
+Contrast on the panels in Broadcast: white on the accent fill 5.0:1, accent text 5.9:1, muted 8.1:1, session best 6.0:1, personal best 8.4:1, flags 10.0:1. `tests/theme.test.ts` reads these values from `styles.css` and fails if any small-text pair in either theme drops below 4.5:1.
+
+The 3D selection rings (driver view and engineering view), the selected-car marker and the ghost car follow the accent through a small registry in `src/themeRuntime.ts`, since three.js materials cannot read CSS variables. Scenery (the gantry panel and turn-board trim) stays teal: it is part of the generated circuit, not the interface.
+
+Fonts: Barlow Condensed and Inter are kept. Titillium Web was not added; it would be a new dependency for no layout gain. No proprietary fonts are used.
+
+Also fixed while tokenising: the older primary buttons (Play replay, Resume session) were white text on #00958f, 3.6:1. They now use the accent fill, 5.2:1 in SVL, slightly darker than before, and 5.0:1 in Broadcast.
+
+Checked in the browser at 1440 × 900: Broadcast on the recorded race (red tower header, gear box, session picker, replay slider, selection ring and Play replay; near-black panels), saved and restored after a reload, then back to SVL (teal accent, tower header #007a76, no page overflow).
+
+Tests: `tests/theme.test.ts` (4): defaults and hostile storage, failed saves, contrast in both themes from the real CSS, and 3D accents matching the CSS accent.
+
+Limitations: the historical (2017) workspace keeps its older styling, with only the shared tokens applying. The 3D scenery is not re-themed.
+
+Files: `src/theme.ts`, `src/themeRuntime.ts`, `src/components/broadcast/ThemeToggle.tsx`, `src/main.tsx`, `src/App.tsx`, `src/components/recorded/RecordedWorkspace.tsx`, `src/components/circuit/DriverScene.tsx`, `src/components/cars/{CarMarker,CarRepresentation}.tsx`, `src/components/telemetry/TelemetryPanel.tsx`, `src/styles.css`, `tests/theme.test.ts`, this file.
