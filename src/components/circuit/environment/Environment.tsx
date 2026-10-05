@@ -463,11 +463,15 @@ function Instanced({
   material,
   matrices,
   castShadow = false,
+  occluder = false,
 }: {
   geometry: BufferGeometry;
   material: MeshStandardMaterial;
   matrices: Matrix4[];
   castShadow?: boolean;
+  /** Counts for camera and tag line-of-sight tests. Off for palms: raycasting thousands of
+   * instances cost ~4-6 ms a frame, and the plantation stands 90 m or more from the road. */
+  occluder?: boolean;
 }) {
   const ref = useRef<InstancedMesh>(null);
   useLayoutEffect(() => {
@@ -483,7 +487,7 @@ function Instanced({
       args={[geometry, material, matrices.length]}
       castShadow={castShadow}
       frustumCulled={false}
-      userData={OCCLUDER}
+      userData={occluder ? OCCLUDER : undefined}
     />
   );
 }
@@ -562,11 +566,13 @@ function CornerBoards({ boards }: { boards: Placement[] }) {
   return (
     <>
       <Instanced
+        occluder
         geometry={parts.board}
         material={parts.boardMaterial}
         matrices={parts.boardMatrices}
       />
       <Instanced
+        occluder
         geometry={parts.post}
         material={steel}
         matrices={parts.postMatrices}

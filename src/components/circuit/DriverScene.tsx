@@ -547,10 +547,13 @@ function World({
   const field = useRef<CarState[]>(sample(clock.current));
   const layout = useEnvironmentLayout(sepangTrack, coordinates);
   const occluders = useRef<Object3D[]>([]);
+  const scans = useRef(0);
   useFrame(({ scene }) => {
     field.current = sample(clock.current);
-    // Instanced scenery mounts a frame later; collect until the set is complete.
-    if (occluders.current.length < 6) {
+    // Occluders mount over the first frames and change with the quality preset:
+    // scan every frame for the first second, then every 2 s (a cheap scene walk).
+    scans.current++;
+    if (scans.current < 60 || scans.current % 120 === 0) {
       const found: Object3D[] = [];
       scene.traverse((object) => {
         if (object.userData.occluder) found.push(object);

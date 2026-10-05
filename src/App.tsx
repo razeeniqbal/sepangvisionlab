@@ -238,6 +238,11 @@ function RaceWorkspace({
         : undefined,
     [ghost, ghostDefinition],
   );
+  // Stable while the clock ticks, so the memoised 3D scene does not re-render.
+  const scene = useMemo(
+    () => ({ entries: syntheticCars, sample, ghost: ghostSample }),
+    [syntheticCars, sample, ghostSample],
+  );
   const gap =
     ghost && ghost.carId === selectedId
       ? ghostGap(definition, ghost.setup, sepangPace, time)
@@ -279,7 +284,7 @@ function RaceWorkspace({
           <SceneBoundary>
             <CircuitScene
               clock={replay.clock}
-              synthetic={{ entries: syntheticCars, sample, ghost: ghostSample }}
+              synthetic={scene}
               sessionLabel="Simulated session · physics pace"
               selectedId={selectedId}
               onSelect={setSelectedId}

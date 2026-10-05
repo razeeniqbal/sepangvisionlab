@@ -149,7 +149,12 @@ function RecordedReplay({
   const totalLaps = race ? Math.max(0, ...file.laps.map((l) => l.n)) : undefined;
   const leaderLap = race ? Math.min(totalLaps!, Math.max(1, ordered[0]?.lap ?? 1)) : undefined;
   const leaderBest = ordered[0]?.bestLap ?? null;
-  const tags = entries.map((e) => identities.get(Number(e.number))!.code);
+  // Stable props for the memoised 3D scene (the clock ticks this component 10× a second).
+  const scene = useMemo(() => ({ entries, sample }), [entries, sample]);
+  const tags = useMemo(
+    () => entries.map((e) => identities.get(Number(e.number))!.code),
+    [entries, identities],
+  );
   const wet = (weather?.rain ?? 0) > 0;
   const lapRows = file.laps
     .filter((l) => l.d === number && l.t !== null && l.dur && l.t + l.dur * 1000 <= time * 1000)
@@ -184,7 +189,7 @@ function RecordedReplay({
         <section className="viewport bc-viewport" aria-label="Sepang circuit with recorded car positions">
           <CircuitScene
             clock={replay.clock}
-            synthetic={{ entries, sample }}
+            synthetic={scene}
             sessionLabel={RECORDED_LABEL}
             selectedId={selectedId}
             onSelect={setSelectedId}

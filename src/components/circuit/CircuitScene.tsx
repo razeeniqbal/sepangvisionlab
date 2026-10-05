@@ -1,6 +1,7 @@
 import { useGestureReceiver } from "../handtracking/GestureContext";
 import {
   Component,
+  memo,
   lazy,
   Suspense,
   useEffect,
@@ -172,7 +173,10 @@ function Scene({
     </>
   );
 }
-export default function CircuitScene(props: Props) {
+// Memoised: the replay clock ticks the workspace 10 times a second for its panels, but the
+// 3D scene reads the clock from a ref every frame, so it only re-renders on real changes.
+export default memo(CircuitScene);
+function CircuitScene(props: Props) {
   const overview = (): EngineeringView => ({
     zoom: 1,
     angle: -20,
