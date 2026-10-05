@@ -42,7 +42,7 @@ Before and after at the slow right-hander (car 07, t = 22 s): the shot was frame
 | T14 | 4245 m, R34, right (onto the back straight) | 4245 m |
 | T15 | 5186 m, R32, left (onto the main straight) | 5186 m |
 
-Once approved, board positions go in the register as DERIVED from curvature peaks, with this table as the citation.
+Approved on 2026-10-05 and built: `officialTurnBoards` groups the peaks as above and accepts the mapping only if exactly 22 peaks are detected and their directions read RLRRLRRRLRRLRRL; otherwise the boards fall back to unnumbered chevrons rather than showing wrong numbers. Each board shows its number and a chevron in the turn direction, 22 m outside the apex. Register entry `env-turn-boards` is DERIVED, citing this table; the old unnumbered `env-corner-boards` entry is removed.
 
 Checks: build clean; 129 tests pass (7 camera rig tests, including blocked, hold and clearance cases); Python gesture tests pass. FPS overlay (`?perf`) read 60 fps in Chase and TV at 800 × 600 earlier; not re-measured full screen.
 

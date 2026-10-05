@@ -437,12 +437,21 @@ export const SEPANG_SPATIAL_REFERENCES = parseSpatialReferences([
       ["env-pit-building", "Driver view pit building", "Centred on the SOURCED anchor pit-building and aligned to the main straight; footprint, height and orientation are illustrative."],
       ["env-main-grandstand", "Driver view main grandstand", "Centred on the SOURCED anchor main-grandstand with the OFFICIAL east-west alignment; footprint and height are illustrative."],
       ["env-start-gantry", "Driver view start gantry", "Spans the road at the sample nearest the SOURCED anchor finish; the replay progress origin is unchanged."],
-      ["env-corner-boards", "Driver view corner boards", "One unnumbered board per detected apex; detected apexes do not map to the official 15 turn numbers."],
       ["env-palms", "Driver view oil palms", "Seeded random scatter at least 45 m from the centre line; not a vegetation survey."],
       ["env-sky", "Driver view sky, fog and sun", "Fixed illustrative lighting; not a weather or sun-position model."],
     ] as const
   ).map(([id, label, notes]) =>
     fact(id, label, "visual", null, null, "svlEnvironment", "ILLUSTRATIVE", notes),
+  ),
+  fact(
+    "env-turn-boards",
+    "Driver view turn boards T1-T15",
+    "visual",
+    15,
+    "count",
+    "svlEnvironment",
+    "DERIVED",
+    "Positions DERIVED from curvature peaks of the community outline: 22 detected peaks grouped into the official 15 turns (tightest peak per turn), accepted only when the direction sequence matches RLRRLRRRLRRLRRL. Board offset and shape are illustrative. Mapping in docs/MILESTONE_19.md, Step 1.",
   ),
   ...["kerbs", "gravel", "runoff", "barriers", "terrain"].map((id) =>
     fact(

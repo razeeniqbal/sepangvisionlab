@@ -246,3 +246,54 @@ export function scatterPalms(
   }
   return palms;
 }
+
+export interface TurnBoard extends Placement {
+  turn: number; // official turn number, 1..15
+  apex: number; // profile sample index of the board's peak
+}
+// Official Sepang turn directions in order (5 lefts: T2, T5, T9, T12, T15).
+const OFFICIAL_DIRECTIONS = "RLRRLRRRLRRLRRL";
+// Approved grouping of the 22 detected curvature peaks into the 15 official turns
+// (docs/MILESTONE_19.md, Step 1). Multi-peak corners take the tightest peak.
+const TURN_GROUPS = [
+  [0],
+  [1],
+  [2, 3, 4, 5],
+  [6],
+  [7, 8, 9],
+  [10, 11],
+  [12],
+  [13],
+  [14],
+  [15],
+  [16],
+  [17],
+  [18, 19],
+  [20],
+  [21],
+];
+
+/**
+ * Numbered turn boards, DERIVED from curvature peaks. Returns [] (unnumbered fallback)
+ * unless the detector finds the expected 22 peaks with the official direction sequence.
+ */
+export function officialTurnBoards(
+  track: TrackProfile,
+  normals: { nx: Float64Array; ny: Float64Array },
+  corners = findCorners(track, 200, 12),
+): TurnBoard[] {
+  if (corners.length !== 22) return [];
+  const turns = TURN_GROUPS.map((group) =>
+    group
+      .map((g) => corners[g])
+      .reduce((a, b) =>
+        Math.abs(track.curvature[b]) > Math.abs(track.curvature[a]) ? b : a,
+      ),
+  );
+  const directions = turns
+    .map((i) => (track.curvature[i] > 0 ? "L" : "R"))
+    .join("");
+  if (directions !== OFFICIAL_DIRECTIONS) return [];
+  const boards = cornerBoards(track, normals, turns);
+  return boards.map((b, n) => ({ ...b, turn: n + 1, apex: turns[n] }));
+}

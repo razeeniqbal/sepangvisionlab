@@ -28,6 +28,7 @@ import {
   TRACK_HALF_WIDTH,
   barrierOffset,
   cornerBoards,
+  officialTurnBoards,
   fitBuilding,
   gantryAt,
   kerbRuns,
@@ -35,6 +36,7 @@ import {
   trackBearing,
   type Building,
   type Placement,
+  type TurnBoard,
 } from "./layout";
 import {
   buildStrip,
@@ -43,7 +45,12 @@ import {
   type StripMesh,
   type StripSpec,
 } from "./ribbon";
-import { asphaltTexture, chevronTexture, kerbTexture } from "./textures";
+import {
+  asphaltTexture,
+  chevronTexture,
+  kerbTexture,
+  turnBoardTexture,
+} from "./textures";
 
 // Objects that block a camera's view of a car: used by TV camera picking and tag fading.
 export const OCCLUDER = { occluder: true };
@@ -76,6 +83,7 @@ export interface EnvironmentLayout {
   stand: Building;
   gantry: Placement;
   boards: Placement[];
+  turns: TurnBoard[];
   bounds: { minX: number; maxX: number; minY: number; maxY: number };
 }
 
@@ -117,7 +125,14 @@ export function useEnvironmentLayout(
         TRACK_HALF_WIDTH + 10,
       ),
       gantry: gantryAt(track, finish.x, finish.y),
-      boards: cornerBoards(track, normals),
+      // Numbered T1-T15 when the detector matches the official layout; else unnumbered.
+      ...(() => {
+        const turns = officialTurnBoards(track, normals);
+        return {
+          turns,
+          boards: turns.length ? turns : cornerBoards(track, normals),
+        };
+      })(),
       bounds: { minX, maxX, minY, maxY },
     };
   }, [track, coordinates]);
@@ -255,7 +270,11 @@ const steel = new MeshStandardMaterial({
 
 function PitBuilding({ b }: { b: Building }) {
   return (
-    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
+    <group
+      position={[b.x, b.y, 0]}
+      rotation={[0, 0, b.heading]}
+      userData={OCCLUDER}
+    >
       <mesh material={concrete} position={[0, 0, 4]} castShadow receiveShadow>
         <boxGeometry args={[b.length, b.depth, 8]} />
       </mesh>
@@ -275,7 +294,11 @@ function Grandstand({ b }: { b: Building }) {
     half = b.depth / 2,
     columns = Math.max(2, Math.round(b.length / 40)) + 1;
   return (
-    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
+    <group
+      position={[b.x, b.y, 0]}
+      rotation={[0, 0, b.heading]}
+      userData={OCCLUDER}
+    >
       {[-1, 1].flatMap((side) =>
         Array.from({ length: tiers }, (_, t) => (
           <mesh
@@ -312,7 +335,11 @@ function Grandstand({ b }: { b: Building }) {
 function Gantry({ p }: { p: Placement }) {
   const span = TRACK_HALF_WIDTH + 3;
   return (
-    <group position={[p.x, p.y, 0]} rotation={[0, 0, p.heading]} userData={OCCLUDER}>
+    <group
+      position={[p.x, p.y, 0]}
+      rotation={[0, 0, p.heading]}
+      userData={OCCLUDER}
+    >
       {[-1, 1].map((side) => (
         <mesh
           key={side}
@@ -361,6 +388,51 @@ function Instanced({
       frustumCulled={false}
       userData={OCCLUDER}
     />
+  );
+}
+
+// Each turn board carries its own number texture (15 small canvases, two draws each).
+function TurnBoards({
+  turns,
+  track,
+}: {
+  turns: TurnBoard[];
+  track: TrackProfile;
+}) {
+  const boards = useMemo(
+    () =>
+      turns.map((t) => ({
+        ...t,
+        material: new MeshStandardMaterial({
+          map: turnBoardTexture(t.turn, track.curvature[t.apex] > 0),
+          side: DoubleSide,
+          roughness: 0.6,
+        }),
+      })),
+    [turns, track],
+  );
+  return (
+    <group userData={OCCLUDER}>
+      {boards.map((b) => (
+        <group
+          key={b.turn}
+          position={[b.x, b.y, 0]}
+          rotation={[0, 0, b.heading]}
+        >
+          <mesh material={steel} position={[0, 0, 1.4]}>
+            <boxGeometry args={[0.2, 0.2, 2.8]} />
+          </mesh>
+          {/* Faces oncoming cars: the plane normal runs along the track tangent. */}
+          <mesh
+            material={b.material}
+            position={[0, 0, 3.6]}
+            rotation={[Math.PI / 2, -Math.PI / 2, 0]}
+          >
+            <planeGeometry args={[2.4, 3]} />
+          </mesh>
+        </group>
+      ))}
+    </group>
   );
 }
 
@@ -517,7 +589,11 @@ export default function Environment({
       <PitBuilding b={layout.pit} />
       <Grandstand b={layout.stand} />
       <Gantry p={layout.gantry} />
-      <CornerBoards boards={layout.boards} />
+      {layout.turns.length ? (
+        <TurnBoards turns={layout.turns} track={track} />
+      ) : (
+        <CornerBoards boards={layout.boards} />
+      )}
       <Palms track={track} avoid={avoid} />
     </>
   );

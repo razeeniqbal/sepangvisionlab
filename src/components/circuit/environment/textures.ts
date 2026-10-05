@@ -54,3 +54,26 @@ export const chevronTexture = () =>
     c.lineTo(22, 52);
     c.stroke();
   });
+
+/** Turn board: official turn number over a chevron pointing the way the corner goes. */
+export const turnBoardTexture = (turn: number, left: boolean) =>
+  canvasTexture(128, 160, (c) => {
+    c.fillStyle = "#121617";
+    c.fillRect(0, 0, 128, 160);
+    c.strokeStyle = "#00a19c";
+    c.lineWidth = 6;
+    c.strokeRect(3, 3, 122, 154);
+    c.fillStyle = "#f1f1ec";
+    c.font = "700 64px 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif";
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillText("T" + turn, 64, 52);
+    c.strokeStyle = "#f1f1ec";
+    c.lineWidth = 12;
+    c.beginPath();
+    const dir = left ? -1 : 1;
+    c.moveTo(64 - dir * 20, 98);
+    c.lineTo(64 + dir * 14, 122);
+    c.lineTo(64 - dir * 20, 146);
+    c.stroke();
+  });
