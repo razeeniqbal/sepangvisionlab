@@ -1,10 +1,12 @@
 import { useGestureReceiver } from "../handtracking/GestureContext";
 import {
+  Component,
   lazy,
   Suspense,
   useEffect,
   useRef,
   useState,
+  type ReactNode,
   type RefObject,
 } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
@@ -16,6 +18,26 @@ import CarMarker from "../cars/CarMarker";
 import type { CarState, CarDefinition } from "../../domain/field";
 import { sampleRace, type ReplayData } from "../../services/raceState";
 
+const DriverScene = lazy(() => import("./DriverScene"));
+class DriverBoundary extends Component<
+  { children: ReactNode; onBack: () => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? (
+      <div className="fallback" role="alert">
+        The driver view could not start.{" "}
+        <button onClick={this.props.onBack}>Back to track view</button>
+      </div>
+    ) : (
+      this.props.children
+    );
+  }
+}
 const SpatialReferenceDebug = import.meta.env.DEV
   ? lazy(() => import("./SpatialReferenceDebug"))
   : null;
@@ -37,6 +59,7 @@ interface Props {
   };
   selectedId: string;
   onSelect: (id: string) => void;
+  sessionLabel?: string;
 }
 function Scene({
   clock,
@@ -123,6 +146,7 @@ export default function CircuitScene(props: Props) {
     target: [trackCenter.x, trackCenter.y, 0],
   });
   const [view, setView] = useState<EngineeringView>(overview);
+  const [mode, setMode] = useState<"track" | "driver">("track");
   const focusSelected = () => {
     const cars =
       props.historical?.sample(props.clock.current) ??
@@ -174,57 +198,104 @@ export default function CircuitScene(props: Props) {
         className="circuit-camera-toolbar"
         aria-label="Circuit view controls"
       >
-        <button onClick={() => zoom(1.2)}>Zoom +</button>
-        <button onClick={() => zoom(1 / 1.2)}>Zoom −</button>
-        <button onClick={() => rotate(-15)}>Rotate −15°</button>
-        <button onClick={() => rotate(15)}>Rotate +15°</button>
-        <button onClick={() => setView(overview())}>Reset view</button>
         <button
-          aria-pressed={view.tilt === 48}
-          onClick={() => setView((v) => ({ ...v, tilt: 48 }))}
+          aria-pressed={mode === "track"}
+          onClick={() => setMode("track")}
         >
-          3D view
+          Track view
         </button>
         <button
-          aria-pressed={view.tilt === 0}
-          onClick={() => setView((v) => ({ ...v, tilt: 0 }))}
+          aria-pressed={mode === "driver"}
+          onClick={() => setMode("driver")}
         >
-          Top view
+          Driver view
         </button>
-        <button onClick={focusSelected}>Focus selected</button>
-        <button aria-label="Pan left" onClick={() => pan(-1, 0)}>
-          ←
-        </button>
-        <button aria-label="Pan right" onClick={() => pan(1, 0)}>
-          →
-        </button>
-        <button aria-label="Pan up" onClick={() => pan(0, 1)}>
-          ↑
-        </button>
-        <button aria-label="Pan down" onClick={() => pan(0, -1)}>
-          ↓
-        </button>
-        <span data-testid="circuit-view-state">
-          {view.zoom.toFixed(2)}× / {view.angle}° /{" "}
-          {view.tilt === 0 ? "TOP" : "3D"}
-        </span>
+        {mode === "track" && (
+          <>
+            <button onClick={() => zoom(1.2)}>Zoom +</button>
+            <button onClick={() => zoom(1 / 1.2)}>Zoom −</button>
+            <button onClick={() => rotate(-15)}>Rotate −15°</button>
+            <button onClick={() => rotate(15)}>Rotate +15°</button>
+            <button onClick={() => setView(overview())}>Reset view</button>
+            <button
+              aria-pressed={view.tilt === 48}
+              onClick={() => setView((v) => ({ ...v, tilt: 48 }))}
+            >
+              3D view
+            </button>
+            <button
+              aria-pressed={view.tilt === 0}
+              onClick={() => setView((v) => ({ ...v, tilt: 0 }))}
+            >
+              Top view
+            </button>
+            <button onClick={focusSelected}>Focus selected</button>
+            <button aria-label="Pan left" onClick={() => pan(-1, 0)}>
+              ←
+            </button>
+            <button aria-label="Pan right" onClick={() => pan(1, 0)}>
+              →
+            </button>
+            <button aria-label="Pan up" onClick={() => pan(0, 1)}>
+              ↑
+            </button>
+            <button aria-label="Pan down" onClick={() => pan(0, -1)}>
+              ↓
+            </button>
+            <span data-testid="circuit-view-state">
+              {view.zoom.toFixed(2)}× / {view.angle}° /{" "}
+              {view.tilt === 0 ? "TOP" : "3D"}
+            </span>
+          </>
+        )}
       </div>
       <span className="circuit-accuracy-note">
+        {props.sessionLabel && <>{props.sessionLabel} · </>}
         Flat elevation · illustrative track surroundings
       </span>
-      <Canvas
-        orthographic
-        camera={{ position: [0, 0, 30], zoom: 35, near: 0.1, far: 100 }}
-        dpr={[1, 2]}
-        fallback={
-          <div className="fallback">
-            WebGL is unavailable. Enable browser hardware acceleration to view
-            the circuit.
-          </div>
-        }
-      >
-        <Scene {...props} view={view} />
-      </Canvas>
+      {mode === "driver" ? (
+        <DriverBoundary onBack={() => setMode("track")}>
+          <Suspense
+            fallback={
+              <div className="fallback" role="status">
+                Loading driver view…
+              </div>
+            }
+          >
+            <DriverScene
+              clock={props.clock}
+              entries={
+                props.historical?.entries ??
+                props.synthetic?.entries ??
+                props.data!.entries
+              }
+              sample={
+                props.historical?.sample ??
+                props.synthetic?.sample ??
+                ((time: number) => sampleRace(props.data!, time))
+              }
+              activeIds={props.historical?.activeIds}
+              tyresKnown={!props.historical}
+              selectedId={props.selectedId}
+              onSelect={props.onSelect}
+            />
+          </Suspense>
+        </DriverBoundary>
+      ) : (
+        <Canvas
+          orthographic
+          camera={{ position: [0, 0, 30], zoom: 35, near: 0.1, far: 100 }}
+          dpr={[1, 2]}
+          fallback={
+            <div className="fallback">
+              WebGL is unavailable. Enable browser hardware acceleration to view
+              the circuit.
+            </div>
+          }
+        >
+          <Scene {...props} view={view} />
+        </Canvas>
+      )}
     </div>
   );
 }

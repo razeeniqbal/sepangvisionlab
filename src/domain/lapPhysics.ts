@@ -9,6 +9,7 @@ export interface TrackProfile {
   curvature: Float64Array; // signed, 1/m
   count: number;
   length: number;
+  scale: number; // input units → profile metres, so anchors in the same frame can follow
 }
 
 export type Compound = "SOFT" | "MEDIUM" | "HARD";
@@ -81,12 +82,14 @@ export function buildTrackProfile(
     y[k] = (a.y + (b.y - a.y) * f) * scale;
   }
   for (let pass = 0; pass < 2; pass++) { x = smoothCircular(x, 5); y = smoothCircular(y, 5); }
+  let totalScale = scale;
   if (targetLength) {
     // Smoothing trims corners slightly, so rescale once more to hit the official length.
     let len = 0;
     for (let i = 0; i < count; i++) { const j = (i + 1) % count; len += Math.hypot(x[j] - x[i], y[j] - y[i]); }
     const r = targetLength / len;
     for (let i = 0; i < count; i++) { x[i] *= r; y[i] *= r; }
+    totalScale *= r;
   }
   const distance = new Float64Array(count + 1);
   for (let i = 0; i < count; i++) {
@@ -100,7 +103,7 @@ export function buildTrackProfile(
     const ddx = x[b] - 2 * x[i] + x[a], ddy = y[b] - 2 * y[i] + y[a];
     k[i] = (dx * ddy - dy * ddx) / Math.pow(dx * dx + dy * dy, 1.5);
   }
-  return { x, y, distance, curvature: smoothCircular(k, 13), count, length: distance[count] };
+  return { x, y, distance, curvature: smoothCircular(k, 13), count, length: distance[count], scale: totalScale };
 }
 
 export function aeroFor(setup: CarSetup) {
@@ -223,4 +226,19 @@ export function timeAtDistance(track: TrackProfile, profile: SpeedProfile, dista
   const i = search(track.distance, d, track.count);
   const f = (d - track.distance[i]) / Math.max(1e-9, track.distance[i + 1] - track.distance[i]);
   return profile.time[i] + (profile.time[i + 1] - profile.time[i]) * f;
+}
+
+export interface TrackPose { x: number; y: number; heading: number }
+
+/** Position and heading at a distance along the lap; needs no speed profile. */
+export function poseAtDistance(track: TrackProfile, distance: number): TrackPose {
+  const d = ((distance % track.length) + track.length) % track.length;
+  const n = track.count, i = search(track.distance, d, n), j = (i + 1) % n;
+  const f = (d - track.distance[i]) / Math.max(1e-9, track.distance[i + 1] - track.distance[i]);
+  const a = (i - 3 + n) % n, b = (i + 4) % n;
+  return {
+    x: track.x[i] + (track.x[j] - track.x[i]) * f,
+    y: track.y[i] + (track.y[j] - track.y[i]) * f,
+    heading: Math.atan2(track.y[b] - track.y[a], track.x[b] - track.x[a]),
+  };
 }

@@ -115,7 +115,8 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
           <div className="system-subtitle">RACE INTELLIGENCE SYSTEM</div>
         </div>
         <div className="session">
-          <span className="live-dot" /> SYNTHETIC REPLAY <b>{speed}×</b>
+          <span className="live-dot" /> Simulated session · physics pace{" "}
+          <b>{speed}×</b>
         </div>
       </header>
       <div className="workspace-heading">
@@ -146,6 +147,7 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
             <CircuitScene
               clock={replay.clock}
               synthetic={{ entries: syntheticCars, sample }}
+              sessionLabel="Simulated session · physics pace"
               selectedId={selectedId}
               onSelect={setSelectedId}
             />

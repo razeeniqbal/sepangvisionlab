@@ -72,6 +72,15 @@ export const SPATIAL_SOURCES: Readonly<Record<string, SpatialSource>> =
       accessedAt: "2026-09-28",
       limitations: "Illustrative visual geometry; no survey evidence.",
     },
+    svlEnvironment: {
+      organization: "Sepang Vision Lab",
+      url: "docs/MILESTONE_18.md",
+      document: "Milestone 18 generated driver-view environment",
+      sourceDate: null,
+      accessedAt: "2026-10-05",
+      limitations:
+        "Generated in code. Shapes, sizes and counts are illustrative; only positions tied to a SOURCED anchor follow evidence.",
+    },
     audit: {
       organization: "Sepang Vision Lab",
       url: "docs/VISUAL_V2_5A_SPATIAL_REFERENCE.md",
@@ -419,6 +428,21 @@ export const SEPANG_SPATIAL_REFERENCES = parseSpatialReferences([
     "audit",
     "UNAVAILABLE",
     "Partial evidence: endpoints and length; no adequate intermediate path.",
+  ),
+  ...(
+    [
+      ["env-track-surface", "Driver view asphalt, lines and run-off", "Constant 16 m width from the OFFICIAL minimum; local width profile is unavailable."],
+      ["env-kerbs", "Driver view kerbs", "Placed at curvature peaks of the community outline, not a surveyed kerb inventory."],
+      ["env-barriers", "Driver view barriers", "Constant offset, pulled in to 0.8 × corner radius on the inside; not a surveyed barrier line."],
+      ["env-pit-building", "Driver view pit building", "Centred on the SOURCED anchor pit-building and aligned to the main straight; footprint, height and orientation are illustrative."],
+      ["env-main-grandstand", "Driver view main grandstand", "Centred on the SOURCED anchor main-grandstand with the OFFICIAL east-west alignment; footprint and height are illustrative."],
+      ["env-start-gantry", "Driver view start gantry", "Spans the road at the sample nearest the SOURCED anchor finish; the replay progress origin is unchanged."],
+      ["env-corner-boards", "Driver view corner boards", "One unnumbered board per detected apex; detected apexes do not map to the official 15 turn numbers."],
+      ["env-palms", "Driver view oil palms", "Seeded random scatter at least 45 m from the centre line; not a vegetation survey."],
+      ["env-sky", "Driver view sky, fog and sun", "Fixed illustrative lighting; not a weather or sun-position model."],
+    ] as const
+  ).map(([id, label, notes]) =>
+    fact(id, label, "visual", null, null, "svlEnvironment", "ILLUSTRATIVE", notes),
   ),
   ...["kerbs", "gravel", "runoff", "barriers", "terrain"].map((id) =>
     fact(
