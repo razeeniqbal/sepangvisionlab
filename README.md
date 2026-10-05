@@ -63,3 +63,5 @@ M17 interface and loading polish: docs/MILESTONE_17.md. M15 real-data evaluation
 M18 3D driver simulation and broadcast interface: docs/MILESTONE_18.md (plan: docs/MILESTONE_18_PLAN.md). The synthetic workspace is a simulated session with physics pace and fictional driver names, teams and glyphs; it is not recorded or live data. All driver-view scenery is generated in code; the car GLB, circuit GeoJSON and MediaPipe files are unchanged.
 
 Fonts: Barlow Condensed and Inter are bundled through @fontsource/barlow-condensed and @fontsource/inter and served locally (no font CDN request). Both are licensed under the SIL Open Font License 1.1 (Barlow: The Barlow Project Authors; Inter: The Inter Project Authors).
+
+Recorded session data (M19): `npm run data:fetch` downloads OpenF1 meeting 1308 into `data/raw/openf1/` (gitignored, resumable, throttled to 25 requests per 10 s); `npm run data:build` writes compact replay files to `public/sessions/1308/`; `npm run test:pipeline` tests both scripts. Data via OpenF1 (unofficial, https://openf1.org). Not associated with Formula 1. OpenF1 `headshot_url` images are never downloaded or used.

@@ -1,0 +1,36 @@
+{
+  "meetingKey": 1308,
+  "attribution": "Data via OpenF1 (unofficial, https://openf1.org). Not associated with Formula 1.",
+  "sessions": [
+    {
+      "slug": "fp1",
+      "sessionKey": 11727,
+      "name": "Practice 1",
+      "dateStart": "2026-10-02T04:30:00+00:00"
+    },
+    {
+      "slug": "fp2",
+      "sessionKey": 11728,
+      "name": "Practice 2",
+      "dateStart": "2026-10-02T08:00:00+00:00"
+    },
+    {
+      "slug": "fp3",
+      "sessionKey": 11729,
+      "name": "Practice 3",
+      "dateStart": "2026-10-03T04:30:00+00:00"
+    },
+    {
+      "slug": "qualifying",
+      "sessionKey": 11730,
+      "name": "Qualifying",
+      "dateStart": "2026-10-03T08:00:00+00:00"
+    },
+    {
+      "slug": "race",
+      "sessionKey": 11731,
+      "name": "Race",
+      "dateStart": "2026-10-04T07:00:00+00:00"
+    }
+  ]
+}

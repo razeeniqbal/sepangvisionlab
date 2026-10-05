@@ -11,7 +11,10 @@
     "train:ml": "python -m backend.train_lap_model",
     "dev:api": "python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000",
     "test:api": "python -m unittest backend.test_api backend.test_historical backend.test_lap_model backend.test_stints backend.test_strategy backend.test_monte_carlo backend.test_gesture_training backend.test_race_engineer",
-    "train:gestures": "python -m backend.gesture_training"
+    "train:gestures": "python -m backend.gesture_training",
+    "data:fetch": "python scripts/fetch_openf1.py --meeting 1308",
+    "data:build": "python scripts/build_recorded_session.py --meeting 1308",
+    "test:pipeline": "python -m unittest discover -s scripts -p \"test_*.py\""
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",

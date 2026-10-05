@@ -55,3 +55,47 @@ Limitations:
 - Not checked on a real phone; layout checked in the browser pane at 375, 800 and 1440 px earlier and now.
 
 Files: `src/components/cars/{formulaLivery.ts,FormulaCar.tsx}`, `src/components/circuit/{cameraRig.ts,DriverScene.tsx,CircuitScene.tsx}`, `src/components/circuit/environment/Environment.tsx` (occluder tags), `src/components/broadcast/{Chevron,MiniMap,LowerThird}.tsx`, `src/components/standings/Standings.tsx`, `src/App.tsx`, `src/styles.css`, `tests/cameraRig.test.ts`, `docs/MILESTONE_18.md` (camera height note), this file.
+
+## Step 2 — OpenF1 data pipeline (offline)
+
+`scripts/fetch_openf1.py` downloads meeting 1308 into `data/raw/openf1/1308/<session_key>/` (gitignored), with `scripts/openf1_common.py` holding the shared, tested helpers. Standard library only.
+
+- Sessions come from `/sessions?meeting_key=1308`. Per session, one request each for `drivers`, `laps`, `stints`, `pit`, `position`, `race_control`, `weather`, `session_result` and `starting_grid`. `intervals` (all drivers) and per-driver `location` and `car_data` are fetched in 30-minute windows from 75 minutes before the session clock to 30 minutes after.
+- Every response is cached as gzip JSON, written atomically, and skipped on the next run, so an interrupted download resumes. OpenF1's empty answer (HTTP 404 "No results found.") is stored as an empty list.
+- **Rate limit.** The first run used 10-minute windows at 25 requests per 10 s (under the published 30 per 10 s). It drew steady HTTP 429 and managed only ~16 files a minute; one request exhausted its retries. The pipeline now throttles to 25 requests per minute with 30-minute windows (about 7,000 rows each), backs off from 15 s on a 429, logs every retry with its cause, and finishes the run with failures listed instead of aborting. The full download then took about an hour with 2 retries in total.
+- `provenance.json` per session records the endpoint URLs, retrieval times, row counts and the attribution, and notes that `headshot_url` is excluded.
+
+| Session | Key | Requests | location rows | car_data rows | race_control | intervals |
+|---|---|---|---|---|---|---|
+| Practice 1 | 11727 | 279 | 402,380 | 394,460 | 18 | 0 |
+| Practice 2 | 11728 | 279 | 419,034 | 410,124 | 48 | 0 |
+| Practice 3 | 11729 | 279 | 403,920 | 396,770 | 43 | 0 |
+| Qualifying | 11730 | 279 | 373,582 | 363,792 | 26 | 0 |
+| Race | 11731 | 369 | 1,001,308 | 979,968 | 328 | 11,444 |
+
+OpenF1 publishes intervals for the race only, and `starting_grid` is empty for this meeting. Raw cache: 41 MB.
+
+`scripts/build_recorded_session.py` writes `public/sessions/1308/<slug>/session.json` plus `drivers/<number>.json`, and `public/sessions/1308/index.json`:
+
+- Driver identity: number, acronym, full, first, last and broadcast name, team name and team colour. `headshot_url` (formula1.com images) is never copied; checked with a test and a grep of the output (0 matches).
+- Per driver, columnar integer arrays: location `t, x, y, z` and car data `t, speed, rpm, gear, throttle, brake, drs`, with time, x, y and z delta-encoded. Exact (0, 0, 0) samples (OpenF1's "no fix") are dropped; a null DRS is stored as -1, never guessed. Positions stay in OpenF1's own frame; Step 3 measures the units.
+- Events with millisecond offsets from `t0`: laps, stints, pit, position, intervals, race control, weather, result. The label "Recorded session · interpolated motion · data via OpenF1" and the attribution are in every `session.json`.
+- Replay window: the session clock minus 5 minutes to plus 3 minutes, stretched to cover every timed lap.
+
+| Session | Window | Uncompressed | Gzip |
+|---|---|---|---|
+| FP1 | 73.8 min | 12.3 MB | 2.41 MB |
+| FP2 | 76.8 min | 13.1 MB | 2.68 MB |
+| FP3 | 80.4 min | 11.1 MB | 1.86 MB |
+| Qualifying | 75.2 min | 10.8 MB | 1.50 MB |
+| Race | 207.7 min | 25.0 MB | 3.71 MB |
+
+Every session is far under the 15 MB gzip budget, so the processed files (116 files, 70 MB uncompressed, 12.2 MB gzip, largest file 1.15 MB) are committed and the raw downloads are not.
+
+The race window is long because of a real delayed start: "DELAYED START" before the scheduled 15:00 local time, the start procedure suspended at 15:40, "RACE WILL START AT 16:33", then green at 98 minutes into the window. It includes a safety car on laps 9 to 12, a VSC at lap 43, a second safety car on laps 45 to 51 and the chequered flag on lap 55 at 205 minutes. Step 4 will open the replay at the race start by default.
+
+Tests: `npm run test:pipeline` runs 11 Python tests (time parsing, half-open windows, the 404-as-empty rule, cache round trip, the rate limiter, delta encoding, headshot exclusion, the (0, 0, 0) filter, null DRS, window stretching). npm scripts: `data:fetch`, `data:build`, `test:pipeline`.
+
+Limitations: OpenF1 is unofficial, and its data may be revised; re-running the fetch on a clean cache can give different rows. Location is sampled at about 4 Hz and car data at about 3.6 Hz, so fast transients between samples are not recorded. Practice and qualifying have no intervals feed, so gaps there will come from timing (`laps`) rather than `intervals`.
+
+Files: `scripts/{openf1_common,fetch_openf1,build_recorded_session,test_openf1_pipeline}.py`, `public/sessions/1308/**`, `.gitignore` (`data/raw/`), `package.json`, `README.md`, this file.

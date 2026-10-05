@@ -8,3 +8,6 @@ __pycache__/
 
 # Reference screenshots: third-party branding, never commit.
 docs/reference/
+
+# OpenF1 raw downloads: never committed (regenerate with scripts/fetch_openf1.py).
+data/raw/
