@@ -81,6 +81,15 @@ export const SPATIAL_SOURCES: Readonly<Record<string, SpatialSource>> =
       limitations:
         "Generated in code. Shapes, sizes and counts are illustrative; only positions tied to a SOURCED anchor follow evidence.",
     },
+    openf1: {
+      organization: "OpenF1 (unofficial; not associated with Formula 1)",
+      url: "https://openf1.org",
+      document: "location endpoint, meeting 1308 (2026, Sepang)",
+      sourceDate: "2026-10-04",
+      accessedAt: "2026-10-05",
+      limitations:
+        "Unofficial API. Positions in the series' own circuit frame (decimetres), sampled at about 4 Hz; may be revised.",
+    },
     audit: {
       organization: "Sepang Vision Lab",
       url: "docs/VISUAL_V2_5A_SPATIAL_REFERENCE.md",
@@ -431,17 +440,58 @@ export const SEPANG_SPATIAL_REFERENCES = parseSpatialReferences([
   ),
   ...(
     [
-      ["env-track-surface", "Driver view asphalt, lines and run-off", "Constant 16 m width from the OFFICIAL minimum; local width profile is unavailable."],
-      ["env-kerbs", "Driver view kerbs", "Placed at curvature peaks of the community outline, not a surveyed kerb inventory."],
-      ["env-barriers", "Driver view barriers", "Constant offset, pulled in to 0.8 × corner radius on the inside; not a surveyed barrier line."],
-      ["env-pit-building", "Driver view pit building", "Centred on the SOURCED anchor pit-building and aligned to the main straight; footprint, height and orientation are illustrative."],
-      ["env-main-grandstand", "Driver view main grandstand", "Centred on the SOURCED anchor main-grandstand with the OFFICIAL east-west alignment; footprint and height are illustrative."],
-      ["env-start-gantry", "Driver view start gantry", "Spans the road at the sample nearest the SOURCED anchor finish; the replay progress origin is unchanged."],
-      ["env-palms", "Driver view oil palms", "Seeded random scatter at least 45 m from the centre line; not a vegetation survey."],
-      ["env-sky", "Driver view sky, fog and sun", "Fixed illustrative lighting; not a weather or sun-position model."],
+      [
+        "env-track-surface",
+        "Driver view asphalt, lines and run-off",
+        "Constant 16 m width from the OFFICIAL minimum; local width profile is unavailable.",
+      ],
+      [
+        "env-kerbs",
+        "Driver view kerbs",
+        "Placed at curvature peaks of the community outline, not a surveyed kerb inventory.",
+      ],
+      [
+        "env-barriers",
+        "Driver view barriers",
+        "Constant offset, pulled in to 0.8 × corner radius on the inside; not a surveyed barrier line.",
+      ],
+      [
+        "env-pit-building",
+        "Driver view pit building",
+        "Centred on the SOURCED anchor pit-building and aligned to the main straight; footprint, height and orientation are illustrative.",
+      ],
+      [
+        "env-main-grandstand",
+        "Driver view main grandstand",
+        "Centred on the SOURCED anchor main-grandstand with the OFFICIAL east-west alignment; footprint and height are illustrative.",
+      ],
+      [
+        "env-start-gantry",
+        "Driver view start gantry",
+        "Spans the road at the sample nearest the SOURCED anchor finish; the replay progress origin is unchanged.",
+      ],
+      [
+        "env-palms",
+        "Driver view oil palms",
+        "Seeded random scatter at least 45 m from the centre line; not a vegetation survey.",
+      ],
+      [
+        "env-sky",
+        "Driver view sky, fog and sun",
+        "Fixed illustrative lighting; not a weather or sun-position model.",
+      ],
     ] as const
   ).map(([id, label, notes]) =>
-    fact(id, label, "visual", null, null, "svlEnvironment", "ILLUSTRATIVE", notes),
+    fact(
+      id,
+      label,
+      "visual",
+      null,
+      null,
+      "svlEnvironment",
+      "ILLUSTRATIVE",
+      notes,
+    ),
   ),
   fact(
     "env-turn-boards",
@@ -452,6 +502,16 @@ export const SEPANG_SPATIAL_REFERENCES = parseSpatialReferences([
     "svlEnvironment",
     "DERIVED",
     "Positions DERIVED from curvature peaks of the community outline: 22 detected peaks grouped into the official 15 turns (tightest peak per turn), accepted only when the direction sequence matches RLRRLRRRLRRLRRL. Board offset and shape are illustrative. Mapping in docs/MILESTONE_19.md, Step 1.",
+  ),
+  fact(
+    "openf1-frame-transform",
+    "OpenF1 circuit frame to metric profile",
+    "geometry",
+    "scale 0.10031668 m/unit, rotation -0.016 deg, translation (-65.366, 83.103) m, mirror false",
+    null,
+    "openf1",
+    "DERIVED",
+    "ICP similarity fit of OpenF1 location samples onto the metric profile centre line, meeting 1308 (sessions 11730 Qualifying and 11731 Race): qualifying VER lap 11; qualifying HAM lap 14; qualifying LEC lap 11; qualifying NOR lap 11; race ANT lap 39; race PIA lap 41; race NOR lap 41. Residual to centre line RMS 3.086 m, p95 5.688 m, max 8.112 m over 2638 samples; residuals include the real racing-line offset. OpenF1 units measured as decimetres (9.9684 units/m against the 5.543 km rescaled outline). Full report: public/sessions/1308/alignment.json.",
   ),
   ...["kerbs", "gravel", "runoff", "barriers", "terrain"].map((id) =>
     fact(

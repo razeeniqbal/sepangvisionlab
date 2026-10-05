@@ -88,9 +88,11 @@ OpenF1 publishes intervals for the race only, and `starting_grid` is empty for t
 | FP2 | 76.8 min | 13.1 MB | 2.68 MB |
 | FP3 | 80.4 min | 11.1 MB | 1.86 MB |
 | Qualifying | 75.2 min | 10.8 MB | 1.50 MB |
-| Race | 207.7 min | 25.0 MB | 3.71 MB |
+| Race | 207.7 min | 32.0 MB | 5.20 MB |
 
-Every session is far under the 15 MB gzip budget, so the processed files (116 files, 70 MB uncompressed, 12.2 MB gzip, largest file 1.15 MB) are committed and the raw downloads are not.
+Every session is far under the 15 MB gzip budget, so the processed files (116 files, 13.7 MB gzip in total) are committed and the raw downloads are not.
+
+**Correction found in Step 3.** The first build stopped race positions and telemetry at 09:30 UTC: the fetch window ended 30 minutes after the race's *scheduled* end, but the delayed race ended at 10:20 UTC, so about 50 minutes of racing were missing (race laps had no location samples). `fetch_openf1.py` now fetches the session-level data first and extends the window to the last timed lap or race-control message plus 30 minutes. The window grid stays anchored at the same start, so the existing cache was reused and only 135 race and 45 Practice 3 requests were added. Race coverage is now 06:55 to 10:21:45 UTC, past the chequered flag.
 
 The race window is long because of a real delayed start: "DELAYED START" before the scheduled 15:00 local time, the start procedure suspended at 15:40, "RACE WILL START AT 16:33", then green at 98 minutes into the window. It includes a safety car on laps 9 to 12, a VSC at lap 43, a second safety car on laps 45 to 51 and the chequered flag on lap 55 at 205 minutes. Step 4 will open the replay at the race start by default.
 
@@ -99,3 +101,36 @@ Tests: `npm run test:pipeline` runs 11 Python tests (time parsing, half-open win
 Limitations: OpenF1 is unofficial, and its data may be revised; re-running the fetch on a clean cache can give different rows. Location is sampled at about 4 Hz and car data at about 3.6 Hz, so fast transients between samples are not recorded. Practice and qualifying have no intervals feed, so gaps there will come from timing (`laps`) rather than `intervals`.
 
 Files: `scripts/{openf1_common,fetch_openf1,build_recorded_session,test_openf1_pipeline}.py`, `public/sessions/1308/**`, `.gitignore` (`data/raw/`), `package.json`, `README.md`, this file.
+
+## Step 3 — coordinate alignment
+
+OpenF1 `location` x, y and z are in the series' own circuit frame. `src/domain/alignment.ts` fits a similarity transform (uniform scale, rotation, translation, optional mirrored axis) from that frame onto the metric profile used by the driver view and the physics:
+
+- Closed-form least-squares similarity (Umeyama, 2D) for matched points, with an exact inverse.
+- ICP against the closed centre line, with nearest-point queries on a 40 m grid of centreline segments.
+- Global search: centroid and path-length scale as the start, twelve headings, with and without a mirrored y axis; ICP from each start and the lowest RMS wins. Deterministic.
+
+`scripts/align_openf1.ts` (`npm run data:align`) chooses clean, fast laps: within 103 % of the session's best, not an out lap, one per driver, at least 200 samples, no sampling gap over 1 s. It fits on every third sample, refines on all samples and writes `public/sessions/1308/alignment.json` plus a small test fixture lap.
+
+**Result (DERIVED).** Seven laps from six drivers and two sessions: Qualifying VER lap 11, HAM lap 14, LEC lap 11, NOR lap 11; Race ANT lap 39, PIA lap 41, NOR lap 41. 2,638 samples.
+
+| Quantity | Value |
+|---|---|
+| Scale | 0.100317 m per unit, so **OpenF1 units are decimetres** (9.968 units/m; the 0.3 % is the community outline rescaled to the official 5.543 km) |
+| Rotation | −0.016° (the frames share east and north) |
+| Mirror | no |
+| Translation | (−65.4, 83.1) m |
+| Residual to centre line | **RMS 3.09 m**, p95 5.69 m, max 8.11 m (target RMS under 8 m) |
+| Per lap RMS | 3.01 to 3.16 m; Qualifying alone gave 3.06 m, so adding race laps changes almost nothing |
+
+The residual is the distance from each car position to the track's centre line, so it includes the real racing line (cars use the full 16 m road: apex to track-out), not only fit error. Pure fit error is smaller than these figures.
+
+Recorded in the spatial register as `openf1-frame-transform` (DERIVED, new source `openf1`), citing the sessions, laps and residuals; the eight SOURCED anchors are unchanged.
+
+Side finding, not used: OpenF1 z spans 277 to 494 decimetres on a qualifying lap, about 21.7 m of elevation change. The register keeps `elevation-profile` UNAVAILABLE. A future step could turn this into a DERIVED elevation profile, if wanted.
+
+Tests (`tests/alignment.test.ts`, 6): apply and invert round trip with and without mirroring; exact recovery of a known transform; ICP recovering a noisy, rotated, rescaled copy of the centre line from a wrong start; nearest point on the road; the stored transform keeps the real fixture lap at RMS under 8 m and reports decimetre units; global alignment is deterministic and lands on the stored fit.
+
+Limitations: the transform is fitted to the community centre line, not a survey, so its absolute accuracy is bounded by that outline. Pit-lane positions are not used in the fit; the pit centre line stays UNAVAILABLE.
+
+Files: `src/domain/alignment.ts`, `scripts/align_openf1.ts`, `public/sessions/1308/alignment.json`, `tests/alignment.test.ts`, `tests/fixtures/openf1-lap.json`, `src/data/circuits/sepangSpatialReferences.ts`, `package.json`, this file.

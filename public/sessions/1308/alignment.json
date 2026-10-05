@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "accuracyClass": "DERIVED",
+  "description": "Similarity transform from the OpenF1 circuit frame to the metric Sepang profile (x east, y north, metres), fitted by ICP to the centre line.",
+  "transform": {
+    "scale": 0.10031668,
+    "rotation": -0.00028,
+    "mirror": false,
+    "tx": -65.366,
+    "ty": 83.103
+  },
+  "unitsPerMetre": 9.9684,
+  "rotationDegrees": -0.016,
+  "residualMetres": {
+    "rms": 3.086,
+    "p95": 5.688,
+    "max": 8.112,
+    "samples": 2638
+  },
+  "target": {
+    "rmsBelowMetres": 8
+  },
+  "laps": [
+    {
+      "session": "qualifying",
+      "driver": 3,
+      "acronym": "VER",
+      "lap": 11,
+      "seconds": 95.13,
+      "samples": 366,
+      "rms": 3.032,
+      "p95": 5.678,
+      "max": 7.23
+    },
+    {
+      "session": "qualifying",
+      "driver": 44,
+      "acronym": "HAM",
+      "lap": 14,
+      "seconds": 95.428,
+      "samples": 373,
+      "rms": 3.08,
+      "p95": 5.711,
+      "max": 7.987
+    },
+    {
+      "session": "qualifying",
+      "driver": 16,
+      "acronym": "LEC",
+      "lap": 11,
+      "seconds": 95.666,
+      "samples": 372,
+      "rms": 3.014,
+      "p95": 5.658,
+      "max": 7.709
+    },
+    {
+      "session": "qualifying",
+      "driver": 1,
+      "acronym": "NOR",
+      "lap": 11,
+      "seconds": 95.757,
+      "samples": 373,
+      "rms": 3.112,
+      "p95": 5.673,
+      "max": 7.881
+    },
+    {
+      "session": "race",
+      "driver": 12,
+      "acronym": "ANT",
+      "lap": 39,
+      "seconds": 100.829,
+      "samples": 379,
+      "rms": 3.156,
+      "p95": 5.754,
+      "max": 8.062
+    },
+    {
+      "session": "race",
+      "driver": 81,
+      "acronym": "PIA",
+      "lap": 41,
+      "seconds": 100.96,
+      "samples": 387,
+      "rms": 3.098,
+      "p95": 5.682,
+      "max": 7.947
+    },
+    {
+      "session": "race",
+      "driver": 1,
+      "acronym": "NOR",
+      "lap": 41,
+      "seconds": 101.013,
+      "samples": 388,
+      "rms": 3.101,
+      "p95": 5.688,
+      "max": 8.112
+    }
+  ],
+  "note": "Residuals are distances from car positions to the track centre line, so they include the racing line's real lateral offset (up to about 8 m on a 16 m road), not only fit error.",
+  "attribution": "Positions: data via OpenF1 (unofficial). Not associated with Formula 1. Centre line: Bacinger f1-circuits (MIT), rescaled to 5.543 km."
+}
