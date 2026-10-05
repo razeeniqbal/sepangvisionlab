@@ -50,6 +50,7 @@ export default function LowerThird({
       >
         <strong>{car.speedKph.toFixed(0)}</strong>
         <small>km/h</small>
+        <small className="bc-lt-modelled">Modelled</small>
       </div>
       <div
         className="bc-lt-pedals"

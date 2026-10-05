@@ -84,6 +84,8 @@ export interface DriverSceneProps {
   ghost?: { id: string; sample: (time: number) => CarState };
   labels?: boolean;
   trails?: boolean;
+  /** Real rainfall (recorded sessions): wetter asphalt, greyer sky, shorter fog. */
+  wet?: boolean;
 }
 
 // Line-of-sight test against scenery tagged as an occluder (buildings, gantry, boards, trees).
@@ -108,8 +110,15 @@ function blocked(
   return ray.intersectObjects(occluders as Object3D[], true).length > 0;
 }
 
-function pose(car: CarState) {
-  return poseAtDistance(sepangTrack, car.progress * sepangTrack.length);
+// Recorded cars carry their own aligned pose (with lateral offset, raw in the pit lane);
+// simulated cars sit on the profile at their progress.
+type Posed = CarState & {
+  pose?: { x: number; y: number; heading: number };
+  present?: boolean;
+  stale?: boolean;
+};
+function pose(car: Posed) {
+  return car.pose ?? poseAtDistance(sepangTrack, car.progress * sepangTrack.length);
 }
 
 const TRAIL_POINTS = 32;
@@ -184,12 +193,16 @@ function DriverCar({
     model: null as ReturnType<typeof modelWheelDriver>,
   });
   useFrame(({ camera }, delta) => {
-    const state = field.current[index];
+    const state: Posed | undefined = field.current[index];
     if (!group.current || !state) return;
+    // No recorded sample yet (before the car leaves the garage feed): draw nothing.
+    const present = state.present !== false;
+    group.current.visible = present;
     // Broadcast tag: nearby cars only, never over the onboard camera's own car.
     if (label.current) {
+      label.current.classList.toggle("is-stale", state.stale === true);
       const near =
-        labels && (ring || !selected)
+        present && labels && (ring || !selected)
           ? camera.position.distanceTo(group.current.position) < 240
           : false;
       const text = near ? "P" + state.position + " " + tag : "";
@@ -210,9 +223,9 @@ function DriverCar({
     }
     const m = motion.current,
       distance = state.progress * sepangTrack.length,
-      p = poseAtDistance(sepangTrack, distance);
-    trail.visible = trails;
-    if (trails) {
+      p = pose(state);
+    trail.visible = trails && present;
+    if (trail.visible) {
       const length = Math.min(260, Math.max(12, (state.speedKph / 3.6) * 2.5));
       const positions = trail.geometry.getAttribute("position") as BufferAttribute;
       for (let k = 0; k < TRAIL_POINTS; k++) {
@@ -409,6 +422,7 @@ function CameraRig({
   rig,
   layout,
   occluders,
+  wet,
 }: {
   field: RefObject<CarState[]>;
   entries: readonly CarDefinition[];
@@ -416,6 +430,7 @@ function CameraRig({
   rig: RefObject<CameraRigState>;
   layout: EnvironmentLayout;
   occluders: RefObject<Object3D[]>;
+  wet: boolean;
 }) {
   const { camera, scene } = useThree();
   const sun = useRef<DirectionalLight>(null);
@@ -427,11 +442,13 @@ function CameraRig({
   });
   useLayoutEffect(() => {
     camera.up.set(0, 0, 1);
-    scene.fog = new Fog(SKY.horizon, SKY.fogNear, SKY.fogFar);
+    scene.fog = wet
+      ? new Fog(SKY.wetHorizon, SKY.wetFogNear, SKY.wetFogFar)
+      : new Fog(SKY.horizon, SKY.fogNear, SKY.fogFar);
     return () => {
       scene.fog = null;
     };
-  }, [camera, scene]);
+  }, [camera, scene, wet]);
   useFrame((_, delta) => {
     const state = field.current[index];
     if (!state || !(camera instanceof PerspectiveCamera)) return;
@@ -513,6 +530,7 @@ function World({
   ghost,
   labels = true,
   trails = false,
+  wet = false,
 }: DriverSceneProps) {
   const field = useRef<CarState[]>(sample(clock.current));
   const layout = useEnvironmentLayout(sepangTrack, coordinates);
@@ -537,8 +555,9 @@ function World({
         rig={rig}
         layout={layout}
         occluders={occluders}
+        wet={wet}
       />
-      <Environment track={sepangTrack} layout={layout} />
+      <Environment track={sepangTrack} layout={layout} wet={wet} />
       {ghost && <GhostCar ghost={ghost} clock={clock} />}
       {entries.map(
         (car, index) =>

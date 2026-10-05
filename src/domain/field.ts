@@ -1,7 +1,14 @@
 import { advanceMotion, type MotionState } from "./movement.ts";
 import type { CarSetup } from "./lapPhysics.ts";
 
-export type TyreCompound = "SOFT" | "MEDIUM" | "HARD";
+// Recorded sessions add wet-weather tyres and an explicit unknown (never guessed).
+export type TyreCompound =
+  | "SOFT"
+  | "MEDIUM"
+  | "HARD"
+  | "INTERMEDIATE"
+  | "WET"
+  | "UNKNOWN";
 export interface CarDefinition {
   id: string;
   number: string;

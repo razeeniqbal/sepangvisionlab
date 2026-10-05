@@ -73,6 +73,10 @@ interface Props {
   selectedId: string;
   onSelect: (id: string) => void;
   sessionLabel?: string;
+  /** Broadcast tags per entry, in entry order (default: fictional codes or car numbers). */
+  tags?: readonly string[];
+  /** Real rainfall (recorded sessions) drives the wet look in the 3D views. */
+  wet?: boolean;
 }
 function Scene({
   clock,
@@ -357,7 +361,7 @@ export default function CircuitScene(props: Props) {
                 ((time: number) => sampleRace(props.data!, time))
               }
               activeIds={props.historical?.activeIds}
-              tags={(
+              tags={props.tags ?? (
                 props.historical?.entries ??
                 props.synthetic?.entries ??
                 props.data!.entries
@@ -367,6 +371,7 @@ export default function CircuitScene(props: Props) {
                   : "#" + car.number,
               )}
               ghost={props.synthetic?.ghost}
+              wet={props.wet}
               tyresKnown={!props.historical}
               selectedId={props.selectedId}
               onSelect={props.onSelect}

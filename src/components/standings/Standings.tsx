@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { CarDefinition, CarState } from "../../domain/field";
 import { estimatedGap } from "../../domain/inspection";
-import { fictionalDriver } from "../../data/fictionalGrid";
+import {
+  fictionalDriver,
+  type FictionalDriver,
+} from "../../data/fictionalGrid";
 import TeamGlyph from "../broadcast/TeamGlyph";
 import { Chevron } from "../broadcast/Chevron";
 
@@ -14,8 +17,28 @@ interface Props {
   previous?: ReadonlyMap<string, number>;
   lap?: number;
   totalLaps?: number;
+  /** Real identities (recorded mode); defaults to the fictional grid by entry index. */
+  identity?: (car: CarState, index: number) => FictionalDriver;
+  /** Gap text from timing data (recorded mode); defaults to a distance estimate. */
+  gap?: (
+    car: CarState,
+    ahead: CarState | undefined,
+    leader: CarState,
+    mode: "interval" | "leader",
+  ) => string | null;
+  /** Per-row extras: best lap, pit lane, stale data, session-best marker. */
+  extras?: (car: CarState) => {
+    best?: string;
+    pit?: boolean;
+    stale?: boolean;
+    sessionBest?: boolean;
+  };
+  note?: ReactNode;
+  footer?: ReactNode;
+  label?: string;
 }
-// Broadcast timing tower. Gaps are estimates from distance; entries are fictional.
+// Broadcast timing tower. Simulated: fictional entries, gaps estimated from distance.
+// Recorded: real identities and timing passed in through the optional props.
 export default function Standings({
   cars,
   definitions,
@@ -24,6 +47,12 @@ export default function Standings({
   previous,
   lap,
   totalLaps,
+  identity,
+  gap: gapText,
+  extras,
+  note = "Fictional entries · gaps estimated from distance",
+  footer,
+  label = "Simulated standings",
 }: Props) {
   const [mode, setMode] = useState<"interval" | "leader">("interval");
   const [collapsed, setCollapsed] = useState(false);
@@ -32,8 +61,12 @@ export default function Standings({
   const byId = new Map(definitions.map((d, i) => [d.id, { d, i }]));
   return (
     <section
-      className={"standings-panel bc-tower" + (collapsed ? " is-collapsed" : "")}
-      aria-label="Simulated standings"
+      className={
+        "standings-panel bc-tower" +
+        (collapsed ? " is-collapsed" : "") +
+        (extras ? " has-extras" : "")
+      }
+      aria-label={label}
     >
       <div className="bc-tower-head">
         <span className="bc-tower-lap">
@@ -69,19 +102,30 @@ export default function Standings({
       <ol className="standings-list">
         {ordered.map((car, index) => {
           const { d: definition, i } = byId.get(car.id)!;
-          const driver = fictionalDriver(i, car.number);
+          const driver = identity
+            ? identity(car, i)
+            : fictionalDriver(i, car.number);
           const reference = mode === "interval" ? ordered[index - 1] : leader;
-          const gap =
-            index === 0
+          const gap = gapText
+            ? gapText(car, ordered[index - 1], leader, mode)
+            : index === 0
               ? null
-              : estimatedGap(car, reference, byId.get(reference.id)!.d);
+              : "+" +
+                estimatedGap(car, reference, byId.get(reference.id)!.d).toFixed(
+                  1,
+                );
+          const extra = extras?.(car);
           const before = previous?.get(car.id);
           const change = before === undefined ? 0 : before - car.position;
           return (
             <li key={car.id}>
               <button
                 type="button"
-                className="standing-row"
+                className={
+                  "standing-row" +
+                  (extra?.stale ? " is-stale" : "") +
+                  (extra?.pit ? " is-pit" : "")
+                }
                 aria-label={`Select ${driver.name}, car ${car.number}, position ${car.position}`}
                 aria-pressed={car.id === selectedId}
                 onClick={() => onSelect(car.id)}
@@ -110,8 +154,17 @@ export default function Standings({
                 >
                   {driver.code}
                 </strong>
+                {extras && (
+                  <span
+                    className={
+                      "bc-best" + (extra?.sessionBest ? " is-session-best" : "")
+                    }
+                  >
+                    {extra?.best ?? ""}
+                  </span>
+                )}
                 <span className="standing-gap">
-                  {gap === null ? "Leader" : "+" + gap.toFixed(1)}
+                  {gap ?? (index === 0 ? "Leader" : "")}
                 </span>
                 <span
                   className={"compound compound-" + car.compound.toLowerCase()}
@@ -124,9 +177,8 @@ export default function Standings({
           );
         })}
       </ol>
-      <p className="standings-note">
-        Fictional entries · gaps estimated from distance
-      </p>
+      {footer}
+      <p className="standings-note">{note}</p>
     </section>
   );
 }

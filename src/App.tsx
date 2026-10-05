@@ -27,6 +27,7 @@ import LowerThird from "./components/broadcast/LowerThird";
 import SetupDrawer from "./components/broadcast/SetupDrawer";
 import { sepangPace } from "./data/sepangPace";
 import SessionLoader from "./components/session/SessionLoader";
+import RecordedWorkspace from "./components/recorded/RecordedWorkspace";
 import useReplay from "./hooks/useReplay";
 import Timeline from "./components/timeline/Timeline";
 
@@ -53,7 +54,13 @@ export default function App() {
   // Synthetic workspace on desktop is one full-bleed screen; hand tracking opens as a sheet.
   const [handsOpen, setHandsOpen] = useState(false);
   return (
-    <div className={"shell shell-" + mode}>
+    <div
+      className={
+        "shell shell-" +
+        mode +
+        (mode === "historical" ? "" : " shell-broadcast")
+      }
+    >
       <nav className="session-switch" aria-label="Session selection">
         <button
           aria-pressed={mode === "historical"}
@@ -67,11 +74,22 @@ export default function App() {
         >
           Synthetic development session
         </button>
+        <button
+          aria-pressed={mode === "recorded"}
+          onClick={() => setMode("recorded")}
+        >
+          2026 Sepang · recorded (OpenF1)
+        </button>
       </nav>
       <WorkspaceNav historical={mode === "historical"} />
       <GestureProvider key={mode}>
         {mode === "historical" ? (
           <HistoricalWorkspace />
+        ) : mode === "recorded" ? (
+          <RecordedWorkspace
+            handsOpen={handsOpen}
+            onHands={() => setHandsOpen((open) => !open)}
+          />
         ) : (
           <SyntheticApp
             handsOpen={handsOpen}
@@ -82,7 +100,7 @@ export default function App() {
           className={"hands-sheet" + (handsOpen ? " is-open" : "")}
           aria-label="Hand tracking"
         >
-          {mode === "synthetic" && (
+          {mode !== "historical" && (
             <button
               className="hands-sheet-close"
               onClick={() => setHandsOpen(false)}

@@ -134,3 +134,50 @@ Tests (`tests/alignment.test.ts`, 6): apply and invert round trip with and witho
 Limitations: the transform is fitted to the community centre line, not a survey, so its absolute accuracy is bounded by that outline. Pit-lane positions are not used in the fit; the pit centre line stays UNAVAILABLE.
 
 Files: `src/domain/alignment.ts`, `scripts/align_openf1.ts`, `public/sessions/1308/alignment.json`, `tests/alignment.test.ts`, `tests/fixtures/openf1-lap.json`, `src/data/circuits/sepangSpatialReferences.ts`, `package.json`, this file.
+
+## Step 4 — recorded playback
+
+A third session option, **"2026 Sepang · recorded (OpenF1)"**, replays FP1, FP2, FP3, Qualifying and the Race from the committed files. It is labelled "Recorded session · interpolated motion · data via OpenF1", and its footer reads "Data via OpenF1 (unofficial). Not associated with Formula 1." Real driver names, numbers, team names and OpenF1 team colours are used for identification. Teams get plain geometric glyphs (shape and fill by alphabetical team order); no logos, wordmarks or headshots. Simulated mode is unchanged apart from a "Modelled" note on its lower-third telemetry.
+
+**Domain** (`src/domain/recordedSession.ts`, pure and deterministic):
+
+- Each location sample is aligned with the Step 3 transform, projected on the centre line (distance along the lap and a signed lateral offset) and unwrapped across the line.
+- Between samples, distance and lateral offset are interpolated linearly, so cars follow the circuit and keep their real line instead of being glued to the centre.
+- Samples more than 12 m from the centre line (pit lane, garage) are drawn at their raw aligned position, never snapped, because the pit centre line is UNAVAILABLE.
+- A gap in the data holds the last sample; after 2 s the car is marked stale (dimmed tag and row) rather than moved. Cars with no sample yet are hidden.
+- The field at a time has the same shape as the simulated field (`CarState` plus recorded extras), so the camera rig, minimap, tags, trails, gestures and both views work unchanged. Seeks are exact: the same time gives an identical field.
+- Timing: positions from `position`; lap number, last and best lap from `laps`; compound and tyre age from `stints` (`TyreCompound` now includes INTERMEDIATE, WET and UNKNOWN); pit state from `pit` and the off-profile rule; race gaps and intervals from `intervals`, while practice and qualifying gaps are best-lap deltas because OpenF1 has no intervals for them.
+- Track status from `race_control`: green, yellow (per sector, over green), SC, VSC, red, chequered. Timeline markers: session start, yellows (merged within 20 s), SC, VSC, red, chequered and track-limit ticks.
+- Weather from `weather`; real rainfall drives the wet look.
+
+**Loading** (`src/services/recordedLoader.ts`): fetches the session, the alignment and the 22 driver files in parallel, then prepares one driver at a time, yielding between drivers with a progress message. Measured in the browser pane: Race 18.6 s (about 960,000 samples), FP1 2.2 s.
+
+**Interface** (`src/components/recorded/`), on the Step 1 full-bleed layout:
+
+- Header: session picker (FP1, FP2, FP3, Qualifying, Race), the recorded label, elapsed clock, speed, Hands.
+- Timing tower: real codes and glyphs, best lap per driver (session best in purple), race gap or interval, practice best-lap gap, a PIT badge, dimmed stale rows, a session-best footer and attribution.
+- Driver telemetry card: real speed, gear, RPM with a 15-LED bar, throttle, brake, DRS state, last and best lap, compound and age, and status (on track, in pit lane, stale, not running). This closes gap 9 in recorded mode.
+- Race-control ticker with a flag chip, a weather strip (air, track, rain, humidity), the minimap, and a drawer with the selected driver's laps and sectors and session information.
+- Replay bar on the real timeline: elapsed and total, UTC clock, a "Session start" jump, 0.5× to 10×, and markers you can click. The race opens at its start signal (98 minutes into the file, after the delayed start) at 1×.
+- Gestures: pinch selects the next driver, point opens the laps and slows the replay to 0.5×, and rewind, forward, cancel, zoom, rotate and camera cycling work as in simulated mode.
+
+**Checked in the browser** (1440 × 900):
+
+- Race start: the field queued at the pit exit, correctly "In pit lane" (all cars 12.2 m off the main straight beside the exit, stationary, then 500 to 900 m up the road within 30 s).
+- Lap 14: VER leading, real intervals, session best VER 1:44.848, sector times, 199 to 212 km/h in gears 5 to 6, softs 4 laps old after starting on intermediates.
+- 30 minutes into the file (pre-start): rain "Yes", wet look on, cars on reconnaissance laps on intermediates, sector yellows listed in the chip.
+- FP1 at 50 minutes: best-lap gaps (+0.383, +0.783 …), session best VER 1:37.520, track-limit deletions in the ticker, and 19 of 22 cars in the garage with their best laps still shown.
+- Simulated mode: unchanged, no page overflow. No console errors.
+
+Tests (`tests/recordedSession.test.ts`, 7): distance monotonic within a lap and unwrapping across the line (6,900 m covered to within 10 m); a 5 s data gap holds and turns stale only after 2 s, never interpolating across; off-profile samples render raw; the track status machine including sector yellows; marker extraction and merging; tyres including intermediates and unknowns; real Qualifying data with identical states after a forward and back seek.
+
+Limitations:
+
+- The race takes about 19 s to load because alignment runs in the browser. Precomputing distance and lateral offset in `build_recorded_session.py` would remove most of that (later step).
+- The wet look is minimal and new: darker, glossier asphalt, a greyer sky and shorter fog. There were no existing wet visuals to drive, and there is no rain, spray or standing water.
+- The 12 m off-profile rule is a heuristic: a car very wide on the pit straight can briefly read as off the profile, and a car in a pit lane that runs close to the track can read as on it.
+- The engineering view still places recorded cars by progress on its own spline, so pit-lane cars appear on the track there; the 3D views use the true aligned position.
+- 2026 cars report DRS as null throughout this meeting, shown as "DRS —" rather than guessed.
+- Frame rate with 22 recorded cars was not measured: the pane only painted on screenshots. `?perf` is available for your machine.
+
+Files: `src/domain/recordedSession.ts`, `src/domain/field.ts` (wider `TyreCompound`), `src/domain/physicsField.ts` (non-slick setups), `src/services/recordedLoader.ts`, `src/components/recorded/{RecordedWorkspace,RecordedTelemetryCard,RaceControlTicker,WeatherStrip,RecordedTimeline}.tsx`, `src/components/standings/Standings.tsx` (identity, gap and extras options), `src/components/broadcast/LowerThird.tsx` (Modelled note), `src/components/circuit/{CircuitScene,DriverScene}.tsx` and `environment/Environment.tsx` (recorded poses, presence, staleness, wet look), `src/App.tsx`, `src/styles.css`, `tests/recordedSession.test.ts`, this file.

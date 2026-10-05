@@ -55,6 +55,10 @@ import {
 // Objects that block a camera's view of a car: used by TV camera picking and tag fading.
 export const OCCLUDER = { occluder: true };
 export const SKY = Object.freeze({
+  wetHorizon: "#9aa6aa",
+  wetZenith: "#5f6e78",
+  wetFogNear: 160,
+  wetFogFar: 1700,
   horizon: "#c9dade",
   zenith: "#4d84ad",
   fogNear: 450,
@@ -138,7 +142,7 @@ export function useEnvironmentLayout(
   }, [track, coordinates]);
 }
 
-function Surfaces({ track }: { track: TrackProfile }) {
+function Surfaces({ track, wet }: { track: TrackProfile; wet: boolean }) {
   const meshes = useMemo(() => {
     const normals = leftNormals(track);
     const strip = (spec: StripSpec) => buildStrip(track, normals, spec);
@@ -228,6 +232,12 @@ function Surfaces({ track }: { track: TrackProfile }) {
       }),
     };
   }, []);
+  // Wet track: darker, glossier asphalt (a reflective sheen, not simulated standing water).
+  useLayoutEffect(() => {
+    materials.asphalt.color.set(wet ? "#7d8589" : "#ffffff");
+    materials.asphalt.roughness = wet ? 0.38 : 0.92;
+    materials.asphalt.metalness = wet ? 0.22 : 0;
+  }, [materials, wet]);
   return (
     <>
       <mesh
@@ -523,7 +533,7 @@ function Palms({ track, avoid }: { track: TrackProfile; avoid: Building[] }) {
   );
 }
 
-function Sky() {
+function Sky({ wet }: { wet: boolean }) {
   const material = useMemo(
     () =>
       new ShaderMaterial({
@@ -546,6 +556,10 @@ function Sky() {
     [],
   );
   const sky = useRef<Mesh>(null);
+  useLayoutEffect(() => {
+    material.uniforms.horizon.value.set(wet ? SKY.wetHorizon : SKY.horizon);
+    material.uniforms.zenith.value.set(wet ? SKY.wetZenith : SKY.zenith);
+  }, [material, wet]);
   // The sky follows the camera so it never clips at the far plane.
   useFrame(({ camera }) => sky.current?.position.copy(camera.position));
   return (
@@ -556,9 +570,11 @@ function Sky() {
 export default function Environment({
   track,
   layout,
+  wet = false,
 }: {
   track: TrackProfile;
   layout: EnvironmentLayout;
+  wet?: boolean;
 }) {
   const ground = useMemo(() => {
     const { minX, maxX, minY, maxY } = layout.bounds,
@@ -578,14 +594,14 @@ export default function Environment({
   const avoid = useMemo(() => [layout.pit, layout.stand], [layout]);
   return (
     <>
-      <Sky />
+      <Sky wet={wet} />
       <mesh
         geometry={ground.geometry}
         material={ground.material}
         position={[...ground.position]}
         receiveShadow
       />
-      <Surfaces track={track} />
+      <Surfaces track={track} wet={wet} />
       <PitBuilding b={layout.pit} />
       <Grandstand b={layout.stand} />
       <Gantry p={layout.gantry} />

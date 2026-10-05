@@ -45,13 +45,17 @@ export function createPaceModel(track: TrackProfile): PaceModel {
 }
 
 // Fictional, deterministic setups that spread the field by roughly two seconds a lap.
+// The lap model knows slicks only: a non-slick entry runs a medium slick, wet for
+// intermediates and wets. Simulated entries are always on slicks.
 export function setupForEntry(index: number, compound: TyreCompound): CarSetup {
+  const slick =
+    compound === "SOFT" || compound === "MEDIUM" || compound === "HARD";
   return {
     powerKw: 780 - ((index * 7) % 20) * 3,
     wingLevel: 5 + ((index * 3) % 4),
     fuelKg: 30 + ((index * 11) % 9) * 5,
-    compound,
-    wet: false,
+    compound: slick ? compound : "MEDIUM",
+    wet: compound === "INTERMEDIATE" || compound === "WET",
   };
 }
 
