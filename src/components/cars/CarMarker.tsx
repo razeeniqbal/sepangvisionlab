@@ -158,7 +158,7 @@ export default function CarMarker({
           {selected && (
             <>
               <i />
-              {car.number === "07" ? "PETRONAS" : "SELECTED"}
+              Selected
             </>
           )}
         </button>

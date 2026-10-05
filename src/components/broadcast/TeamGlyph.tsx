@@ -1,4 +1,15 @@
-import type { FictionalTeam } from "../../data/fictionalGrid";
+export type TeamGlyphShape = "circle" | "square" | "triangle" | "diamond" | "hexagon";
+export interface Team {
+  name: string;
+  glyph: TeamGlyphShape;
+  filled: boolean;
+}
+/** Broadcast identity for a driver: code, display name and team glyph. */
+export interface DriverIdentity {
+  code: string;
+  name: string;
+  team: Team;
+}
 
 // Plain geometric team marks in the entry colour; no team or sponsor logos.
 const shapes = {
@@ -14,7 +25,7 @@ export default function TeamGlyph({
   color,
   size = 12,
 }: {
-  team: FictionalTeam;
+  team: Team;
   color: string;
   size?: number;
 }) {

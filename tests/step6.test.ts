@@ -8,7 +8,6 @@ import {
   BARRIER_OFFSET, distanceToTrack, gravelTraps, officialTurnBoards, palmRows, treeClumps,
 } from "../src/components/circuit/environment/layout.ts";
 import { QUALITY, readQuality, writeQuality } from "../src/components/circuit/quality.ts";
-import { EMPTY, SETUP_KEY, loadSetups, parseSaved, saveSetups } from "../src/domain/setupStore.ts";
 import { presentKeyAction } from "../src/components/broadcast/presentMode.ts";
 
 const coords = JSON.parse(readFileSync(new URL("../src/data/circuits/sepang.json", import.meta.url), "utf8")).features[0].geometry.coordinates;
@@ -60,26 +59,6 @@ test("quality preset defaults to balanced and survives bad storage", () => {
   assert.equal(QUALITY.low.shadows, false);
 });
 
-test("saved setups are validated, scoped to known cars and round-trip", () => {
-  const ids = new Set(["car-07", "car-88"]);
-  const good = { powerKw: 850, wingLevel: 4, fuelKg: 20, compound: "SOFT", wet: false };
-  const text = JSON.stringify({
-    overrides: { "car-07": good, "car-88": { ...good, powerKw: 5000 }, "car-99": good },
-    ghost: { carId: "car-07", setup: good },
-  });
-  const parsed = parseSaved(text, ids);
-  assert.deepEqual(Object.keys(parsed.overrides), ["car-07"], "out-of-range and unknown cars dropped");
-  assert.deepEqual(parsed.ghost, { carId: "car-07", setup: good });
-  assert.deepEqual(parseSaved("{not json", ids), EMPTY);
-  assert.deepEqual(parseSaved(null, ids), EMPTY);
-  const store = new Map<string, string>();
-  const storage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
-  assert.equal(saveSetups(storage, parsed), true);
-  assert.deepEqual(loadSetups(storage, ids), parsed);
-  saveSetups(storage, EMPTY);
-  assert.equal(store.has(SETUP_KEY), false, "empty state clears the key");
-  assert.deepEqual(loadSetups({ getItem: () => { throw new Error("blocked"); } }, ids), EMPTY);
-});
 
 test("present mode keys: P toggles, Escape exits, never while typing", () => {
   assert.equal(presentKeyAction({ key: "p" }, false), "toggle");

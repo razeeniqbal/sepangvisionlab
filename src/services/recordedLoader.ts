@@ -7,7 +7,10 @@ import {
   type RecordedSession,
   type SessionFile,
 } from "../domain/recordedSession";
-import type { FictionalDriver, TeamGlyph } from "../data/fictionalGrid";
+import type {
+  DriverIdentity,
+  TeamGlyphShape,
+} from "../components/broadcast/TeamGlyph";
 
 export const MEETING = 1308;
 const base = `/sessions/${MEETING}`;
@@ -52,7 +55,7 @@ export async function loadRecordedSession(
   return { file, track: sepangTrack, drivers };
 }
 
-const SHAPES: TeamGlyph[] = ["circle", "square", "triangle", "diamond", "hexagon"];
+const SHAPES: TeamGlyphShape[] = ["circle", "square", "triangle", "diamond", "hexagon"];
 const titleCase = (s: string) =>
   s.toLowerCase().replace(/(^|[\s-])\p{L}/gu, (m) => m.toUpperCase());
 
@@ -62,7 +65,7 @@ const titleCase = (s: string) =>
  */
 export function recordedIdentities(file: SessionFile) {
   const teams = [...new Set(file.drivers.map((d) => d.team_name))].sort();
-  const identities = new Map<number, FictionalDriver & { color: string }>();
+  const identities = new Map<number, DriverIdentity & { color: string }>();
   for (const d of file.drivers) {
     const k = teams.indexOf(d.team_name);
     identities.set(d.driver_number, {

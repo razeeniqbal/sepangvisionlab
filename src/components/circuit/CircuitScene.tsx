@@ -44,9 +44,7 @@ const browserStorage = () => {
   }
 };
 import PerfStats from "./PerfStats";
-import { fictionalDriver } from "../../data/fictionalGrid";
 import type { CarState, CarDefinition } from "../../domain/field";
-import { sampleRace, type ReplayData } from "../../services/raceState";
 
 const DriverScene = lazy(() => import("./DriverScene"));
 class DriverBoundary extends Component<
@@ -77,40 +75,27 @@ const showSpatialReferences =
 
 interface Props {
   clock: RefObject<number>;
-  data?: ReplayData;
-  synthetic?: {
+  /** The recorded field: entries and a deterministic sampler for any replay time. */
+  session: {
     entries: CarDefinition[];
     sample: (time: number) => CarState[];
-    ghost?: { id: string; sample: (time: number) => CarState };
-  };
-  historical?: {
-    entries: CarDefinition[];
-    sample: (time: number) => CarState[];
-    activeIds: string[];
   };
   selectedId: string;
   onSelect: (id: string) => void;
   sessionLabel?: string;
-  /** Broadcast tags per entry, in entry order (default: fictional codes or car numbers). */
-  tags?: readonly string[];
+  /** Broadcast tags per entry (driver codes), in entry order. */
+  tags: readonly string[];
   /** Real rainfall (recorded sessions) drives the wet look in the 3D views. */
   wet?: boolean;
 }
 function Scene({
   clock,
-  data,
-  synthetic,
-  historical,
+  session,
   selectedId,
   onSelect,
   view,
 }: Props & { view: EngineeringView }) {
-  const syntheticCars =
-    historical?.entries ?? synthetic?.entries ?? data!.entries;
-  const sample =
-    historical?.sample ??
-    synthetic?.sample ??
-    ((time: number) => sampleRace(data!, time));
+  const { entries, sample } = session;
   const field = useRef<CarState[]>(sample(clock.current));
 
   const { camera, size } = useThree();
@@ -156,20 +141,16 @@ function Scene({
           <SpatialReferenceDebug />
         </Suspense>
       )}
-      {syntheticCars.map(
-        (car, index) =>
-          (!historical || historical.activeIds.includes(car.id)) && (
-            <CarMarker
-              key={car.id}
-              car={car}
-              tyresKnown={!historical}
-              index={index}
-              field={field}
-              selected={selectedId === car.id}
-              onSelect={onSelect}
-            />
-          ),
-      )}
+      {entries.map((car, index) => (
+        <CarMarker
+          key={car.id}
+          car={car}
+          index={index}
+          field={field}
+          selected={selectedId === car.id}
+          onSelect={onSelect}
+        />
+      ))}
     </>
   );
 }
@@ -231,16 +212,9 @@ function CircuitScene(props: Props) {
     setCameraMode(next);
   };
   const focusSelected = () => {
-    const cars =
-      props.historical?.sample(props.clock.current) ??
-      props.synthetic?.sample(props.clock.current) ??
-      sampleRace(props.data!, props.clock.current);
+    const cars = props.session.sample(props.clock.current);
     const selected = cars.find((c) => c.id === props.selectedId);
-    if (
-      !selected ||
-      (props.historical && !props.historical.activeIds.includes(selected.id))
-    )
-      return;
+    if (!selected) return;
     const point = trackCurve.getPointAt(selected.progress);
     setView((v) => ({ ...v, zoom: 2.5, target: [point.x, point.y, point.z] }));
   };
@@ -432,29 +406,11 @@ function CircuitScene(props: Props) {
           >
             <DriverScene
               clock={props.clock}
-              entries={
-                props.historical?.entries ??
-                props.synthetic?.entries ??
-                props.data!.entries
-              }
-              sample={
-                props.historical?.sample ??
-                props.synthetic?.sample ??
-                ((time: number) => sampleRace(props.data!, time))
-              }
-              activeIds={props.historical?.activeIds}
-              tags={props.tags ?? (
-                props.historical?.entries ??
-                props.synthetic?.entries ??
-                props.data!.entries
-              ).map((car, i) =>
-                props.synthetic
-                  ? fictionalDriver(i, car.number).code
-                  : "#" + car.number,
-              )}
-              ghost={props.synthetic?.ghost}
+              entries={props.session.entries}
+              sample={props.session.sample}
+              tags={props.tags}
               wet={props.wet}
-              tyresKnown={!props.historical}
+              tyresKnown
               selectedId={props.selectedId}
               onSelect={props.onSelect}
               rig={rig}

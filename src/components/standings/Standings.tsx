@@ -1,11 +1,6 @@
 import { useState, type ReactNode } from "react";
 import type { CarDefinition, CarState } from "../../domain/field";
-import { estimatedGap } from "../../domain/inspection";
-import {
-  fictionalDriver,
-  type FictionalDriver,
-} from "../../data/fictionalGrid";
-import TeamGlyph from "../broadcast/TeamGlyph";
+import TeamGlyph, { type DriverIdentity } from "../broadcast/TeamGlyph";
 import { Chevron } from "../broadcast/Chevron";
 
 interface Props {
@@ -17,10 +12,10 @@ interface Props {
   previous?: ReadonlyMap<string, number>;
   lap?: number;
   totalLaps?: number;
-  /** Real identities (recorded mode); defaults to the fictional grid by entry index. */
-  identity?: (car: CarState, index: number) => FictionalDriver;
-  /** Gap text from timing data (recorded mode); defaults to a distance estimate. */
-  gap?: (
+  /** Driver identity (code, name, team glyph) for a row. */
+  identity: (car: CarState, index: number) => DriverIdentity;
+  /** Gap text from timing data: interval or gap to the leader. */
+  gap: (
     car: CarState,
     ahead: CarState | undefined,
     leader: CarState,
@@ -37,8 +32,7 @@ interface Props {
   footer?: ReactNode;
   label?: string;
 }
-// Broadcast timing tower. Simulated: fictional entries, gaps estimated from distance.
-// Recorded: real identities and timing passed in through the optional props.
+// Timing tower for the recorded session: identities and gaps come from timing data.
 export default function Standings({
   cars,
   definitions,
@@ -50,9 +44,9 @@ export default function Standings({
   identity,
   gap: gapText,
   extras,
-  note = "Fictional entries · gaps estimated from distance",
+  note,
   footer,
-  label = "Simulated standings",
+  label = "Classification",
 }: Props) {
   const [mode, setMode] = useState<"interval" | "leader">("interval");
   const [collapsed, setCollapsed] = useState(false);
@@ -102,18 +96,8 @@ export default function Standings({
       <ol className="standings-list">
         {ordered.map((car, index) => {
           const { d: definition, i } = byId.get(car.id)!;
-          const driver = identity
-            ? identity(car, i)
-            : fictionalDriver(i, car.number);
-          const reference = mode === "interval" ? ordered[index - 1] : leader;
-          const gap = gapText
-            ? gapText(car, ordered[index - 1], leader, mode)
-            : index === 0
-              ? null
-              : "+" +
-                estimatedGap(car, reference, byId.get(reference.id)!.d).toFixed(
-                  1,
-                );
+          const driver = identity(car, i);
+          const gap = gapText(car, ordered[index - 1], leader, mode);
           const extra = extras?.(car);
           const before = previous?.get(car.id);
           const change = before === undefined ? 0 : before - car.position;

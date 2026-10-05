@@ -189,7 +189,7 @@ function RecordedReplay({
         <section className="viewport bc-viewport" aria-label="Sepang circuit with recorded car positions">
           <CircuitScene
             clock={replay.clock}
-            synthetic={scene}
+            session={scene}
             sessionLabel={RECORDED_LABEL}
             selectedId={selectedId}
             onSelect={setSelectedId}

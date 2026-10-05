@@ -1,8 +1,8 @@
 import { useState } from "react";
-import type { FictionalDriver } from "../../data/fictionalGrid";
+
 import type { RecordedCarState } from "../../domain/recordedSession";
 import { formatLap } from "../../domain/inspection";
-import TeamGlyph from "../broadcast/TeamGlyph";
+import TeamGlyph, { type DriverIdentity } from "../broadcast/TeamGlyph";
 import { Chevron } from "../broadcast/Chevron";
 
 const LEDS = 15,
@@ -18,7 +18,7 @@ export default function RecordedTelemetryCard({
   color,
 }: {
   car: RecordedCarState;
-  driver: FictionalDriver;
+  driver: DriverIdentity;
   color: string;
 }) {
   const [collapsed, setCollapsed] = useState(false);

@@ -1,24 +1,4 @@
-import { SIMULATION_RATE, type CarState, type CarDefinition } from "./field.ts";
-
-export function estimatedGap(
-  car: CarState,
-  leader: CarState,
-  leaderDefinition: CarDefinition,
-): number {
-  const distance = Math.max(
-    0,
-    leader.completedLaps + leader.progress - car.completedLaps - car.progress,
-  );
-  return distance * leaderDefinition.lapSeconds * SIMULATION_RATE;
-}
-export function lastFullLapSeconds(
-  car: CarState,
-  definition: CarDefinition,
-): number | null {
-  const fullLapCompleted =
-    car.completedLaps >= (definition.initialProgress === 0 ? 1 : 2);
-  return fullLapCompleted ? definition.lapSeconds * SIMULATION_RATE : null;
-}
+// Lap time formatting (m:ss.mmm); null shows as a dash.
 export function formatLap(seconds: number | null): string {
   if (seconds === null) return "—";
   const milliseconds = Math.round(seconds * 1000);
