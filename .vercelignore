@@ -1,0 +1,5 @@
+# Local data and tooling never uploaded to Vercel.
+data/raw/
+docs/reference/
+backend/
+.kilo/

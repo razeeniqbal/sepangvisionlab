@@ -66,7 +66,14 @@ class SceneBoundary extends Component<
   }
 }
 export default function App() {
-  const [mode, setMode] = useState("historical");
+  // Starting session: historical locally; a static host sets VITE_DEFAULT_SESSION=recorded
+  // because the 2017 race needs the Python service.
+  const [mode, setMode] = useState(() => {
+    const preferred = import.meta.env.VITE_DEFAULT_SESSION;
+    return preferred === "recorded" || preferred === "synthetic"
+      ? preferred
+      : "historical";
+  });
   // Synthetic workspace on desktop is one full-bleed screen; hand tracking opens as a sheet.
   const [handsOpen, setHandsOpen] = useState(false);
   return (

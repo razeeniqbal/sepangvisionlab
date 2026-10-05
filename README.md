@@ -65,3 +65,13 @@ M18 3D driver simulation and broadcast interface: docs/MILESTONE_18.md (plan: do
 Fonts: Barlow Condensed and Inter are bundled through @fontsource/barlow-condensed and @fontsource/inter and served locally (no font CDN request). Both are licensed under the SIL Open Font License 1.1 (Barlow: The Barlow Project Authors; Inter: The Inter Project Authors).
 
 Recorded session data (M19): `npm run data:fetch` downloads OpenF1 meeting 1308 into `data/raw/openf1/` (gitignored, resumable, throttled to 25 requests per 10 s); `npm run data:build` writes compact replay files to `public/sessions/1308/`; `npm run test:pipeline` tests both scripts. Data via OpenF1 (unofficial, https://openf1.org). Not associated with Formula 1. OpenF1 `headshot_url` images are never downloaded or used.
+
+## Deploying to Vercel (static)
+
+The frontend deploys as a static site; `vercel.json` sets the build. On a static host there is no Python service, so:
+
+- **Recorded 2026 Sepang (OpenF1)** works fully (static files in `public/sessions/`) and is the starting session (`VITE_DEFAULT_SESSION=recorded`).
+- **Synthetic session** works from `public/data/synthetic-replay.json`, a static copy of the deterministic replay (`python scripts/export_static_session.py` regenerates it after backend changes).
+- **2017 historical race, Strategy Lab, Monte Carlo, the lap-time report and the race engineer** need the Python service and show their "unavailable" messages. To enable them, host `backend/` on a Python platform and add a Vercel rewrite from `/api/:path*` to it.
+
+`scripts/prune-dist.mjs` drops the unused 28 MB authoring model from the build output (the source file is kept). `.vercelignore` keeps raw data, reference screenshots and the backend out of uploads.

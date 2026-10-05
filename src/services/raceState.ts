@@ -118,13 +118,22 @@ export function parseReplay(value: unknown): ReplayData {
   }
   return value as unknown as ReplayData;
 }
+// Static copy of the deterministic synthetic replay (scripts/export_static_session.py),
+// used when no session service is running, e.g. on a static host such as Vercel.
+export const STATIC_REPLAY_URL = "/data/synthetic-replay.json";
+
 export async function loadReplay(signal: AbortSignal): Promise<ReplayData> {
-  const response = await fetch("/api/v1/session/replay", { signal });
-  if (!response.ok)
-    throw new Error(
-      "The local session service is unavailable. Start it and retry.",
-    );
-  return parseReplay(await response.json());
+  for (const url of ["/api/v1/session/replay", STATIC_REPLAY_URL]) {
+    try {
+      const response = await fetch(url, { signal });
+      if (response.ok) return parseReplay(await response.json());
+    } catch (error) {
+      if (signal.aborted) throw error;
+    }
+  }
+  throw new Error(
+    "The session service and its static copy are unavailable. Retry.",
+  );
 }
 // Interpolate the provider's cumulative distance, never recompute its simulation.
 export function sampleRace(data: ReplayData, time: number): NormalizedCar[] {
