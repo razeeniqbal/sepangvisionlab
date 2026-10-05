@@ -2426,3 +2426,259 @@ button.car-label:focus-visible {
 .bc-tower-head {
   background: var(--accent-fill);
 }
+
+/* M19 step 1: occluded tags fade; overlay toggles look like switches. */
+.bc-car-tag {
+  transition: opacity 0.2s linear;
+}
+.bc-car-tag.is-occluded {
+  opacity: 0.18;
+}
+.bc .view-toggles {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+  padding: 0;
+  background: none;
+}
+.bc .circuit-camera-toolbar .toggle::before {
+  content: "";
+  display: inline-block;
+  width: 22px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  border-radius: 6px;
+  background: rgba(220, 227, 226, 0.25);
+  box-shadow: inset -10px 0 0 2px #1b2526;
+}
+.bc .circuit-camera-toolbar .toggle[aria-pressed="true"] {
+  background: transparent;
+  border-color: transparent;
+}
+.bc .circuit-camera-toolbar .toggle[aria-pressed="true"]::before {
+  background: var(--accent);
+  box-shadow: inset 10px 0 0 2px #e9f7f6;
+}
+
+/* ===== M19 step 1: full-bleed broadcast screen (desktop) ===== */
+.bc-chevron {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  padding: 0;
+  color: inherit;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  vertical-align: middle;
+}
+.bc-chevron svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.bc-overlay-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 600 13px var(--font-num);
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  padding: 0 0 4px 2px;
+}
+.bc-minimap.is-collapsed svg,
+.bc .bc-tower.is-collapsed .standings-list,
+.bc .bc-tower.is-collapsed .standings-note,
+.bc-lower-third.is-collapsed .bc-lt-speed,
+.bc-lower-third.is-collapsed .bc-lt-pedals,
+.bc-lower-third.is-collapsed .bc-lt-ghost,
+.bc-lower-third.is-collapsed .bc-lt-meta,
+.bc-lower-third.is-collapsed .bc-lt-team {
+  display: none;
+}
+.bc .bc-tower.is-collapsed,
+.bc-minimap.is-collapsed {
+  max-height: none;
+}
+.bc-lower-third.is-collapsed .bc-lt-position {
+  font-size: 26px;
+  min-width: 48px;
+  padding: 4px 8px;
+}
+.bc-lower-third.is-collapsed .bc-lt-name {
+  font-size: 20px;
+}
+.bc-tower-head {
+  gap: 6px;
+}
+.bc-tower-head .bc-tower-lap {
+  margin-right: auto;
+}
+.bc-drawer-tabs {
+  grid-template-columns: repeat(3, 1fr);
+}
+.bc .bc-drawer .telemetry-panel {
+  overflow-y: auto;
+  border: 0;
+}
+.bc .bc-drawer .telemetry-charts {
+  grid-template-columns: 1fr;
+}
+.bc-hands-button {
+  font: 600 13px var(--font-num);
+  letter-spacing: 0.04em;
+  color: var(--silver);
+  background: transparent;
+  border: 1px solid rgba(220, 227, 226, 0.35);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.bc-hands-button[aria-pressed="true"] {
+  color: #fff;
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
+}
+.hands-sheet-close {
+  display: none;
+}
+
+@media (min-width: 1101px) {
+  /* One screen: session switch, slim header, stage, docked replay bar. No page scroll. */
+  .shell-synthetic {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .shell-synthetic > .workspace-nav {
+    display: none;
+  }
+  .shell-synthetic > .session-switch {
+    padding-block: 6px;
+  }
+  .shell-synthetic .bc {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    min-height: 0;
+  }
+  .shell-synthetic .bc-header {
+    height: 52px;
+  }
+  .shell-synthetic .bc .bc-stage {
+    min-height: 0;
+    margin-top: 10px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .shell-synthetic .bc .bc-viewport,
+  .shell-synthetic .bc-drawer {
+    height: 100%;
+    max-height: none;
+  }
+  .shell-synthetic .bc .bc-tower {
+    /* Roughly ten rows when space is tight; the list scrolls. */
+    max-height: calc(100% - 200px);
+    min-height: min(330px, calc(100% - 200px));
+  }
+  .shell-synthetic .bc-dash {
+    margin-top: 8px;
+  }
+  .shell-synthetic .bc .timeline-panel {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 16px;
+    padding: 8px 14px;
+  }
+  .shell-synthetic .bc .timeline-heading {
+    grid-row: 1;
+    grid-column: 1;
+    margin: 0;
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .shell-synthetic .bc .timeline-heading h2 {
+    margin: 0;
+    font-size: 15px;
+  }
+  .shell-synthetic .bc .timeline-heading strong {
+    font: 700 20px var(--font-num);
+  }
+  .shell-synthetic .bc .timeline-controls {
+    grid-row: 1;
+    grid-column: 2;
+    margin: 0;
+  }
+  .shell-synthetic .bc .replay-slider {
+    grid-row: 1;
+    grid-column: 3;
+    width: 100%;
+    margin: 0;
+    accent-color: var(--accent);
+  }
+  .shell-synthetic .bc .lap-markers {
+    grid-row: 2;
+    grid-column: 3;
+  }
+  .shell-synthetic .bc .timeline-panel > p {
+    display: none;
+  }
+  .shell-synthetic .bc-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 11px;
+  }
+  .shell-synthetic .bc + .disclaimer,
+  .shell-synthetic .bc .disclaimer {
+    font-size: 10px;
+    padding: 0 0 6px;
+  }
+  /* Hand tracking stays mounted (a running camera keeps working) and opens as a sheet. */
+  .shell-synthetic .hands-sheet {
+    position: fixed;
+    left: 20px;
+    right: 20px;
+    bottom: 0;
+    z-index: 300;
+    max-height: 72vh;
+    overflow-y: auto;
+    background: var(--panel-solid);
+    border: 1px solid #1c2a2b;
+    border-top: 3px solid var(--accent);
+    box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.5);
+    transform: translateY(105%);
+    visibility: hidden;
+    transition:
+      transform 0.25s ease,
+      visibility 0s linear 0.25s;
+  }
+  .shell-synthetic .hands-sheet.is-open {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.25s ease;
+  }
+  .shell-synthetic .hands-sheet-close {
+    display: block;
+    position: sticky;
+    top: 0;
+    margin-left: auto;
+    font: 600 13px var(--font-num);
+    color: var(--silver);
+    background: #142022;
+    border: 1px solid #2a3a3c;
+    padding: 4px 12px;
+    cursor: pointer;
+    z-index: 1;
+  }
+}
+@media (max-width: 1100px) {
+  .bc-hands-button {
+    display: none;
+  }
+}

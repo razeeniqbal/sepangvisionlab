@@ -50,8 +50,10 @@ class SceneBoundary extends Component<
 }
 export default function App() {
   const [mode, setMode] = useState("historical");
+  // Synthetic workspace on desktop is one full-bleed screen; hand tracking opens as a sheet.
+  const [handsOpen, setHandsOpen] = useState(false);
   return (
-    <>
+    <div className={"shell shell-" + mode}>
       <nav className="session-switch" aria-label="Session selection">
         <button
           aria-pressed={mode === "historical"}
@@ -68,18 +70,49 @@ export default function App() {
       </nav>
       <WorkspaceNav historical={mode === "historical"} />
       <GestureProvider key={mode}>
-        {mode === "historical" ? <HistoricalWorkspace /> : <SyntheticApp />}
-        <HandTrackingPanel />
+        {mode === "historical" ? (
+          <HistoricalWorkspace />
+        ) : (
+          <SyntheticApp
+            handsOpen={handsOpen}
+            onHands={() => setHandsOpen((open) => !open)}
+          />
+        )}
+        <div
+          className={"hands-sheet" + (handsOpen ? " is-open" : "")}
+          aria-label="Hand tracking"
+        >
+          {mode === "synthetic" && (
+            <button
+              className="hands-sheet-close"
+              onClick={() => setHandsOpen(false)}
+              aria-label="Close hand tracking"
+            >
+              Close
+            </button>
+          )}
+          <HandTrackingPanel />
+        </div>
       </GestureProvider>
-    </>
+    </div>
   );
 }
-function SyntheticApp() {
+interface Sheet {
+  handsOpen: boolean;
+  onHands: () => void;
+}
+function SyntheticApp(sheet: Sheet) {
   return (
-    <SessionLoader>{(data) => <RaceWorkspace data={data} />}</SessionLoader>
+    <SessionLoader>
+      {(data) => <RaceWorkspace data={data} {...sheet} />}
+    </SessionLoader>
   );
 }
-function RaceWorkspace({ data }: { data: ReplayData }) {
+function RaceWorkspace({
+  data,
+  handsOpen,
+  onHands,
+}: { data: ReplayData } & Sheet) {
   // The service supplies the entries; motion comes from the lap physics model.
   const baseline = useMemo(
     () => withPhysicsSetups(data.entries, sepangPace),
@@ -90,7 +123,9 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
   const [ghost, setGhost] = useState<{ carId: string; setup: CarSetup } | null>(
     null,
   );
-  const [drawer, setDrawer] = useState<"inspector" | "setup">("inspector");
+  const [drawer, setDrawer] = useState<"inspector" | "setup" | "telemetry">(
+    "inspector",
+  );
   const syntheticCars = useMemo(
     () =>
       withPhysicsSetups(
@@ -176,6 +211,13 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
             {formatTime(time)}
           </span>
           <b className="bc-speed">{speed}×</b>
+          <button
+            className="bc-hands-button"
+            aria-pressed={handsOpen}
+            onClick={onHands}
+          >
+            Hands
+          </button>
         </div>
       </header>
       <main id="race-view" tabIndex={-1} className="race-workspace bc-stage">
@@ -232,8 +274,21 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
             >
               Car setup
             </button>
+            <button
+              role="tab"
+              aria-selected={drawer === "telemetry"}
+              onClick={() => setDrawer("telemetry")}
+            >
+              Telemetry
+            </button>
           </div>
-          {drawer === "inspector" ? (
+          {drawer === "telemetry" ? (
+            <TelemetryPanel
+              number={selected.number}
+              samples={physicsTelemetryAtTime(definition, sepangPace, time)}
+              running={running}
+            />
+          ) : drawer === "inspector" ? (
             <CarInspector
               car={selected}
               definition={definition}
@@ -270,11 +325,6 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
         </aside>
       </main>
       <div className="bc-dash">
-        <TelemetryPanel
-          number={selected.number}
-          samples={physicsTelemetryAtTime(definition, sepangPace, time)}
-          running={running}
-        />
         <Timeline
           time={time}
           running={running}
@@ -286,9 +336,9 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
           onSpeed={replay.setSpeed}
         />
       </div>
-      <footer>
+      <footer className="bc-footer">
         <span>
-          <i className="live-dot" /> Milestone 18{" "}
+          <i className="live-dot" /> Milestone 19{" "}
           <b>Local session · physics pace</b>
         </span>
         <a

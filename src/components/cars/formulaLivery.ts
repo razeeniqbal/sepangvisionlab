@@ -101,7 +101,12 @@ export function createFormulaMaterialLibrary(
     id: string = fallbackId,
     requested: VisualTyreCompound = "UNKNOWN",
   ) {
-    const definition = definitions.get(id) ?? fallback!;
+    return build(definitions.get(id) ?? fallback!, requested);
+  }
+  function build(
+    definition: FormulaLiveryDefinition,
+    requested: VisualTyreCompound,
+  ) {
     const compound = visualTyreCompound(requested);
     const key = JSON.stringify([definition.id, compound]);
     const cached = materials.get(key);
@@ -171,6 +176,11 @@ export function createFormulaMaterialLibrary(
   }
   return {
     get,
+    /** Material for a livery defined at runtime (team colours); cached by livery id. */
+    getFor: (
+      definition: FormulaLiveryDefinition,
+      requested: VisualTyreCompound = "UNKNOWN",
+    ) => build(definition, requested),
     get size() {
       return materials.size;
     },
@@ -186,3 +196,40 @@ const library = createFormulaMaterialLibrary(
   SVL_DEVELOPMENT.id,
 );
 export const getFormulaMaterial = library.get;
+export const getFormulaMaterialFor = library.getFor;
+
+const teamLiveries = new Map<string, FormulaLiveryDefinition>();
+/**
+ * Readable livery in a team colour: body in the colour, darker shoulders, a light
+ * mechanical grey and a pale centre stripe. Material only; the GLB is not modified.
+ */
+export function teamLivery(colour: string): FormulaLiveryDefinition {
+  const key = new Color(colour).getHexString();
+  const cached = teamLiveries.get(key);
+  if (cached) return cached;
+  const body = new Color("#" + key);
+  const hsl = { h: 0, s: 0, l: 0 };
+  body.getHSL(hsl);
+  // Lift very dark colours so they still read at TV distance under the scene lighting.
+  if (hsl.l < 0.32) body.setHSL(hsl.h, hsl.s, 0.32);
+  const definition: FormulaLiveryDefinition = Object.freeze({
+    id: "team-" + key,
+    palette: Object.freeze({
+      body: "#" + body.getHexString(),
+      secondary: "#" + body.clone().multiplyScalar(0.7).getHexString(),
+      mechanical: "#3d4548",
+      rubber: "#191b1c",
+      accent: hsl.l > 0.75 ? "#1b2224" : "#eef1f0",
+      technical: "#e3e7e6",
+    }),
+    surface: Object.freeze({
+      bodyRoughness: 0.42,
+      carbonRoughness: 0.7,
+      rubberRoughness: 0.96,
+      bodyMetalness: 0.25,
+      mechanicalMetalness: 0.3,
+    }),
+  });
+  teamLiveries.set(key, definition);
+  return definition;
+}

@@ -1,6 +1,8 @@
 import type { FictionalDriver } from "../../data/fictionalGrid";
 import type { PhysicsCarState } from "../../domain/physicsField";
+import { useState } from "react";
 import TeamGlyph from "./TeamGlyph";
+import { Chevron } from "./Chevron";
 
 export default function LowerThird({
   car,
@@ -15,9 +17,10 @@ export default function LowerThird({
   lastLap: string;
   ghostGap: number | null;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   return (
     <section
-      className="bc-lower-third"
+      className={"bc-lower-third" + (collapsed ? " is-collapsed" : "")}
       aria-label={"Selected driver " + driver.name}
     >
       <div className="bc-lt-position" aria-label={"Position " + car.position}>
@@ -29,7 +32,14 @@ export default function LowerThird({
           <TeamGlyph team={driver.team} color={color} size={11} />{" "}
           {driver.team.name}
         </span>
-        <strong className="bc-lt-name">{driver.name}</strong>
+        <strong className="bc-lt-name">
+          {driver.name}
+          <Chevron
+            collapsed={collapsed}
+            label="driver telemetry"
+            onToggle={() => setCollapsed((c) => !c)}
+          />
+        </strong>
         <span className="bc-lt-meta">
           #{car.number} · Lap {car.completedLaps + 1} · Last {lastLap}
         </span>

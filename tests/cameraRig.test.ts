@@ -131,3 +131,22 @@ test("orbit modes look at the car from their distance", () => {
     assert.ok(range > 0 && range <= rig.dist + 1e-9);
   }
 });
+
+test("TV camera skips blocked views, holds a clear shot and keeps clearance", async () => {
+  const { clearTvPoints, pickTvCamera } = await import("../src/components/circuit/cameraRig.ts");
+  const pts = [
+    { x: 10, y: 0, z: 7 },
+    { x: 20, y: 0, z: 7 },
+    { x: 40, y: 0, z: 7 },
+  ];
+  const car = { x: 0, y: 0 };
+  assert.equal(pickTvCamera(pts, car, () => false), pts[0]);
+  assert.equal(pickTvCamera(pts, car, (p) => p === pts[0]), pts[1], "blocked nearest is skipped");
+  assert.equal(pickTvCamera(pts, car, () => true), null);
+  // Hysteresis: the current clear camera is kept when it is not much farther.
+  assert.equal(pickTvCamera(pts, { x: 14.5, y: 0 }, () => false, pts[1]), pts[1]);
+  assert.equal(pickTvCamera(pts, { x: 2, y: 0 }, () => false, pts[2]), pts[0], "far current camera is dropped");
+  // (17, 3) is 4.2 m from the 20 m camera and 7.6 m from the 10 m camera.
+  assert.deepEqual(clearTvPoints(pts, [{ x: 17, y: 3 }]), [pts[0], pts[2]]);
+  assert.equal(clearTvPoints(pts, [{ x: 20, y: 5.9 }]).includes(pts[1]), false);
+});

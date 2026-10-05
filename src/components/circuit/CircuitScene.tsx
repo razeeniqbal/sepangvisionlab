@@ -162,6 +162,8 @@ export default function CircuitScene(props: Props) {
   // Ref-based rig read by the frame loop; React state only mirrors the mode for the toolbar.
   const rig = useRef<CameraRigState>(createRig());
   const [mode, setCameraMode] = useState<CameraMode>("engineering");
+  const [labels, setLabels] = useState(true);
+  const [trails, setTrails] = useState(false);
   const changeMode = (next: CameraMode) => {
     setRigMode(rig.current, next);
     setCameraMode(next);
@@ -272,6 +274,22 @@ export default function CircuitScene(props: Props) {
             >
               ⟳
             </button>
+            <span className="view-toggles" role="group" aria-label="Overlays">
+              <button
+                className="toggle"
+                aria-pressed={labels}
+                onClick={() => setLabels((v) => !v)}
+              >
+                Labels
+              </button>
+              <button
+                className="toggle"
+                aria-pressed={trails}
+                onClick={() => setTrails((v) => !v)}
+              >
+                Trails
+              </button>
+            </span>
           </>
         )}
         {mode === "engineering" && (
@@ -354,6 +372,8 @@ export default function CircuitScene(props: Props) {
               onSelect={props.onSelect}
               rig={rig}
               mode={mode}
+              labels={labels}
+              trails={trails}
             />
           </Suspense>
         </DriverBoundary>

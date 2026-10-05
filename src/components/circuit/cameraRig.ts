@@ -155,7 +155,7 @@ export function tvPoints(
       return {
         x: track.x[i] + normals.nx[i] * side * offset,
         y: track.y[i] + normals.ny[i] * side * offset,
-        z: 7,
+        z: 10, // camera tower height: keeps boards below a tight TV frame
       };
     });
 }
@@ -256,4 +256,37 @@ export function cameraPose(
       };
     }
   }
+}
+
+/** Drop trackside cameras closer than `clearance` metres to any obstacle point. */
+export function clearTvPoints(
+  points: readonly Vec3[],
+  obstacles: readonly { x: number; y: number }[],
+  clearance = 6,
+): Vec3[] {
+  return points.filter((p) =>
+    obstacles.every((o) => Math.hypot(p.x - o.x, p.y - o.y) >= clearance),
+  );
+}
+
+/**
+ * Nearest trackside camera with a clear line of sight to the car. The current camera is
+ * kept while it is unblocked and within `hold` × the nearest clear distance, so shots
+ * do not flicker between two similar cameras. Returns null if every candidate is blocked.
+ */
+export function pickTvCamera(
+  points: readonly Vec3[],
+  car: { x: number; y: number },
+  blocked: (point: Vec3) => boolean,
+  current: Vec3 | null = null,
+  candidates = 6,
+  hold = 1.35,
+): Vec3 | null {
+  const range = (p: Vec3) => Math.hypot(p.x - car.x, p.y - car.y);
+  const nearest = [...points].sort((a, b) => range(a) - range(b)).slice(0, candidates);
+  const clear = nearest.find((p) => !blocked(p)) ?? null;
+  if (!clear) return null;
+  if (current && current !== clear && range(current) <= range(clear) * hold && !blocked(current))
+    return current;
+  return clear;
 }

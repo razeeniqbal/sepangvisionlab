@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Chevron } from "./Chevron";
 import type { CarDefinition, CarState } from "../../domain/field";
 import { poseAtDistance } from "../../domain/lapPhysics";
 import { sepangTrack } from "../../data/sepangPace";
@@ -47,6 +48,7 @@ export default function MiniMap({
   ghost?: CarState | null;
   onSelect: (id: string) => void;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   const path = useMemo(() => {
     let d = "";
     for (let i = 0; i < sepangTrack.count; i += 6) {
@@ -65,7 +67,18 @@ export default function MiniMap({
         : b.position - a.position,
   );
   return (
-    <figure className="bc-minimap" aria-label="Track map with car positions">
+    <figure
+      className={"bc-minimap" + (collapsed ? " is-collapsed" : "")}
+      aria-label="Track map with car positions"
+    >
+      <figcaption className="bc-overlay-head">
+        Track position
+        <Chevron
+          collapsed={collapsed}
+          label="track map"
+          onToggle={() => setCollapsed((c) => !c)}
+        />
+      </figcaption>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"

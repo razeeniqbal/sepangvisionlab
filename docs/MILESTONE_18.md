@@ -83,7 +83,7 @@ Modes (toolbar group "Camera mode"; Engineering is the unchanged orthographic Tr
 
 - **Chase**: position locked to the car; only the heading is eased, snapping after seeks. Distance 7–30 m.
 - **Onboard**: T-cam above the roll hoop (1.32 m), 72° FOV, look-around limited to ±1.2 rad.
-- **TV**: fixed trackside points every ~220 m plus one outside each detected apex, 36 m off the centre line (behind the 27 m barrier line) at 7 m height. The nearest point wins and the lens keeps an ~18 m frame on the car, so distant shots zoom in. Zoom gestures change the lens.
+- **TV**: fixed trackside points every ~220 m plus one outside each detected apex, 36 m off the centre line (behind the 27 m barrier line) at 7 m height (raised to 10 m in M19). The nearest point wins and the lens keeps an ~18 m frame on the car, so distant shots zoom in. Zoom gestures change the lens.
 - **Heli**: high orbit, 40–220 m.
 - **Inspect**: low orbit around the car, 5–24 m.
 

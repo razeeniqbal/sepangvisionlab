@@ -45,6 +45,8 @@ import {
 } from "./ribbon";
 import { asphaltTexture, chevronTexture, kerbTexture } from "./textures";
 
+// Objects that block a camera's view of a car: used by TV camera picking and tag fading.
+export const OCCLUDER = { occluder: true };
 export const SKY = Object.freeze({
   horizon: "#c9dade",
   zenith: "#4d84ad",
@@ -253,7 +255,7 @@ const steel = new MeshStandardMaterial({
 
 function PitBuilding({ b }: { b: Building }) {
   return (
-    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]}>
+    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
       <mesh material={concrete} position={[0, 0, 4]} castShadow receiveShadow>
         <boxGeometry args={[b.length, b.depth, 8]} />
       </mesh>
@@ -273,7 +275,7 @@ function Grandstand({ b }: { b: Building }) {
     half = b.depth / 2,
     columns = Math.max(2, Math.round(b.length / 40)) + 1;
   return (
-    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]}>
+    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
       {[-1, 1].flatMap((side) =>
         Array.from({ length: tiers }, (_, t) => (
           <mesh
@@ -310,7 +312,7 @@ function Grandstand({ b }: { b: Building }) {
 function Gantry({ p }: { p: Placement }) {
   const span = TRACK_HALF_WIDTH + 3;
   return (
-    <group position={[p.x, p.y, 0]} rotation={[0, 0, p.heading]}>
+    <group position={[p.x, p.y, 0]} rotation={[0, 0, p.heading]} userData={OCCLUDER}>
       {[-1, 1].map((side) => (
         <mesh
           key={side}
@@ -357,6 +359,7 @@ function Instanced({
       args={[geometry, material, matrices.length]}
       castShadow={castShadow}
       frustumCulled={false}
+      userData={OCCLUDER}
     />
   );
 }

@@ -3,6 +3,7 @@ import type { CarDefinition, CarState } from "../../domain/field";
 import { estimatedGap } from "../../domain/inspection";
 import { fictionalDriver } from "../../data/fictionalGrid";
 import TeamGlyph from "../broadcast/TeamGlyph";
+import { Chevron } from "../broadcast/Chevron";
 
 interface Props {
   cars: CarState[];
@@ -25,12 +26,13 @@ export default function Standings({
   totalLaps,
 }: Props) {
   const [mode, setMode] = useState<"interval" | "leader">("interval");
+  const [collapsed, setCollapsed] = useState(false);
   const ordered = [...cars].sort((a, b) => a.position - b.position);
   const leader = ordered[0];
   const byId = new Map(definitions.map((d, i) => [d.id, { d, i }]));
   return (
     <section
-      className="standings-panel bc-tower"
+      className={"standings-panel bc-tower" + (collapsed ? " is-collapsed" : "")}
       aria-label="Simulated standings"
     >
       <div className="bc-tower-head">
@@ -58,6 +60,11 @@ export default function Standings({
         >
           {mode === "interval" ? "Interval" : "Leader"}
         </button>
+        <Chevron
+          collapsed={collapsed}
+          label="timing tower"
+          onToggle={() => setCollapsed((c) => !c)}
+        />
       </div>
       <ol className="standings-list">
         {ordered.map((car, index) => {
