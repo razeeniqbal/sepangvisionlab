@@ -13,3 +13,9 @@ Files added: domain/gestures.ts; handtracking/GestureContext.tsx and GestureCont
 Known limits: no full 3D hand rotation, no spatial car picking, occlusions and ambiguous poses can misclassify. Commands are experimental and opt-in. M15 still requires consented, labeled hand-landmark examples and a proper held-out evaluation before any gesture-ML accuracy claim or model deployment.
 
 Verification (2026-09-24): all 65 frontend and 32 backend tests pass. Browser camera-free command checks verified historical forward/backward seek, next-driver selection, zoom/rotation and reset, inspector/Strategy Lab navigation, and replay pause. Synthetic session switching resets controls; next-driver selection and pause work, and Strategy Lab reports unavailable. Camera remained off; these checks validate routing, not live recognition accuracy.
+
+## M18 camera additions
+
+Additive only: the ten existing actions, poses and thresholds are unchanged. New action `cycleCamera` ("Next camera view") fires on a held victory pose: index and middle tip/PIP ratios >1.2, ring and little <1.05, 500 ms dwell, the same latch and cooldown as other held poses. The M15 recorder gains a `victory` label, appended last so existing label indices do not move; `backend/gesture_training.py` mirrors it and now sizes its metrics and XGBoost classes from `LABELS`.
+
+The circuit viewport has six camera modes: Engineering (the view described above), Chase, Onboard, TV, Heli and Inspect. In Engineering, zoom and rotate gestures behave as before. In the 3D modes, two-hand zoom changes camera distance in Chase, Heli and Inspect and the lens in TV, and rotation orbits ±0.4 rad (Onboard: limited look-around; TV: no rotation). Pinch still selects the next driver and the camera follows it. Point (inspect) also switches to the Inspect orbit and sets the replay to 0.5×. Rewind, forward and cancel are unchanged. Every camera command also has a toolbar button.

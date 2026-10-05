@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { DirectionalLight, Fog, Group, Mesh, Vector3 } from "three";
+import { DirectionalLight, Fog, Group, Mesh, PerspectiveCamera } from "three";
 import sepang from "../../data/circuits/sepang.json";
 import { sepangTrack } from "../../data/sepangPace";
 import { poseAtDistance } from "../../domain/lapPhysics";
@@ -10,6 +10,15 @@ import Environment, {
   useEnvironmentLayout,
 } from "./environment/Environment";
 import { LAYER } from "./environment/layout";
+import { leftNormals } from "./environment/ribbon";
+import {
+  cameraPose,
+  smoothHeading,
+  stepRig,
+  tvPoints,
+  type CameraMode,
+  type CameraRigState,
+} from "./cameraRig";
 import FormulaCar from "../cars/FormulaCar";
 import { SimplifiedCar } from "../cars/CarRepresentation";
 import { FORMULA_VISUAL_LENGTH } from "../cars/formulaVisual";
@@ -47,6 +56,8 @@ export interface DriverSceneProps {
   tyresKnown: boolean;
   selectedId: string;
   onSelect: (id: string) => void;
+  rig: RefObject<CameraRigState>;
+  mode: CameraMode;
 }
 
 function pose(car: CarState) {
@@ -64,6 +75,7 @@ function DriverCar({
   field,
   clock,
   selected,
+  ring,
   tyresKnown,
   onSelect,
 }: {
@@ -72,6 +84,7 @@ function DriverCar({
   field: RefObject<CarState[]>;
   clock: RefObject<number>;
   selected: boolean;
+  ring: boolean;
   tyresKnown: boolean;
   onSelect: (id: string) => void;
 }) {
@@ -166,7 +179,7 @@ function DriverCar({
         </group>
         <primitive object={wheels.root} />
       </group>
-      {selected && (
+      {ring && (
         <mesh position={[0, 0, 0.02]}>
           <ringGeometry args={[3.1, 3.25, 40]} />
           <meshBasicMaterial color="#00a19c" transparent opacity={0.45} />
@@ -176,19 +189,21 @@ function DriverCar({
   );
 }
 
-function FollowRig({
+function CameraRig({
   field,
   entries,
   selectedId,
+  rig,
 }: {
   field: RefObject<CarState[]>;
   entries: readonly CarDefinition[];
   selectedId: string;
+  rig: RefObject<CameraRigState>;
 }) {
   const { camera, scene } = useThree();
   const sun = useRef<DirectionalLight>(null);
-  const heading = useRef<Vector3 | null>(null);
   const index = entries.findIndex((car) => car.id === selectedId);
+  const tv = useMemo(() => tvPoints(sepangTrack, leftNormals(sepangTrack)), []);
   useLayoutEffect(() => {
     camera.up.set(0, 0, 1);
     scene.fog = new Fog(SKY.horizon, SKY.fogNear, SKY.fogFar);
@@ -198,20 +213,21 @@ function FollowRig({
   }, [camera, scene]);
   useFrame((_, delta) => {
     const state = field.current[index];
-    if (!state) return;
+    if (!state || !(camera instanceof PerspectiveCamera)) return;
     const p = pose(state);
-    const want = new Vector3(Math.cos(p.heading), Math.sin(p.heading), 0);
-    // Position is locked to the car; only the heading is eased (no 15–20 m lag at speed).
-    // Snap after a seek or a long frame hitch rather than swinging round from a stale heading.
-    if (!heading.current || heading.current.dot(want) < 0.82)
-      heading.current = want.clone();
-    else
-      heading.current
-        .lerp(want, 1 - Math.exp(-Math.min(delta, 0.25) * 5))
-        .normalize();
-    const h = heading.current;
-    camera.position.set(p.x - h.x * 13, p.y - h.y * 13, 4.4);
-    camera.lookAt(p.x + h.x * 14, p.y + h.y * 14, 1.2);
+    stepRig(rig.current, delta);
+    const view = cameraPose(
+      rig.current,
+      p,
+      smoothHeading(rig.current, p.heading, delta),
+      tv,
+    );
+    camera.position.set(view.position.x, view.position.y, view.position.z);
+    camera.lookAt(view.target.x, view.target.y, view.target.z);
+    if (Math.abs(camera.fov - view.fov) > 0.01) {
+      camera.fov = view.fov;
+      camera.updateProjectionMatrix();
+    }
     if (sun.current) {
       sun.current.position.set(p.x - 140, p.y - 220, 320);
       sun.current.target.position.set(p.x, p.y, 0);
@@ -224,6 +240,7 @@ function FollowRig({
         args={["#e8f1f4", "#4c5a3e", 1.4]}
         position={[0, 0, 1]}
       />
+      {/* A tight shadow camera that follows the selected car; only that car casts. */}
       <directionalLight
         ref={sun}
         intensity={2.6}
@@ -250,6 +267,8 @@ function World({
   tyresKnown,
   selectedId,
   onSelect,
+  rig,
+  mode,
 }: DriverSceneProps) {
   const field = useRef<CarState[]>(sample(clock.current));
   const layout = useEnvironmentLayout(sepangTrack, coordinates);
@@ -258,7 +277,12 @@ function World({
   }, -1);
   return (
     <>
-      <FollowRig field={field} entries={entries} selectedId={selectedId} />
+      <CameraRig
+        field={field}
+        entries={entries}
+        selectedId={selectedId}
+        rig={rig}
+      />
       <Environment track={sepangTrack} layout={layout} />
       {entries.map(
         (car, index) =>
@@ -270,6 +294,7 @@ function World({
               field={field}
               clock={clock}
               selected={car.id === selectedId}
+              ring={car.id === selectedId && mode !== "onboard"}
               tyresKnown={tyresKnown}
               onSelect={onSelect}
             />
@@ -285,7 +310,7 @@ export default function DriverScene(props: DriverSceneProps) {
       shadows
       dpr={[1, 1.5]}
       // near ≥ 0.3 keeps depth precision for asphalt over grass on mobile GPUs.
-      camera={{ fov: 55, near: 0.5, far: 7000, position: [0, 0, 50] }}
+      camera={{ fov: 55, near: 0.3, far: 7000, position: [0, 0, 50] }}
       fallback={
         <div className="fallback">
           WebGL is unavailable. Enable browser hardware acceleration to view the

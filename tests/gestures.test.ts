@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GestureDetector, classifyPose } from "../src/domain/gestures.ts";
+import {
+  GestureDetector,
+  classifyPose,
+  gestureActions,
+} from "../src/domain/gestures.ts";
+import { gestureLabels, instructions } from "../src/domain/gestureDataset.ts";
 import type { TrackedHand } from "../src/domain/hands.ts";
 function hand(pose = "open", x = 0.5, label = "Left"): TrackedHand {
   const p = Array.from({ length: 21 }, () => ({ x, y: 0.6, z: 0 }));
@@ -11,7 +16,12 @@ function hand(pose = "open", x = 0.5, label = "Left"): TrackedHand {
     p[i - 2] = { x: x + (k - 1.5) * 0.04, y: 0.5, z: 0 };
     p[i] = {
       x: p[i - 2].x,
-      y: pose === "fist" || (pose === "point" && k > 0) ? 0.65 : 0.25,
+      y:
+        pose === "fist" ||
+        (pose === "point" && k > 0) ||
+        (pose === "victory" && k > 1)
+          ? 0.65
+          : 0.25,
       z: 0,
     };
   }
@@ -89,14 +99,53 @@ test("still palms need dwell, fist cancels, and reset discards pending action", 
   assert.equal(d.update([hand("pinch")], 1000), null);
 });
 
-test('fist can cancel directly after a latched pinch',()=>{
- const d=new GestureDetector();for(let t=0;t<=500;t+=100)d.update([hand('pinch')],t);
- let action=null;for(let t=600;t<=1100;t+=100)action=d.update([hand('fist')],t);assert.equal(action,'cancel');
+test("fist can cancel directly after a latched pinch", () => {
+  const d = new GestureDetector();
+  for (let t = 0; t <= 500; t += 100) d.update([hand("pinch")], t);
+  let action = null;
+  for (let t = 600; t <= 1100; t += 100) action = d.update([hand("fist")], t);
+  assert.equal(action, "cancel");
 });
-test('rotation uses mirrored hand-line direction and ignores small movement',()=>{
- const d=new GestureDetector();d.update([hand('open',.3,'Left'),hand('open',.7,'Right')],0);
- const a=hand('open',.3,'Left'),b=hand('open',.7,'Right');for(const p of a.points)p.y+=.3;
- assert.equal(d.update([a,b],200),'rotateRight');
- d.reset();d.update([hand('open',.3,'Left'),hand('open',.7,'Right')],0);for(const p of a.points)p.y-=.6;
- assert.equal(d.update([a,b],200),'rotateLeft');
+test("rotation uses mirrored hand-line direction and ignores small movement", () => {
+  const d = new GestureDetector();
+  d.update([hand("open", 0.3, "Left"), hand("open", 0.7, "Right")], 0);
+  const a = hand("open", 0.3, "Left"),
+    b = hand("open", 0.7, "Right");
+  for (const p of a.points) p.y += 0.3;
+  assert.equal(d.update([a, b], 200), "rotateRight");
+  d.reset();
+  d.update([hand("open", 0.3, "Left"), hand("open", 0.7, "Right")], 0);
+  for (const p of a.points) p.y -= 0.6;
+  assert.equal(d.update([a, b], 200), "rotateLeft");
+});
+
+test("victory pose is distinct from point and open, and cycles the camera once per hold", () => {
+  assert.equal(classifyPose(hand("victory")), "victory");
+  assert.equal(classifyPose(hand("point")), "point");
+  assert.equal(classifyPose(hand("open")), "open");
+  const d = new GestureDetector();
+  const out = [];
+  for (let t = 0; t <= 2000; t += 100) out.push(d.update([hand("victory")], t));
+  assert.deepEqual(out.filter(Boolean), ["cycleCamera"]);
+  assert.equal(out.indexOf("cycleCamera") * 100, 500, "needs a 500 ms hold");
+});
+test("cycleCamera is an additive action with a recorder label", () => {
+  assert.equal(gestureActions.at(-1)!.action, "cycleCamera");
+  assert.deepEqual(
+    gestureActions.slice(0, 10).map((g) => g.action),
+    [
+      "rewind",
+      "forward",
+      "select",
+      "inspect",
+      "strategy",
+      "cancel",
+      "zoomIn",
+      "zoomOut",
+      "rotateLeft",
+      "rotateRight",
+    ],
+  );
+  assert.equal(gestureLabels.at(-1), "victory");
+  assert.ok(instructions.victory.length > 0);
 });

@@ -97,6 +97,8 @@ function RaceWorkspace({ data }: { data: ReplayData }) {
     }
     if (action === "inspect") {
       document.querySelector(".inspector")?.scrollIntoView({ block: "center" });
+      // The viewport switches to the Inspect orbit; slow the replay to look closely.
+      replay.setSpeed(0.5);
       return true;
     }
     return false;

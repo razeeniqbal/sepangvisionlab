@@ -9,7 +9,8 @@ export type GestureAction =
   | "zoomIn"
   | "zoomOut"
   | "rotateLeft"
-  | "rotateRight";
+  | "rotateRight"
+  | "cycleCamera";
 export const gestureActions: {
   action: GestureAction;
   label: string;
@@ -57,8 +58,13 @@ export const gestureActions: {
     label: "Rotate right",
     pose: "Rotate line between open hands right",
   },
+  {
+    action: "cycleCamera",
+    label: "Next camera view",
+    pose: "Hold a victory sign (index and middle up)",
+  },
 ];
-type Pose = "open" | "pinch" | "point" | "fist" | "neutral";
+type Pose = "open" | "pinch" | "point" | "victory" | "fist" | "neutral";
 const distance = (a: HandPoint, b: HandPoint, aspect: number) =>
   Math.hypot((a.x - b.x) * aspect, a.y - b.y);
 export function classifyPose(h: TrackedHand, aspect = 4 / 3): Pose {
@@ -75,6 +81,13 @@ export function classifyPose(h: TrackedHand, aspect = 4 / 3): Pose {
   if (ratios.every((r) => r > 1.2)) return "open";
   if (ratios.every((r) => r < 0.95)) return "fist";
   if (ratios[0] > 1.2 && ratios.slice(1).every((r) => r < 1.05)) return "point";
+  if (
+    ratios[0] > 1.2 &&
+    ratios[1] > 1.2 &&
+    ratios[2] < 1.05 &&
+    ratios[3] < 1.05
+  )
+    return "victory";
   return "neutral";
 }
 interface Sample {
@@ -176,9 +189,11 @@ export class GestureDetector {
             ? "select"
             : poses[0] === "point"
               ? "inspect"
-              : poses[0] === "fist"
-                ? "cancel"
-                : null;
+              : poses[0] === "victory"
+                ? "cycleCamera"
+                : poses[0] === "fist"
+                  ? "cancel"
+                  : null;
       }
     } else if (poses.every((p) => p === "open")) {
       const left = sorted[1].points[0],

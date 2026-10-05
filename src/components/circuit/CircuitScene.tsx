@@ -13,6 +13,16 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrthographicCamera } from "three";
 import Circuit from "./Circuit";
 import { engineeringCamera, type EngineeringView } from "./cameraView";
+import {
+  CAMERA_LABELS,
+  CAMERA_MODES,
+  applyRigAction,
+  createRig,
+  nextMode,
+  setMode as setRigMode,
+  type CameraMode,
+  type CameraRigState,
+} from "./cameraRig";
 import { trackSize, trackCenter, trackCurve } from "./trackCurve";
 import CarMarker from "../cars/CarMarker";
 import type { CarState, CarDefinition } from "../../domain/field";
@@ -30,8 +40,8 @@ class DriverBoundary extends Component<
   render() {
     return this.state.failed ? (
       <div className="fallback" role="alert">
-        The driver view could not start.{" "}
-        <button onClick={this.props.onBack}>Back to track view</button>
+        The 3D camera view could not start.{" "}
+        <button onClick={this.props.onBack}>Back to engineering view</button>
       </div>
     ) : (
       this.props.children
@@ -146,7 +156,13 @@ export default function CircuitScene(props: Props) {
     target: [trackCenter.x, trackCenter.y, 0],
   });
   const [view, setView] = useState<EngineeringView>(overview);
-  const [mode, setMode] = useState<"track" | "driver">("track");
+  // Ref-based rig read by the frame loop; React state only mirrors the mode for the toolbar.
+  const rig = useRef<CameraRigState>(createRig());
+  const [mode, setCameraMode] = useState<CameraMode>("engineering");
+  const changeMode = (next: CameraMode) => {
+    setRigMode(rig.current, next);
+    setCameraMode(next);
+  };
   const focusSelected = () => {
     const cars =
       props.historical?.sample(props.clock.current) ??
@@ -182,6 +198,22 @@ export default function CircuitScene(props: Props) {
   const rotate = (delta: number) =>
     setView((v) => ({ ...v, angle: ((v.angle + delta + 540) % 360) - 180 }));
   useGestureReceiver((action) => {
+    if (action === "cycleCamera") {
+      changeMode(nextMode(mode));
+      return true;
+    }
+    // Inspect also opens the inspector and slows the replay (handled by the workspace).
+    if (action === "inspect") {
+      changeMode("inspect");
+      return true;
+    }
+    const camera =
+      action === "zoomIn" ||
+      action === "zoomOut" ||
+      action === "rotateLeft" ||
+      action === "rotateRight";
+    if (camera && mode !== "engineering")
+      return applyRigAction(rig.current, action);
     if (action === "zoomIn" || action === "zoomOut") {
       zoom(action === "zoomIn" ? 1.2 : 1 / 1.2);
       return true;
@@ -198,19 +230,48 @@ export default function CircuitScene(props: Props) {
         className="circuit-camera-toolbar"
         aria-label="Circuit view controls"
       >
-        <button
-          aria-pressed={mode === "track"}
-          onClick={() => setMode("track")}
-        >
-          Track view
-        </button>
-        <button
-          aria-pressed={mode === "driver"}
-          onClick={() => setMode("driver")}
-        >
-          Driver view
-        </button>
-        {mode === "track" && (
+        <span role="group" aria-label="Camera mode" className="camera-modes">
+          {CAMERA_MODES.map((m) => (
+            <button
+              key={m}
+              aria-pressed={mode === m}
+              onClick={() => changeMode(m)}
+            >
+              {CAMERA_LABELS[m]}
+            </button>
+          ))}
+        </span>
+        {mode !== "engineering" && (
+          <>
+            <button
+              onClick={() => applyRigAction(rig.current, "zoomIn")}
+              disabled={mode === "onboard"}
+            >
+              Zoom +
+            </button>
+            <button
+              onClick={() => applyRigAction(rig.current, "zoomOut")}
+              disabled={mode === "onboard"}
+            >
+              Zoom −
+            </button>
+            <button
+              aria-label="Orbit left"
+              onClick={() => applyRigAction(rig.current, "rotateLeft")}
+              disabled={mode === "tv"}
+            >
+              ⟲
+            </button>
+            <button
+              aria-label="Orbit right"
+              onClick={() => applyRigAction(rig.current, "rotateRight")}
+              disabled={mode === "tv"}
+            >
+              ⟳
+            </button>
+          </>
+        )}
+        {mode === "engineering" && (
           <>
             <button onClick={() => zoom(1.2)}>Zoom +</button>
             <button onClick={() => zoom(1 / 1.2)}>Zoom −</button>
@@ -253,8 +314,8 @@ export default function CircuitScene(props: Props) {
         {props.sessionLabel && <>{props.sessionLabel} · </>}
         Flat elevation · illustrative track surroundings
       </span>
-      {mode === "driver" ? (
-        <DriverBoundary onBack={() => setMode("track")}>
+      {mode !== "engineering" ? (
+        <DriverBoundary onBack={() => changeMode("engineering")}>
           <Suspense
             fallback={
               <div className="fallback" role="status">
@@ -278,6 +339,8 @@ export default function CircuitScene(props: Props) {
               tyresKnown={!props.historical}
               selectedId={props.selectedId}
               onSelect={props.onSelect}
+              rig={rig}
+              mode={mode}
             />
           </Suspense>
         </DriverBoundary>

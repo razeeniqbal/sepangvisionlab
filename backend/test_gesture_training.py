@@ -41,7 +41,7 @@ class GestureTrainingTest(unittest.TestCase):
     def test_group_split_disjoint_and_complete(self):
         clips=[clip(label,f's{s}',f'{s}-{label}-{n}') for s in range(5) for label in LABELS for n in range(2)]
         split,groups=split_sessions(clips)
-        self.assertEqual(len(split['train']),48)
+        self.assertEqual(len(split['train']),3*len(LABELS)*2)
         self.assertFalse(set(groups['train'])&set(groups['test']))
         self.assertFalse(set(groups['validation'])&set(groups['test']))
         self.assertEqual(split_sessions(clips),(split,groups))
@@ -58,12 +58,12 @@ class GestureTrainingTest(unittest.TestCase):
 
     def test_four_model_comparison_with_synthetic_fixture_only(self):
         # Tiny separable numeric vectors exercise APIs, not real recognition.
-        y=np.tile(np.arange(8),6);x=np.eye(8)[y]
-        split={'train':list(range(32)),'validation':list(range(32,40)),'test':list(range(40,48))}
+        n=len(LABELS);y=np.tile(np.arange(n),6);x=np.eye(n)[y]
+        split={'train':list(range(4*n)),'validation':list(range(4*n,5*n)),'test':list(range(5*n,6*n))}
         selected,model,results,test=compare(x,y,split)
         self.assertEqual(len(results),4);self.assertIn(selected,[r['name'] for r in results])
-        self.assertEqual(len(test['confusionMatrix']),8)
-        self.assertEqual(sum(test['perClass'][label]['support'] for label in LABELS),8)
+        self.assertEqual(len(test['confusionMatrix']),n)
+        self.assertEqual(sum(test['perClass'][label]['support'] for label in LABELS),n)
         self.assertTrue(all(r['singleClipLatencyMs']['median']>=0 for r in results))
         self.assertEqual(len(model.predict(x[:1])),1)
 

@@ -74,3 +74,35 @@ Limitations:
 - No measured frame rate this phase: the browser pane was in the background, so frames arrived only when screenshots were taken. Phase 2 measured 60 fps with the pane visible. The 80 added wheel meshes are small next to 20 GLB clones.
 
 Files: `src/domain/carMotion.ts`, `src/components/cars/wheels/{wheelLayout,generatedWheels}.ts`, `src/components/circuit/DriverScene.tsx`, `tests/carMotion.test.ts`, this file.
+
+## Phase 4 — camera rig and gestures
+
+`src/components/circuit/cameraRig.ts` is a pure, tested rig: a ref-held state `{ mode, yaw, targetYaw, dist, targetDist, zoom, targetZoom, heading }`. Buttons and gestures only change targets (`applyRigAction`, `setMode`); the frame loop eases toward them (`stepRig`, exponential and frame-rate independent). The selected car is the rig's target, so selecting the next driver moves the camera with it.
+
+Modes (toolbar group "Camera mode"; Engineering is the unchanged orthographic Track view, the five others share one metric Canvas):
+
+- **Chase**: position locked to the car; only the heading is eased, snapping after seeks. Distance 7–30 m.
+- **Onboard**: T-cam above the roll hoop (1.32 m), 72° FOV, look-around limited to ±1.2 rad.
+- **TV**: fixed trackside points every ~220 m plus one outside each detected apex, 36 m off the centre line (behind the 27 m barrier line) at 7 m height. The nearest point wins and the lens keeps an ~18 m frame on the car, so distant shots zoom in. Zoom gestures change the lens.
+- **Heli**: high orbit, 40–220 m.
+- **Inspect**: low orbit around the car, 5–24 m.
+
+Gestures go through the existing `useGestureReceiver`. The mapping is in `docs/GESTURE_CONTROLS.md`. New action `cycleCamera` on a victory pose, added to `gestureActions`, `classifyPose`, the M15 recorder labels (appended) and the Python trainer's `LABELS`, which you approved because the trainer validates clip labels against it. Inspect now also sets the replay to 0.5× in both workspaces.
+
+Performance:
+
+- Canvas DPR is capped at 1.5 in the 3D modes; only the followed car casts a shadow; the sun's 120 m shadow camera follows it.
+- Hand inference was already capped at 15 fps whenever the camera is on (`useHandTracking`: `1000 / 15` ms between frames), so no change was needed.
+- Camera near plane 0.3 m, so Onboard does not clip the cockpit.
+
+Checks: every mode was switched by button and through the gesture command path (the camera-free "Test actions" buttons); "Next camera view" cycled Engineering → Chase → Onboard → TV → Heli → Inspect → Engineering; "Show selected inspector" switched to Inspect and set 0.5×. The 2017 historical workspace renders in Chase. No console errors.
+
+Limitations:
+
+- **Frame rate not measured this phase.** The browser pane rendered only when screenshots were taken, so neither the 60 fps (webcam off) nor the 30 fps (webcam on) target could be measured here. Phase 2 measured 60 fps in the earlier chase camera with the pane visible.
+- The victory pose has the same caveats as the other rule poses: synthetic fixtures only, no live accuracy figure.
+- TV points sit on a fixed offset and do not avoid scenery, so some may land in the infield or behind a building; not checked point by point.
+- Switching between Engineering and a 3D mode remounts the Canvas (about a second while the GLB and environment rebuild). Switching among the 3D modes is instant.
+- Onboard shows the selected car's own bodywork in the lower part of the frame; the T-cam position is illustrative.
+
+Files: `src/components/circuit/cameraRig.ts`, `DriverScene.tsx` (rig in the frame loop, near 0.3), `CircuitScene.tsx` (mode toolbar, gesture routing), `src/domain/gestures.ts`, `src/domain/gestureDataset.ts`, `App.tsx` and `HistoricalWorkspace.tsx` (inspect at 0.5×), `backend/gesture_training.py`, `backend/test_gesture_training.py`, `tests/cameraRig.test.ts`, `tests/gestures.test.ts`, `docs/GESTURE_CONTROLS.md`, this file.

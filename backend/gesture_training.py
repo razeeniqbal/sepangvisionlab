@@ -19,7 +19,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
-LABELS = ['neutral', 'point', 'pinch', 'grab', 'rotate', 'zoom', 'swipe_left', 'swipe_right']
+LABELS = ['neutral', 'point', 'pinch', 'grab', 'rotate', 'zoom', 'swipe_left', 'swipe_right', 'victory']
 FEATURE_VERSION = 'mirrored-wrist-palm-normalized-20-frame-v1'
 
 def number(value):
@@ -130,15 +130,15 @@ def split_sessions(clips):
     return split, groups
 
 def score(y, prediction):
-    p,r,f,s = precision_recall_fscore_support(y,prediction,labels=list(range(8)),zero_division=0)
+    p,r,f,s = precision_recall_fscore_support(y,prediction,labels=list(range(len(LABELS))),zero_division=0)
     return {'accuracy':float(accuracy_score(y,prediction)), 'macroPrecision':float(p.mean()), 'macroRecall':float(r.mean()), 'macroF1':float(f.mean()),
             'perClass':{label:{'precision':float(p[i]),'recall':float(r[i]),'f1':float(f[i]),'support':int(s[i])} for i,label in enumerate(LABELS)},
-            'confusionMatrix':confusion_matrix(y,prediction,labels=list(range(8))).tolist()}
+            'confusionMatrix':confusion_matrix(y,prediction,labels=list(range(len(LABELS)))).tolist()}
 
 def compare(x, y, split):
     models = {'Random Forest':RandomForestClassifier(n_estimators=120,max_depth=12,class_weight='balanced',random_state=42,n_jobs=1),
               'SVM':make_pipeline(StandardScaler(),SVC(C=1,class_weight='balanced')),
-              'XGBoost':XGBClassifier(n_estimators=100,max_depth=3,learning_rate=.05,objective='multi:softprob',num_class=8,random_state=42,n_jobs=1),
+              'XGBoost':XGBClassifier(n_estimators=100,max_depth=3,learning_rate=.05,objective='multi:softprob',num_class=len(LABELS),random_state=42,n_jobs=1),
               'MLP':make_pipeline(StandardScaler(),MLPClassifier(hidden_layer_sizes=(64,),max_iter=400,random_state=42))}
     results = []
     for name, model in models.items():

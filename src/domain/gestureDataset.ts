@@ -8,6 +8,7 @@ export const gestureLabels = [
   "zoom",
   "swipe_left",
   "swipe_right",
+  "victory",
 ] as const;
 export type GestureLabel = (typeof gestureLabels)[number];
 export interface GestureFrame {
@@ -32,6 +33,8 @@ export const instructions: Record<GestureLabel, string> = {
   zoom: "Show two open hands and move them apart or together during the recording.",
   swipe_left: "Move one open hand to the LEFT in the mirrored preview.",
   swipe_right: "Move one open hand to the RIGHT in the mirrored preview.",
+  victory:
+    "Hold index and middle fingers up in a V, with ring and little fingers folded.",
 };
 export function captureFrame(
   hands: TrackedHand[],
