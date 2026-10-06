@@ -184,6 +184,42 @@ export function lapsCompleted(laps: readonly LapRow[], driver: number, time: num
   return { lap: current, best, last, bestLapNumber };
 }
 
+/**
+ * OpenF1 stints can be split, out of order or mislabelled: in the 2026 race most cars "change" to
+ * slicks on lap 2 or 3 with no stop. A new set can only start on a pit-out lap, so sets are rebuilt
+ * from the laps' pit-out flags. A set whose OpenF1 labels disagree is left UNKNOWN, never guessed.
+ * Sessions whose stints already match the pit-out laps come out unchanged.
+ */
+export function reconcileStints(stints: readonly StintRow[], laps: readonly LapRow[]): StintRow[] {
+  const out: StintRow[] = [];
+  for (const d of new Set(stints.map((s) => s.d))) {
+    const own = stints.filter((s) => s.d === d && s.lapStart !== null && (s.lapEnd ?? s.lapStart) >= s.lapStart);
+    if (!own.length) continue;
+    const driverLaps = laps.filter((l) => l.d === d);
+    const last = Math.max(...own.map((s) => s.lapEnd ?? s.lapStart!), ...driverLaps.map((l) => l.n));
+    const starts = [...new Set([1, ...driverLaps.filter((l) => l.pitOut).map((l) => l.n)])].sort((a, b) => a - b);
+    starts.forEach((start, i) => {
+      const end = i + 1 < starts.length ? starts[i + 1] - 1 : last;
+      const labels = new Set(
+        own
+          .filter((s) => s.lapStart! <= end && (s.lapEnd ?? s.lapStart!) >= start && s.compound)
+          .map((s) => s.compound),
+      );
+      const exact = own.find((s) => s.lapStart === start);
+      out.push({
+        d,
+        n: i + 1,
+        lapStart: start,
+        lapEnd: end,
+        compound: labels.size === 1 ? [...labels][0] : null,
+        ageStart: exact?.ageStart ?? 0,
+      });
+    });
+  }
+  return out;
+}
+const reconciled = new WeakMap<readonly StintRow[], StintRow[]>();
+
 const COMPOUNDS: readonly TyreCompound[] = ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"];
 export function tyreAt(stints: readonly StintRow[], driver: number, lap: number): { compound: TyreCompound; age: number } {
   let chosen: StintRow | null = null;
@@ -300,7 +336,9 @@ export function recordedFieldAt(session: RecordedSession, time: number): Recorde
   const cars = session.drivers.map((d) => {
     const m = motionAt(d, track, t), tel = telemetryAt(d, t);
     const laps = lapsCompleted(file.laps, d.number, t);
-    const tyre = tyreAt(file.stints, d.number, laps.lap);
+    let stints = reconciled.get(file.stints);
+    if (!stints) reconciled.set(file.stints, (stints = reconcileStints(file.stints, file.laps)));
+    const tyre = tyreAt(stints, d.number, laps.lap);
     const L = track.length;
     const iv = intervals.get(d.number);
     return {

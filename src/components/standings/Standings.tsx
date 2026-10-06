@@ -152,9 +152,9 @@ export default function Standings({
                 </span>
                 <span
                   className={"compound compound-" + car.compound.toLowerCase()}
-                  title={car.compound}
+                  title={car.compound === "UNKNOWN" ? "Tyre not reliable in the source data" : car.compound}
                 >
-                  {car.compound[0]}
+                  {car.compound === "UNKNOWN" ? "?" : car.compound[0]}
                 </span>
               </button>
             </li>

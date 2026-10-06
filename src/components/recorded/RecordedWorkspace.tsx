@@ -117,7 +117,7 @@ function RecordedReplay({
   const { time, running, speed } = replay;
   const start = defaultStart(file) / 1000;
   useEffect(() => {
-    replay.seek(start);
+    replay.seek(start, true);
     replay.setSpeed(1);
     // Open at the session start once per session; replay functions are stable enough here.
     // eslint-disable-next-line react-hooks/exhaustive-deps

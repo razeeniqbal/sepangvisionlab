@@ -44,10 +44,11 @@ export default function useReplay(
       document.removeEventListener("visibilitychange", visibility);
     };
   }, [running, speed, duration]);
-  function seek(value: number) {
+  /** Jump to a time. Playback carries on if it was running, unless `pause` is set. */
+  function seek(value: number, pause = false) {
     clock.current = clampTime(value, duration);
     setTime(clock.current);
-    setRunning(false);
+    if (pause) setRunning(false);
   }
   function toggle() {
     if (running) {
@@ -67,7 +68,7 @@ export default function useReplay(
       return true;
     }
     if (action === "cancel") {
-      seek(clock.current);
+      seek(clock.current, true);
       return true;
     }
     return false;

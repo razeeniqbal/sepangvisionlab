@@ -6,7 +6,7 @@ import { buildTrackProfile, poseAtDistance } from "../src/domain/lapPhysics.ts";
 import type { Similarity } from "../src/domain/alignment.ts";
 import {
   ON_TRACK_METRES, STALE_AFTER_MS, defaultStart, extractMarkers, motionAt, prepareDriver,
-  recordedFieldAt, trackStatusAt, tyreAt, weatherAt,
+  recordedFieldAt, reconcileStints, trackStatusAt, tyreAt, weatherAt,
   type DriverFile, type RaceControlRow, type SessionFile,
 } from "../src/domain/recordedSession.ts";
 
@@ -117,6 +117,31 @@ test("tyres follow stints, including intermediates and unknowns", () => {
   assert.deepEqual(tyreAt(stints, 1, 20), { compound: "MEDIUM", age: 9 });
   assert.equal(tyreAt(stints, 2, 2).compound, "UNKNOWN");
   assert.equal(tyreAt(stints, 9, 2).compound, "UNKNOWN");
+});
+
+test("tyre sets follow pit-out laps; conflicting OpenF1 labels become unknown", () => {
+  // Shape of the 2026 race: OpenF1 splits the first set at laps 2 and 3 with different labels.
+  const stints = [
+    { d: 3, n: 1, lapStart: 1, lapEnd: 1, compound: "INTERMEDIATE", ageStart: 0 },
+    { d: 3, n: 2, lapStart: 2, lapEnd: 2, compound: "SOFT", ageStart: 0 },
+    { d: 3, n: 3, lapStart: 3, lapEnd: 9, compound: "SOFT", ageStart: 0 },
+    { d: 3, n: 4, lapStart: 10, lapEnd: 55, compound: "SOFT", ageStart: 0 },
+  ];
+  const laps = [1, 10, 34, 55].map((n) => ({ d: 3, n, t: n * 1000, dur: 100, pitOut: n === 10 || n === 34 }));
+  const sets = reconcileStints(stints, laps);
+  assert.deepEqual(
+    sets.map((s) => [s.lapStart, s.lapEnd, s.compound]),
+    [[1, 9, null], [10, 33, "SOFT"], [34, 55, "SOFT"]],
+  );
+  assert.deepEqual(tyreAt(sets, 3, 6), { compound: "UNKNOWN", age: 5 });
+  assert.deepEqual(tyreAt(sets, 3, 40), { compound: "SOFT", age: 6 });
+  // Consistent stints (practice and qualifying) are unchanged.
+  const clean = [
+    { d: 5, n: 1, lapStart: 1, lapEnd: 3, compound: "MEDIUM", ageStart: 2 },
+    { d: 5, n: 2, lapStart: 4, lapEnd: 8, compound: "SOFT", ageStart: 0 },
+  ];
+  const cleanLaps = [1, 4, 8].map((n) => ({ d: 5, n, t: n, dur: 90, pitOut: n !== 8 }));
+  assert.deepEqual(reconcileStints(clean, cleanLaps), clean);
 });
 
 test("real qualifying data: deterministic seeks, positions, weather and a sensible start", () => {
