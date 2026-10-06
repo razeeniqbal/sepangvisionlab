@@ -27,6 +27,7 @@ interface Props {
     pit?: boolean;
     stale?: boolean;
     sessionBest?: boolean;
+    picked?: boolean;
   };
   note?: ReactNode;
   footer?: ReactNode;
@@ -108,7 +109,8 @@ export default function Standings({
                 className={
                   "standing-row" +
                   (extra?.stale ? " is-stale" : "") +
-                  (extra?.pit ? " is-pit" : "")
+                  (extra?.pit ? " is-pit" : "") +
+                  (extra?.picked ? " is-picked" : "")
                 }
                 aria-label={`Select ${driver.name}, car ${car.number}, position ${car.position}`}
                 aria-pressed={car.id === selectedId}

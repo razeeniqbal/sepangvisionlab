@@ -18,13 +18,11 @@ export interface QualitySettings {
   allCarShadows: boolean;
   /** Distant hills ring and grass detail texture. */
   terrain: boolean;
-  /** Post-processing pass: gentle bloom, colour grade and vignette. */
-  effects: boolean;
 }
 export const QUALITY: Record<Quality, QualitySettings> = {
-  low: { dpr: [1, 1], shadows: false, shadowMap: 1024, palms: 700, trees: false, sunDisc: false, allCarShadows: false, terrain: false, effects: false },
-  balanced: { dpr: [1, 1.25], shadows: true, shadowMap: 1024, palms: 2000, trees: true, sunDisc: true, allCarShadows: false, terrain: true, effects: false },
-  high: { dpr: [1, 1.5], shadows: true, shadowMap: 2048, palms: 4500, trees: true, sunDisc: true, allCarShadows: true, terrain: true, effects: true },
+  low: { dpr: [1, 1], shadows: false, shadowMap: 1024, palms: 700, trees: false, sunDisc: false, allCarShadows: false, terrain: false },
+  balanced: { dpr: [1, 1.25], shadows: true, shadowMap: 1024, palms: 2000, trees: true, sunDisc: true, allCarShadows: false, terrain: true },
+  high: { dpr: [1, 1.5], shadows: true, shadowMap: 2048, palms: 4500, trees: true, sunDisc: true, allCarShadows: true, terrain: true },
 };
 // Balanced by default: the 60 fps target matters more than the last bit of detail.
 export const DEFAULT_QUALITY: Quality = "balanced";

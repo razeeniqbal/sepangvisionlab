@@ -83,6 +83,8 @@ interface Props {
   tags: readonly string[];
   /** Real rainfall (recorded sessions) drives the wet look in the 3D views. */
   wet?: boolean;
+  /** Told when the camera mode changes (the workspace shows a driving HUD in chase/onboard). */
+  onModeChange?: (mode: CameraMode) => void;
 }
 // Memoised: the replay clock ticks the workspace 10 times a second for its panels, but the
 // 3D scene reads the clock from a ref every frame, so it only re-renders on real changes.
@@ -133,6 +135,7 @@ function CircuitScene(props: Props) {
   const changeMode = (next: CameraMode) => {
     setRigMode(rig.current, next);
     setCameraMode(next);
+    props.onModeChange?.(next);
   };
   useGestureReceiver((action) => {
     if (action === "cycleCamera") {

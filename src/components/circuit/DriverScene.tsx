@@ -43,7 +43,6 @@ import {
 } from "./cameraRig";
 import FormulaCar from "../cars/FormulaCar";
 import PerfStats from "./PerfStats";
-import Effects from "./Effects";
 import { QUALITY, type QualitySettings } from "./quality";
 import { themedAccent } from "../../themeRuntime";
 import { SimplifiedCar } from "../cars/CarRepresentation";
@@ -172,6 +171,8 @@ const tagPoint = new Vector3();
 const WHEELS: WheelSource = "generated";
 const WHEELBASE = (FRONT_AXLE_X - REAR_AXLE_X) * CAR_SCALE;
 const WHEEL_RADIUS_METRES = WHEEL_RADIUS * COVER * CAR_SCALE;
+// Visual steering gain: real lock in most corners is only a few degrees and reads as none.
+const STEER_GAIN = 1.8;
 
 function DriverCar({
   car,
@@ -315,7 +316,7 @@ function DriverCar({
     );
     m.steer = ease(
       m.steer,
-      steerAngle(sepangTrack, distance, WHEELBASE),
+      Math.max(-0.42, Math.min(0.42, steerAngle(sepangTrack, distance, WHEELBASE, 9) * STEER_GAIN)),
       delta,
       10,
     );
@@ -503,6 +504,7 @@ function boardInShot(
 }
 
 function CameraRig({
+  clock,
   field,
   entries,
   selectedId,
@@ -520,6 +522,7 @@ function CameraRig({
   occluders: RefObject<Object3D[]>;
   wet: boolean;
   quality: QualitySettings;
+  clock: RefObject<number>;
 }) {
   const { camera, scene } = useThree();
   const sun = useRef<DirectionalLight>(null);
@@ -529,6 +532,9 @@ function CameraRig({
     point: null,
     age: Infinity,
   });
+  // Game-style camera feel, eased so it never jumps: wider lens with speed, the chase camera
+  // dropping back under power and closing in under braking, and a faint high-speed shake.
+  const feel = useRef({ speed: 0, time: NaN, lag: 0, lagV: 0, fov: 0 });
   useLayoutEffect(() => {
     camera.up.set(0, 0, 1);
     scene.fog = wet
@@ -568,10 +574,28 @@ function CameraRig({
       smoothHeading(rig.current, p.heading, delta),
       cameras,
     );
-    camera.position.set(view.position.x, view.position.y, view.position.z);
-    camera.lookAt(view.target.x, view.target.y, view.target.z);
-    if (Math.abs(camera.fov - view.fov) > 0.01) {
-      camera.fov = view.fov;
+    const f = feel.current,
+      mode = rig.current.mode,
+      speed = state.speedKph / 3.6,
+      dt = clock.current - f.time;
+    const accel = dt > 0 && dt < 1 ? (speed - f.speed) / dt : 0;
+    f.speed = speed;
+    f.time = clock.current;
+    const moving = mode === "chase" || mode === "onboard";
+    const lagTarget = mode === "chase" ? Math.max(-1.2, Math.min(1.2, accel * 0.05)) : 0;
+    [f.lag, f.lagV] = spring(f.lag, f.lagV, lagTarget, dt > 0 && dt < 1 ? delta : 0, 40, 9);
+    f.fov = ease(f.fov, moving ? Math.max(0, Math.min(1, (speed - 25) / 60)) * (mode === "chase" ? 9 : 7) : 0, delta, 3);
+    const shake = moving ? roadShake(clock.current * 1.7, speed, 3.1).pitch * (mode === "onboard" ? 30 : 12) : 0;
+    const back = { x: -Math.cos(p.heading), y: -Math.sin(p.heading) };
+    camera.position.set(
+      view.position.x + back.x * f.lag,
+      view.position.y + back.y * f.lag,
+      view.position.z + shake,
+    );
+    camera.lookAt(view.target.x, view.target.y, view.target.z + shake * 0.5);
+    const fov = view.fov + f.fov;
+    if (Math.abs(camera.fov - fov) > 0.01) {
+      camera.fov = fov;
       camera.updateProjectionMatrix();
     }
     if (sun.current) {
@@ -642,6 +666,7 @@ function World({
   return (
     <>
       <CameraRig
+        clock={clock}
         field={field}
         entries={entries}
         selectedId={selectedId}
@@ -657,7 +682,6 @@ function World({
         wet={wet}
         quality={quality}
       />
-      {quality.effects && <Effects />}
       {ghost && <GhostCar ghost={ghost} clock={clock} />}
       {entries.map(
         (car, index) =>

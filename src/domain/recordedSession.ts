@@ -4,6 +4,7 @@
 import type { CarState, TyreCompound } from "./field.ts";
 import { poseAtDistance, type TrackProfile } from "./lapPhysics.ts";
 import { apply, nearestOnTrack, type Similarity } from "./alignment.ts";
+import type { ResultRow } from "./pick.ts";
 
 export const STALE_AFTER_MS = 2000;
 /** |lateral| beyond this is off the racing surface (pit lane, garage): drawn raw, not snapped. */
@@ -45,6 +46,8 @@ export interface SessionFile {
   intervals: IntervalRow[];
   raceControl: RaceControlRow[];
   weather: WeatherRow[];
+  /** Official classification (OpenF1 session_result). */
+  result?: ResultRow[];
 }
 export interface DriverFile {
   number: number;
@@ -93,6 +96,7 @@ export function prepareDriver(file: DriverFile, transform: Similarity, track: Tr
     previous = along;
     s[i] = along + offset;
   }
+  smoothLateral(t, lateral);
   const c = file.telemetry;
   return {
     number: file.number, t, s, lateral, wx, wy,
@@ -101,6 +105,29 @@ export function prepareDriver(file: DriverFile, transform: Similarity, track: Tr
       throttle: Float64Array.from(c.throttle), brake: Float64Array.from(c.brake), drs: Float64Array.from(c.drs),
     },
   };
+}
+
+/**
+ * Positioning noise makes the across-track offset wobble by up to a metre between samples,
+ * which reads as a twitching car. A short weighted average (about +-0.5 s) keeps the real
+ * line and lane changes. Only on-track runs without data gaps are smoothed; pit-lane and
+ * garage samples keep their raw value.
+ */
+export function smoothLateral(t: ArrayLike<number>, lateral: Float64Array) {
+  const raw = Float64Array.from(lateral);
+  const weights = [0.1, 0.2, 0.4, 0.2, 0.1];
+  for (let i = 0; i < raw.length; i++) {
+    if (Math.abs(raw[i]) > ON_TRACK_METRES) continue;
+    let sum = 0, total = 0;
+    for (let k = -2; k <= 2; k++) {
+      const j = i + k;
+      if (j < 0 || j >= raw.length || Math.abs(raw[j]) > ON_TRACK_METRES) continue;
+      if (Math.abs(t[j] - t[i]) > 700) continue;
+      sum += raw[j] * weights[k + 2];
+      total += weights[k + 2];
+    }
+    lateral[i] = sum / total;
+  }
 }
 
 /** Last index with arr[i] <= value, or -1. */

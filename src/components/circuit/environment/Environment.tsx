@@ -24,7 +24,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import type { TrackProfile } from "../../../domain/lapPhysics";
 import { anchorInProfile } from "./anchors";
-import { findCorners } from "../../../domain/lapPhysics";
+import { findCorners, poseAtDistance } from "../../../domain/lapPhysics";
 import { tvPoints } from "../cameraRig";
 import { QUALITY, type QualitySettings } from "../quality";
 import {
@@ -61,6 +61,8 @@ import {
   seatTexture,
   asphaltTexture,
   barrierTexture,
+  chequerTexture,
+  fenceTexture,
   grassTexture,
   gravelTexture,
   chevronTexture,
@@ -211,18 +213,24 @@ function Surfaces({
     const normals = leftNormals(track);
     const strip = (spec: StripSpec) => buildStrip(track, normals, spec);
     const w = TRACK_HALF_WIDTH;
-    const kerbs = kerbRuns(track).map((run) => {
-      const a = run.side * w,
-        b = run.side * (w + KERB_WIDTH);
-      return strip({
-        edges: [
-          { offset: Math.min(a, b), z: LAYER.paint },
-          { offset: Math.max(a, b), z: LAYER.paint },
-        ],
-        from: run.from,
-        to: run.to,
-        uLength: 6,
-      });
+    const kerbs = kerbRuns(track).flatMap((run) => {
+      const inner = run.side * w,
+        ridge = run.side * (w + KERB_WIDTH * 0.55),
+        outer = run.side * (w + KERB_WIDTH);
+      const half = (a: number, za: number, b: number, zb: number) =>
+        strip({
+          edges:
+            a < b
+              ? [{ offset: a, z: za }, { offset: b, z: zb }]
+              : [{ offset: b, z: zb }, { offset: a, z: za }],
+          from: run.from,
+          to: run.to,
+          uLength: 6,
+        });
+      return [
+        half(inner, LAYER.paint, ridge, LAYER.paint + 0.05),
+        half(ridge, LAYER.paint + 0.05, outer, LAYER.paint + 0.02),
+      ];
     });
     // Gravel traps outside the corner exits, from beyond the kerb to the run-off edge.
     const gravel = gravelTraps(track, apexes).map((run) => {
@@ -866,6 +874,187 @@ function Sky({ wet, sunDisc }: { wet: boolean; sunDisc: boolean }) {
 }
 
 /**
+ * Start/finish: a chequered stripe across the track at the timing line, and 22 painted grid
+ * boxes behind it, 8 m apart and staggered left/right like a real grid.
+ */
+function StartGrid({ track, gantry }: { track: TrackProfile; gantry: Placement }) {
+  const parts = useMemo(() => {
+    const { index } = nearestSample(track, gantry.x, gantry.y);
+    const finish = track.distance[index];
+    const o = new Object3D();
+    const place = (distance: number, lateral: number, angle = 0) => {
+      const p = poseAtDistance(track, distance);
+      o.position.set(
+        p.x - Math.sin(p.heading) * lateral,
+        p.y + Math.cos(p.heading) * lateral,
+        LAYER.paint + 0.004,
+      );
+      o.rotation.set(0, 0, p.heading + angle);
+      o.updateMatrix();
+      return o.matrix.clone();
+    };
+    const bars: Matrix4[] = [];
+    for (let k = 0; k < 22; k++) {
+      const d = finish - 10 - 8 * k,
+        side = k % 2 ? -1 : 1,
+        lat = side * 3.4;
+      bars.push(place(d, lat)); // front bar across the slot
+      bars.push(place(d - 0.6, lat + 1.1, 0), place(d - 0.6, lat - 1.1, 0));
+    }
+    const line = place(finish, 0);
+    const texture = chequerTexture();
+    return {
+      bars,
+      bar: new PlaneGeometry(0.18, 2.4),
+      tick: new PlaneGeometry(1.2, 0.16),
+      tickMatrices: bars.filter((_, i) => i % 3 !== 0),
+      barMatrices: bars.filter((_, i) => i % 3 === 0),
+      line,
+      lineGeometry: new PlaneGeometry(1.2, TRACK_HALF_WIDTH * 2),
+      lineMaterial: new MeshStandardMaterial({ map: texture, roughness: 0.6 }),
+      paint: new MeshStandardMaterial({ color: "#eef0ea", roughness: 0.7 }),
+    };
+  }, [track, gantry]);
+  return (
+    <>
+      <Instanced geometry={parts.bar} material={parts.paint} matrices={parts.barMatrices} />
+      <Instanced geometry={parts.tick} material={parts.paint} matrices={parts.tickMatrices} />
+      <mesh
+        geometry={parts.lineGeometry}
+        material={parts.lineMaterial}
+        matrixAutoUpdate={false}
+        matrix={parts.line}
+        receiveShadow
+      />
+    </>
+  );
+}
+
+/**
+ * Tyre walls in front of the barrier behind each gravel trap: stacks of three tyres every
+ * 0.66 m, black with painted red and white runs, as at most circuits.
+ */
+function TyreWalls({ track, apexes }: { track: TrackProfile; apexes: readonly number[] }) {
+  const parts = useMemo(() => {
+    const normals = leftNormals(track);
+    const stack = mergeGeometries(
+      [0.16, 0.46, 0.76].map((z) => {
+        const g = new CylinderGeometry(0.31, 0.31, 0.28, 10).rotateX(Math.PI / 2).translate(0, 0, z);
+        g.deleteAttribute("uv");
+        return g;
+      }),
+    )!;
+    const o = new Object3D();
+    const matrices: Matrix4[] = [];
+    const colours: Color[] = [];
+    const paint = [new Color("#1f2123"), new Color("#a3262e"), new Color("#1f2123"), new Color("#d6d6d0")];
+    for (const run of gravelTraps(track, apexes)) {
+      let n = 0;
+      for (let s = run.from; s < run.to; s++) {
+        const i = ((s % track.count) + track.count) % track.count,
+          j = (i + 1) % track.count;
+        const oi = barrierOffset(track, i, run.side) - 0.45 * run.side,
+          oj = barrierOffset(track, j, run.side) - 0.45 * run.side;
+        const ax = track.x[i] + normals.nx[i] * oi,
+          ay = track.y[i] + normals.ny[i] * oi;
+        const bx = track.x[j] + normals.nx[j] * oj,
+          by = track.y[j] + normals.ny[j] * oj;
+        const steps = Math.max(1, Math.round(Math.hypot(bx - ax, by - ay) / 0.66));
+        for (let k = 0; k < steps; k++, n++) {
+          const f = k / steps;
+          o.position.set(ax + (bx - ax) * f, ay + (by - ay) * f, 0);
+          o.rotation.set(0, 0, 0);
+          o.updateMatrix();
+          matrices.push(o.matrix.clone());
+          colours.push(paint[Math.floor(n / 5) % paint.length]);
+        }
+      }
+    }
+    return {
+      stack,
+      matrices,
+      colours,
+      material: new MeshStandardMaterial({ roughness: 0.9 }),
+    };
+  }, [track, apexes]);
+  const ref = useRef<InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    parts.matrices.forEach((m, i) => {
+      mesh.setMatrixAt(i, m);
+      mesh.setColorAt(i, parts.colours[i]);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [parts]);
+  return <instancedMesh ref={ref} args={[parts.stack, parts.material, parts.matrices.length]} frustumCulled={false} />;
+}
+
+/** Catch fence above both barriers: wire mesh on posts every ~12 m, with a top rail. */
+function CatchFence({ track }: { track: TrackProfile }) {
+  const parts = useMemo(() => {
+    const normals = leftNormals(track);
+    const top = 4;
+    const mesh = mergeStrips(
+      ([-1, 1] as const).map((side) =>
+        buildStrip(track, normals, {
+          edges: [
+            { offset: (i: number) => barrierOffset(track, i, side), z: 1.1 },
+            { offset: (i: number) => barrierOffset(track, i, side), z: top },
+          ],
+          uLength: 2.4,
+        }),
+      ),
+    );
+    const texture = fenceTexture();
+    texture.repeat.set(1, 1.2);
+    const post = new BoxGeometry(0.12, 0.12, top).translate(0, 0, top / 2);
+    const o = new Object3D();
+    const posts: Matrix4[] = [];
+    for (let i = 0; i < track.count; i += 3)
+      for (const side of [-1, 1] as const) {
+        const off = barrierOffset(track, i, side) + side * 0.08;
+        o.position.set(track.x[i] + normals.nx[i] * off, track.y[i] + normals.ny[i] * off, 0);
+        o.updateMatrix();
+        posts.push(o.matrix.clone());
+      }
+    const material = new MeshStandardMaterial({
+      map: texture,
+      alphaTest: 0.35,
+      transparent: false,
+      side: DoubleSide,
+      roughness: 0.5,
+      metalness: 0.6,
+    });
+    // Trackside cameras film through a gap in the fence: wire within 14 m of the camera is
+    // cut away, so it never fills the foreground of a TV shot.
+    material.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader
+        .replace("#include <common>", "#include <common>\nvarying vec3 vSvlFence;")
+        .replace("#include <begin_vertex>", "#include <begin_vertex>\nvSvlFence = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+      shader.fragmentShader = shader.fragmentShader
+        .replace("#include <common>", "#include <common>\nvarying vec3 vSvlFence;")
+        .replace("#include <alphatest_fragment>", "#include <alphatest_fragment>\nif (distance(vSvlFence, cameraPosition) < 14.0) discard;");
+    };
+    material.customProgramCacheKey = () => "svl-fence";
+    return {
+      geometry: toGeometry(mesh),
+      material,
+      post,
+      posts,
+    };
+  }, [track]);
+  return (
+    <>
+      <mesh geometry={parts.geometry} material={parts.material} />
+      <Instanced geometry={parts.post} material={steel} matrices={parts.posts} />
+    </>
+  );
+}
+
+/**
  * Low hills on the horizon, well beyond the plantation, so the view does not end in a flat
  * line. Illustrative (no terrain data): a seeded ring that the fog fades into the sky.
  */
@@ -959,6 +1148,9 @@ export default function Environment({
         receiveShadow
       />
       <Surfaces track={track} wet={wet} apexes={layout.apexes} />
+      <StartGrid track={track} gantry={layout.gantry} />
+      <TyreWalls track={track} apexes={layout.apexes} />
+      {quality.terrain && <CatchFence track={track} />}
       <PitBuilding b={layout.pit} track={track} />
       <Grandstand b={layout.stand} />
       <Gantry p={layout.gantry} />

@@ -110,6 +110,34 @@ export const barrierTexture = () =>
     }
   });
 
+/** Chequered finish line: two columns of squares along travel (x), sixteen across (y). */
+export const chequerTexture = () =>
+  canvasTexture(16, 128, (c) => {
+    for (let x = 0; x < 2; x++)
+      for (let y = 0; y < 16; y++) {
+        c.fillStyle = (x + y) % 2 ? "#151718" : "#f1f1ec";
+        c.fillRect(x * 8, y * 8, 8, 8);
+      }
+  });
+
+/** Diamond wire mesh for the catch fence: transparent between the wires. */
+export const fenceTexture = () => {
+  const texture = canvasTexture(64, 64, (c) => {
+    c.clearRect(0, 0, 64, 64);
+    c.strokeStyle = "rgba(200,206,208,0.9)";
+    c.lineWidth = 1.4;
+    for (let k = -64; k < 128; k += 16) {
+      c.beginPath();
+      c.moveTo(k, 0);
+      c.lineTo(k + 64, 64);
+      c.moveTo(k + 64, 0);
+      c.lineTo(k, 64);
+      c.stroke();
+    }
+  });
+  return texture;
+};
+
 /** Gravel trap: pale stones of mixed size. */
 export const gravelTexture = () =>
   canvasTexture(128, 128, (c) => {
@@ -163,14 +191,22 @@ export const turnBoardTexture = (turn: number, left: boolean) =>
 
 /** Stadium seats: a mosaic of generic seat colours, no pattern, text or sponsor mark. */
 export const seatTexture = () => {
-  const texture = canvasTexture(64, 32, (c) => {
-    const colours = ["#2f5f8a", "#3a6fa0", "#c9cfd2", "#b23a3a", "#2b8a83", "#d8b245", "#24486b"];
-    let seed = 11;
-    for (let y = 0; y < 32; y += 4)
-      for (let x = 0; x < 64; x += 4) {
-        seed = (seed * 16807) % 2147483647;
-        c.fillStyle = colours[seed % colours.length];
-        c.fillRect(x, y, 4, 3);
+  const texture = canvasTexture(128, 64, (c) => {
+    const seats = ["#2f5f8a", "#3a6fa0", "#24486b"];
+    const shirts = ["#e8e4dc", "#c8323c", "#2b8a83", "#f0c23c", "#3a6fa0", "#1d1f22", "#e66b2e", "#8bc34a", "#d8d8d8"];
+    const skin = ["#c58c63", "#8d5a3b", "#e0b48f", "#6b4630"];
+    const rand = noise(11);
+    for (let y = 0; y < 64; y += 4)
+      for (let x = 0; x < 128; x += 3) {
+        c.fillStyle = seats[Math.floor(rand() * seats.length)];
+        c.fillRect(x, y, 3, 4);
+        // About four seats in five are taken: a shirt with a head above it.
+        if (rand() < 0.8) {
+          c.fillStyle = shirts[Math.floor(rand() * shirts.length)];
+          c.fillRect(x, y + 2, 2, 2);
+          c.fillStyle = skin[Math.floor(rand() * skin.length)];
+          c.fillRect(x, y + 1, 2, 1);
+        }
       }
   });
   texture.repeat.set(24, 2);

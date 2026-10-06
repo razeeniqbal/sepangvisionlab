@@ -185,3 +185,12 @@ test("real qualifying data: deterministic seeks, positions, weather and a sensib
   const running = forward.filter((c) => c.present && c.onTrack && c.speedKph > 150);
   for (const c of running) assert.ok(Math.abs(c.pose.x) < 1000 && Math.abs(c.pose.y) < 1000);
 });
+
+test("across-track wobble is smoothed on track, pit-lane samples stay raw", async () => {
+  const { smoothLateral } = await import("../src/domain/recordedSession.ts");
+  const t = Array.from({ length: 40 }, (_, i) => i * 250);
+  const lateral = Float64Array.from(t, (_, i) => (i < 30 ? 2 + (i % 2 ? 0.8 : -0.8) : 25));
+  smoothLateral(t, lateral);
+  for (let i = 3; i < 27; i++) assert.ok(Math.abs(lateral[i] - 2) < 0.2, `${i}: ${lateral[i]}`);
+  for (let i = 30; i < 40; i++) assert.equal(lateral[i], 25, "pit lane untouched");
+});

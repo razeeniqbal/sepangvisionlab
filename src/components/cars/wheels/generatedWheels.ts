@@ -7,11 +7,13 @@ import {
   CylinderGeometry,
   Float32BufferAttribute,
   Group,
+  LatheGeometry,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
   Quaternion,
   RingGeometry,
+  Vector2,
   Vector3,
   type Object3D,
 } from "three";
@@ -28,8 +30,8 @@ import {
 // One merged, vertex-coloured mesh per wheel: one draw call each, shared per compound.
 const material = new MeshStandardMaterial({
   vertexColors: true,
-  roughness: 0.82,
-  metalness: 0.12,
+  roughness: 0.78,
+  metalness: 0.15,
 });
 const cache = new Map<string, BufferGeometry>();
 
@@ -44,33 +46,61 @@ function tinted(geometry: BufferGeometry, colour: string) {
   return geometry.index ? geometry.toNonIndexed() : geometry;
 }
 
-/** Wheel geometry for one side (sidewall details face outward), axle along y. */
+/**
+ * Wheel geometry for one side (sidewall details face outward), axle along y. Modelled on the
+ * 18-inch era: a low-profile tyre with rounded shoulders, a dark wheel cover with a centre
+ * nut, the compound stripe and two white sidewall marks so rotation reads at low speed.
+ */
 export function wheelGeometry(compound: VisualTyreCompound, side: 1 | -1) {
   const key = compound + side;
   const cached = cache.get(key);
   if (cached) return cached;
   const r = WHEEL_RADIUS * COVER,
     w = WHEEL_WIDTH * COVER,
-    face = side * (w / 2 + 0.0008);
+    rim = r * 0.7;
+  // Tyre cross-section revolved about the axle: bead, sidewall bulge, rounded shoulder, tread.
+  const profile = [
+    [rim, -0.46],
+    [r * 0.86, -0.5],
+    [r * 0.96, -0.47],
+    [r * 0.995, -0.4],
+    [r, -0.3],
+    [r, 0.3],
+    [r * 0.995, 0.4],
+    [r * 0.96, 0.47],
+    [r * 0.86, 0.5],
+    [rim, 0.46],
+  ].map(([radius, y]) => new Vector2(radius, y * w));
+  const sidewall = side * (w * 0.5 + 0.0006);
   const parts = [
-    tinted(new CylinderGeometry(r, r, w, 30, 1), "#17191a"),
+    tinted(new LatheGeometry(profile, 40), "#141617"),
+    // Wheel cover, slightly dished, and the rim lip around it.
+    tinted(new CylinderGeometry(rim, rim, w * 0.9, 36, 1), "#262b2e"),
     tinted(
-      new CylinderGeometry(r * 0.62, r * 0.62, w * 1.01, 22, 1),
-      "#3b4246",
-    ),
-    // Compound band on the outer sidewall, like the real coloured tyre markings.
-    tinted(
-      new RingGeometry(r * 0.7, r * 0.8, 30)
+      new RingGeometry(rim * 0.94, rim, 36)
         .rotateX(side > 0 ? -Math.PI / 2 : Math.PI / 2)
-        .translate(0, face, 0),
+        .translate(0, side * (w * 0.45 + 0.0004), 0),
+      "#8d9599",
+    ),
+    tinted(
+      new CylinderGeometry(rim * 0.2, rim * 0.24, w * 0.16, 12, 1).translate(0, side * w * 0.5, 0),
+      "#b9c0c2",
+    ),
+    // Compound stripe on the outer sidewall, like the real coloured tyre markings.
+    tinted(
+      new RingGeometry(r * 0.83, r * 0.875, 40)
+        .rotateX(side > 0 ? -Math.PI / 2 : Math.PI / 2)
+        .translate(0, sidewall, 0),
       TYRE_COLOURS[compound],
     ),
-    ...[0, 1, 2].map((k) =>
+    // Two generic white sidewall marks (no lettering or brand).
+    ...[0, Math.PI].map((angle) =>
       tinted(
-        new BoxGeometry(r * 1.15, w * 0.12, r * 0.13)
-          .rotateY((k * 2 * Math.PI) / 3)
-          .translate(0, face, 0),
-        "#aeb6b8",
+        new BoxGeometry(r * 0.16, 0.0012, r * 0.045)
+          .translate(r * 0.92, 0, 0)
+          .rotateY(angle)
+          .translate(0, sidewall, 0),
+        "#e9ecea",
       ),
     ),
   ];

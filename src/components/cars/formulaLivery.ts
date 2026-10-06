@@ -59,7 +59,7 @@ varying float vSvlSideNormal;
 uniform vec3 svlBody,svlSecondary,svlMechanical,svlRubber,svlAccent,svlTechnical,svlCompound;
 uniform vec3 svlRoughness;
 uniform vec2 svlMetalness;
-uniform float svlHasCompound,svlHasLivery;
+uniform float svlHasCompound,svlHasLivery,svlHideWheels;
 float svlBand(float value,float low,float high){return step(low,value)*(1.0-step(high,value));}
 `;
 const surface = `
@@ -84,6 +84,9 @@ float svlWheelY=svlY<0.0?-.375:.344;
 float svlRadius=length(vec2(svlY-svlWheelY,svlZ-.0745));
 float svlRing=(1.0-smoothstep(.0015,.0035,abs(svlRadius-.058)))*smoothstep(.65,.9,abs(vSvlSideNormal))*step(.40,svlAcross)*svlTyre*svlHasCompound;
 diffuseColor.rgb=mix(diffuseColor.rgb,svlCompound,svlRing);
+// Hide the model's own (static) wheels: the generated wheels steer and spin in their place.
+float svlLateral=abs(vSvlSurface.x*.442462-.228814);
+if(svlHideWheels>.5&&abs(svlLateral-.1921)<.0335&&length(vec2(svlY-svlWheelY,svlZ-.0745))<.0795)discard;
 `;
 
 // One finite cache per configured library: profiles × six compound states.
@@ -136,6 +139,7 @@ export function createFormulaMaterialLibrary(
         svlCompound: { value: new Color(TYRE_COLOURS[compound]) },
         svlHasCompound: { value: compound === "UNKNOWN" ? 0 : 1 },
         svlHasLivery: { value: definition.liveryTexture ? 1 : 0 },
+        svlHideWheels: { value: 1 },
         svlRoughness: {
           value: new Vector3(
             definition.surface.bodyRoughness,
@@ -178,7 +182,7 @@ export function createFormulaMaterialLibrary(
           "#include <lights_physical_fragment>\nmaterial.clearcoat*=(1.0-svlTyre)*(1.0-svlLow*0.85);",
         );
     };
-    material.customProgramCacheKey = () => "svl-formula-v25-physical";
+    material.customProgramCacheKey = () => "svl-formula-v26-physical";
     materials.set(key, material);
     return material;
   }
