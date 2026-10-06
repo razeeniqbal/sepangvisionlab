@@ -14,7 +14,7 @@ function canvasTexture(
   const texture = new CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = RepeatWrapping;
   texture.colorSpace = SRGBColorSpace;
-  texture.anisotropy = 4;
+  texture.anisotropy = 8;
   return texture;
 }
 
@@ -27,17 +27,100 @@ export const kerbTexture = () =>
     c.fillRect(32, 0, 32, 8);
   });
 
-/** Fine asphalt grain, repeated every 10 m. */
+// Deterministic value noise for the ground textures (same look on every load).
+function noise(seed: number) {
+  let s = seed >>> 0 || 1;
+  return () => ((s = (s * 16807) % 2147483647) / 2147483647);
+}
+
+/**
+ * Asphalt, repeated every 10 m: two scales of aggregate grain plus faint rubber streaks
+ * running along the direction of travel (texture x = along the track).
+ */
 export const asphaltTexture = () =>
-  canvasTexture(128, 128, (c) => {
-    c.fillStyle = "#3a3e40";
-    c.fillRect(0, 0, 128, 128);
-    let seed = 7;
-    for (let i = 0; i < 2200; i++) {
-      seed = (seed * 16807) % 2147483647;
-      const shade = 46 + (seed % 26);
+  canvasTexture(256, 256, (c) => {
+    const rand = noise(7);
+    c.fillStyle = "#3a3e41";
+    c.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 90; i++) {
+      const shade = 52 + Math.floor(rand() * 16);
+      c.fillStyle = `rgba(${shade},${shade + 2},${shade + 5},0.35)`;
+      c.beginPath();
+      c.arc(rand() * 256, rand() * 256, 6 + rand() * 22, 0, Math.PI * 2);
+      c.fill();
+    }
+    for (let i = 0; i < 9000; i++) {
+      const shade = 38 + Math.floor(rand() * 40);
       c.fillStyle = `rgb(${shade},${shade + 2},${shade + 4})`;
-      c.fillRect(seed % 128, (seed >> 7) % 128, 1, 1);
+      c.fillRect(Math.floor(rand() * 256), Math.floor(rand() * 256), 1, 1);
+    }
+    for (let i = 0; i < 26; i++) {
+      c.fillStyle = `rgba(18,19,20,${0.03 + rand() * 0.05})`;
+      c.fillRect(0, Math.floor(rand() * 256), 256, 1 + Math.floor(rand() * 3));
+    }
+  });
+
+/** Mown grass: mottled greens with broad mowing stripes; repeated every 24 m on the ground. */
+export const grassTexture = () =>
+  canvasTexture(256, 256, (c) => {
+    const rand = noise(23);
+    c.fillStyle = "#5b7047";
+    c.fillRect(0, 0, 256, 256);
+    for (let x = 0; x < 256; x += 64) {
+      c.fillStyle = "rgba(255,255,230,0.035)";
+      c.fillRect(x, 0, 32, 256);
+    }
+    for (let i = 0; i < 220; i++) {
+      const g = rand();
+      c.fillStyle = g > 0.5 ? `rgba(104,122,74,${0.05 + rand() * 0.07})` : `rgba(66,82,48,${0.05 + rand() * 0.07})`;
+      c.beginPath();
+      c.arc(rand() * 256, rand() * 256, 3 + rand() * 10, 0, Math.PI * 2);
+      c.fill();
+    }
+    for (let i = 0; i < 12000; i++) {
+      const g = 80 + Math.floor(rand() * 45);
+      c.fillStyle = `rgba(${Math.floor(g * 0.7)},${g},${Math.floor(g * 0.52)},0.4)`;
+      c.fillRect(Math.floor(rand() * 256), Math.floor(rand() * 256), 1, 2);
+    }
+  });
+
+/**
+ * Guardrail over a low concrete wall, repeated every 10 m along the barrier strip (x along,
+ * y up): two galvanised rails on the upper half, a post every 2.5 m, weathered concrete below.
+ */
+export const barrierTexture = () =>
+  canvasTexture(256, 64, (c) => {
+    const rand = noise(5);
+    c.fillStyle = "#b9bcb6";
+    c.fillRect(0, 0, 256, 64);
+    for (let i = 0; i < 1400; i++) {
+      const l = 160 + Math.floor(rand() * 50);
+      c.fillStyle = `rgba(${l},${l},${l - 6},0.5)`;
+      c.fillRect(Math.floor(rand() * 256), 34 + Math.floor(rand() * 30), 1, 1);
+    }
+    c.fillStyle = "#7f878a";
+    for (let x = 0; x < 256; x += 64) c.fillRect(x + 30, 0, 5, 34);
+    for (const y of [4, 18]) {
+      const g = c.createLinearGradient(0, y, 0, y + 10);
+      g.addColorStop(0, "#e1e5e6");
+      g.addColorStop(0.5, "#a9b0b3");
+      g.addColorStop(1, "#6d7477");
+      c.fillStyle = g;
+      c.fillRect(0, y, 256, 10);
+    }
+  });
+
+/** Gravel trap: pale stones of mixed size. */
+export const gravelTexture = () =>
+  canvasTexture(128, 128, (c) => {
+    const rand = noise(41);
+    c.fillStyle = "#c4a46f";
+    c.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 4200; i++) {
+      const l = 150 + Math.floor(rand() * 80);
+      c.fillStyle = `rgb(${l},${Math.floor(l * 0.84)},${Math.floor(l * 0.6)})`;
+      const r = rand() < 0.15 ? 2 : 1;
+      c.fillRect(Math.floor(rand() * 128), Math.floor(rand() * 128), r, r);
     }
   });
 

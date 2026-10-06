@@ -90,3 +90,24 @@ test("wheel spin follows distance, wraps the line and ignores seeks", () => {
   assert.ok(spinDelta(110, 100, 0.37, 5543) < 0, "rewind spins backwards");
   assert.equal(spinDelta(100, 900, 0.37, 5543), 0);
 });
+
+test("suspension spring settles on the target with a small overshoot, at any frame rate", async () => {
+  const { spring, rideDrop, roadShake } = await import("../src/domain/carMotion.ts");
+  const run = (fps: number) => {
+    let x = 0, v = 0, peak = 0;
+    for (let i = 0; i < fps * 2; i++) {
+      [x, v] = spring(x, v, 1, 1 / fps);
+      peak = Math.max(peak, x);
+    }
+    return { x, peak };
+  };
+  const a = run(30), b = run(144);
+  assert.ok(Math.abs(a.x - 1) < 0.01 && Math.abs(b.x - 1) < 0.01, "settles");
+  assert.ok(a.peak > 1.005 && a.peak < 1.25, `overshoot ${a.peak}`);
+  assert.ok(Math.abs(a.peak - b.peak) < 0.03, "frame-rate independent");
+  assert.deepEqual(spring(0.3, 0, 1, 0), [0.3, 0], "paused replay holds still");
+  assert.equal(rideDrop(0), 0);
+  assert.ok(rideDrop(83) > 0.015 && rideDrop(120) === 0.025);
+  assert.equal(Math.abs(roadShake(5, 0, 1).pitch), 0, "no shake when stopped");
+  assert.ok(Math.abs(roadShake(5, 90, 1).pitch) <= 0.0012);
+});

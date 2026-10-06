@@ -77,3 +77,37 @@ export function spinDelta(
   if (step > lapLength / 2) step -= lapLength;
   return Math.abs(step) > maxStep ? 0 : step / radius;
 }
+
+/**
+ * Damped spring step (semi-implicit Euler, sub-stepped for stability). Suspension settles
+ * with a slight overshoot instead of the dead-beat easing of `ease`. Returns [value, velocity].
+ */
+export function spring(
+  value: number,
+  velocity: number,
+  target: number,
+  delta: number,
+  stiffness = 90,
+  damping = 11,
+): [number, number] {
+  if (!(delta > 0)) return [value, velocity];
+  const steps = Math.min(8, Math.ceil(delta / (1 / 120)));
+  const h = Math.min(delta, 0.1) / steps;
+  for (let i = 0; i < steps; i++) {
+    velocity += (stiffness * (target - value) - damping * velocity) * h;
+    value += velocity * h;
+  }
+  return [value, velocity];
+}
+
+/** Downforce squat (m): the body runs lower as speed rises, about 2 cm at 300 km/h. */
+export const rideDrop = (speed: number) => Math.min(0.025, 2.9e-6 * speed * speed);
+
+/** Small road vibration (rad), stronger with speed; deterministic in replay time. */
+export function roadShake(time: number, speed: number, seed: number) {
+  const a = Math.min(1, speed / 80) * 0.0012;
+  return {
+    pitch: a * (Math.sin(time * 37 + seed) * 0.6 + Math.sin(time * 61 + seed * 2.3) * 0.4),
+    roll: a * (Math.sin(time * 43 + seed * 1.7) * 0.6 + Math.sin(time * 71 + seed * 0.7) * 0.4),
+  };
+}

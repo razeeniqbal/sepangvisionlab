@@ -47,6 +47,25 @@ test("interpolated distance is monotonic within a lap and unwraps across the lin
   for (const ms of [5000, 70000]) assert.ok(motionAt(d, track, ms).onTrack);
 });
 
+test("motion is smooth through samples: speed has no step, the curve still hits every sample", () => {
+  const d = prepareDriver(fixtureDriver(), decimetres, track);
+  // An accelerating car: speed steps would appear at every sample with straight-line joins.
+  const accel: DriverFile = fixtureDriver();
+  const t = accel.location.t.reduce<number[]>((out, v) => (out.push((out.at(-1) ?? 0) + v), out), []);
+  const pts = t.map((ms) => poseAtDistance(track, 0.5 * 4 * (ms / 1000) ** 2 / 10));
+  accel.location.x = delta(pts.map((p) => Math.round(p.x * 10)));
+  accel.location.y = delta(pts.map((p) => Math.round(p.y * 10)));
+  const a = prepareDriver(accel, decimetres, track);
+  const speed = (ms: number) => (motionAt(a, track, ms + 5).distance - motionAt(a, track, ms - 5).distance) / 0.01;
+  for (const k of [40, 80, 120]) {
+    const at = a.t[k];
+    const jump = Math.abs(speed(at + 6) - speed(at - 6));
+    assert.ok(jump < 0.35, `speed step ${jump.toFixed(2)} m/s at sample ${k}`);
+  }
+  for (const k of [10, 99, 200]) assert.ok(Math.abs(motionAt(d, track, d.t[k]).distance - d.s[k]) < 1e-9);
+  assert.ok(Math.abs(motionAt(d, track, 20000).heading - poseAtDistance(track, motionAt(d, track, 20000).distance).heading) < 0.05, "no lane change, no extra yaw");
+});
+
 test("a data gap holds the last sample and marks the car stale, never inventing motion", () => {
   const d = prepareDriver(fixtureDriver(), decimetres, track);
   const before = motionAt(d, track, 40000), inGap = motionAt(d, track, 43000);

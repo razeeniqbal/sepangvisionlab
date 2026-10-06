@@ -1,11 +1,14 @@
 import {
   BoxGeometry,
   BufferGeometry,
+  CanvasTexture,
+  CircleGeometry,
   Color,
   CylinderGeometry,
   Float32BufferAttribute,
   Group,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   Quaternion,
   RingGeometry,
@@ -25,8 +28,8 @@ import {
 // One merged, vertex-coloured mesh per wheel: one draw call each, shared per compound.
 const material = new MeshStandardMaterial({
   vertexColors: true,
-  roughness: 0.65,
-  metalness: 0.25,
+  roughness: 0.82,
+  metalness: 0.12,
 });
 const cache = new Map<string, BufferGeometry>();
 
@@ -85,9 +88,36 @@ export interface WheelRig {
   spin: Object3D; // rotation.y rolls forward
 }
 
-/** Four generated wheels at the derived hubs: hub → steer → spin → mesh. */
+// Motion blur over the rim: a soft grey disc that fades in with speed, as spokes smear on camera.
+let blurMap: CanvasTexture | null = null;
+function blurTexture() {
+  if (blurMap || typeof document === "undefined") return blurMap;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 64;
+  const c = canvas.getContext("2d");
+  if (c) {
+    const g = c.createRadialGradient(32, 32, 4, 32, 32, 32);
+    g.addColorStop(0, "rgba(255,255,255,1)");
+    g.addColorStop(0.7, "rgba(255,255,255,0.85)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    c.fillStyle = g;
+    c.fillRect(0, 0, 64, 64);
+  }
+  return (blurMap = new CanvasTexture(canvas));
+}
+const blurDisc = new CircleGeometry(WHEEL_RADIUS * COVER * 0.86, 24);
+
+/** Four generated wheels at the derived hubs: hub → steer → spin → mesh, plus a blur disc. */
 export function createGeneratedWheels(compound: VisualTyreCompound) {
   const root = new Group();
+  // Per car: its opacity follows that car's speed.
+  const blur = new MeshBasicMaterial({
+    color: "#4a5154",
+    alphaMap: blurTexture(),
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
   const rigs: WheelRig[] = WHEEL_HUBS.map((hub) => {
     const steer = new Group(),
       spin = new Group();
@@ -96,11 +126,19 @@ export function createGeneratedWheels(compound: VisualTyreCompound) {
     mesh.castShadow = false;
     spin.add(mesh);
     steer.add(spin);
+    const disc = new Mesh(blurDisc, blur);
+    disc.rotation.x = hub.side > 0 ? -Math.PI / 2 : Math.PI / 2;
+    disc.position.y = hub.side * ((WHEEL_WIDTH * COVER) / 2 + 0.0016);
+    disc.renderOrder = 1;
+    steer.add(disc);
     root.add(steer);
     return { id: hub.id, front: hub.front, steer, spin };
   });
-  return { root, rigs };
+  return { root, rigs, blur };
 }
+
+/** Blur opacity for a road speed in m/s: none below ~55 km/h, full by ~200 km/h. */
+export const wheelBlur = (speed: number) => Math.max(0, Math.min(0.92, (speed - 15) / 40));
 
 const Z = new Vector3(0, 0, 1),
   Y = new Vector3(0, 1, 0);

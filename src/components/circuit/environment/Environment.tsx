@@ -14,11 +14,14 @@ import {
   MeshStandardMaterial,
   Object3D,
   PlaneGeometry,
+  PMREMGenerator,
+  Scene,
   ShaderMaterial,
   SphereGeometry,
   Vector3,
 } from "three";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import type { TrackProfile } from "../../../domain/lapPhysics";
 import { anchorInProfile } from "./anchors";
 import { findCorners } from "../../../domain/lapPhysics";
@@ -57,6 +60,9 @@ import {
 import {
   seatTexture,
   asphaltTexture,
+  barrierTexture,
+  grassTexture,
+  gravelTexture,
   chevronTexture,
   kerbTexture,
   turnBoardTexture,
@@ -84,6 +90,31 @@ function toGeometry(strip: StripMesh) {
   g.computeVertexNormals();
   g.computeBoundingSphere();
   return g;
+}
+
+/**
+ * Large-scale light and dark patches across grass (world space, ~40-150 m), so the 24 m
+ * texture repeat does not read as a grid from the helicopter. Costs a few ALU ops per pixel.
+ */
+function withMacroVariation<T extends MeshStandardMaterial>(material: T): T {
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec2 vSvlWorld;")
+      .replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\nvSvlWorld = (modelMatrix * vec4(transformed, 1.0)).xy;",
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying vec2 vSvlWorld;")
+      .replace(
+        "#include <map_fragment>",
+        "#include <map_fragment>\nvec2 q = vSvlWorld;" +
+          "float m = sin(q.x * 0.043 + sin(q.y * 0.031)) * 0.5 + sin(q.y * 0.057 + q.x * 0.012) * 0.3 + sin((q.x + q.y) * 0.11) * 0.2;" +
+          "diffuseColor.rgb *= 0.9 + 0.1 * m;",
+      );
+  };
+  material.customProgramCacheKey = () => "svl-macro-grass";
+  return material;
 }
 
 // Layered surfaces: polygonOffset pushes the lower layers back on 16-bit depth GPUs.
@@ -267,15 +298,21 @@ function Surfaces({
     return {
       asphalt: new MeshStandardMaterial({ map: asphalt, roughness: 0.92 }),
       lines: new MeshStandardMaterial({ color: "#eef0ea", roughness: 0.7 }),
-      runoff: new MeshStandardMaterial({
-        color: "#6f7d64",
+      runoff: withMacroVariation(new MeshStandardMaterial({
+        map: (() => {
+          const t = grassTexture();
+          t.repeat.set(0.6, 1);
+          return t;
+        })(),
+        color: "#c9d6b8",
         roughness: 1,
         ...lower,
-      }),
+      })),
       kerbs: new MeshStandardMaterial({ map: kerbTexture(), roughness: 0.6 }),
       barriers: new MeshStandardMaterial({
-        color: "#c9cdc8",
-        roughness: 0.8,
+        map: barrierTexture(),
+        roughness: 0.55,
+        metalness: 0.25,
         side: DoubleSide,
       }),
     };
@@ -318,7 +355,12 @@ const glass = new MeshStandardMaterial({
 // Seat mosaic: generic coloured seats (canvas texture), not a sponsor or team pattern.
 const seats = new MeshStandardMaterial({ map: seatTexture(), roughness: 0.8 });
 const gravelMaterial = new MeshStandardMaterial({
-  color: "#c8a46b",
+  map: (() => {
+    if (typeof document === "undefined") return null;
+    const t = gravelTexture();
+    t.repeat.set(1, 3);
+    return t;
+  })(),
   roughness: 1,
   polygonOffset: true,
   polygonOffsetFactor: 1,
@@ -584,12 +626,10 @@ function CornerBoards({ boards }: { boards: Placement[] }) {
 function Palms({ palms: all, count }: { palms: readonly Palm[]; count: number }) {
   const parts = useMemo(() => {
     const palms = all.slice(0, count);
-    const trunk = new CylinderGeometry(0.22, 0.38, 9, 6)
+    const trunk = new CylinderGeometry(0.24, 0.42, 9, 7)
       .rotateX(Math.PI / 2)
       .translate(0, 0, 4.5);
-    const crown = new IcosahedronGeometry(3.4, 0)
-      .scale(1, 1, 0.42)
-      .translate(0, 0, 9.3);
+    const crown = palmCrown();
     const o = new Object3D();
     const matrices = palms.map((p) => {
       o.position.set(p.x, p.y, 0);
@@ -604,12 +644,29 @@ function Palms({ palms: all, count }: { palms: readonly Palm[]; count: number })
       matrices,
       bark: new MeshStandardMaterial({ color: "#6b5a45", roughness: 1 }),
       leaves: new MeshStandardMaterial({
-        color: "#2f5a2c",
-        roughness: 0.9,
-        flatShading: true,
+        color: "#ffffff",
+        roughness: 0.85,
+        side: DoubleSide,
+      }),
+      // Each palm a slightly different green, so the plantation does not read as one stamp.
+      colours: palms.map((p) => {
+        const k = (Math.sin(p.x * 12.9898 + p.y * 78.233) * 43758.5453) % 1;
+        return new Color().setHSL(0.27 + Math.abs(k) * 0.05, 0.45, 0.2 + Math.abs(k) * 0.08);
       }),
     };
   }, [all, count]);
+  const crowns = useRef<InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const mesh = crowns.current;
+    if (!mesh) return;
+    parts.matrices.forEach((m, i) => {
+      mesh.setMatrixAt(i, m);
+      mesh.setColorAt(i, parts.colours[i]);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [parts]);
   return (
     <>
       <Instanced
@@ -617,20 +674,81 @@ function Palms({ palms: all, count }: { palms: readonly Palm[]; count: number })
         material={parts.bark}
         matrices={parts.matrices}
       />
-      <Instanced
-        geometry={parts.crown}
-        material={parts.leaves}
-        matrices={parts.matrices}
+      <instancedMesh
+        ref={crowns}
+        args={[parts.crown, parts.leaves, parts.matrices.length]}
+        frustumCulled={false}
       />
     </>
   );
+}
+
+/**
+ * Oil palm crown: 12 fronds arching out and drooping from the top of a 9 m trunk, each a
+ * tapered strip. One merged geometry (about 200 triangles) shared by every instance.
+ */
+function palmCrown() {
+  const fronds: BufferGeometry[] = [];
+  const segments = 5,
+    length = 4.6;
+  for (let f = 0; f < 12; f++) {
+    const yaw = (f / 12) * Math.PI * 2 + (f % 2) * 0.2;
+    const rise = f % 2 ? 0.55 : 0.25; // upper and lower ring of fronds
+    const positions: number[] = [];
+    const index: number[] = [];
+    for (let k = 0; k <= segments; k++) {
+      const t = k / segments;
+      const r = t * length;
+      const z = 9 + rise * 2 * t - 2.6 * t * t; // arch up, then droop
+      const half = 0.55 * Math.sin(Math.PI * Math.min(1, t * 1.15)) + 0.04;
+      const cx = Math.cos(yaw) * r,
+        cy = Math.sin(yaw) * r;
+      const px = -Math.sin(yaw) * half,
+        py = Math.cos(yaw) * half;
+      positions.push(cx + px, cy + py, z - 0.12 * t, cx - px, cy - py, z - 0.12 * t);
+      if (k)
+        index.push((k - 1) * 2, (k - 1) * 2 + 1, k * 2, (k - 1) * 2 + 1, k * 2 + 1, k * 2);
+    }
+    const g = new BufferGeometry();
+    g.setAttribute("position", new BufferAttribute(new Float32Array(positions), 3));
+    g.setIndex(index);
+    g.computeVertexNormals();
+    fronds.push(g);
+  }
+  const merged = mergeGeometries(fronds)!;
+  fronds.forEach((g) => g.dispose());
+  return merged;
+}
+
+/** Lumpy broadleaf crown: three overlapping, gently displaced spheres (smooth shaded). */
+function broadleafCrown() {
+  const lumps = [
+    [0, 0, 6.2, 3.4],
+    [1.6, 0.8, 5.6, 2.6],
+    [-1.3, -1, 5.8, 2.5],
+  ].map(([x, y, z, r], n) => {
+    const g = new IcosahedronGeometry(r, 1);
+    const pos = g.getAttribute("position") as BufferAttribute;
+    for (let i = 0; i < pos.count; i++) {
+      const vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
+      const k = 1 + 0.12 * Math.sin(vx * 2.1 + n) * Math.cos(vy * 1.7 + vz * 1.3);
+      pos.setXYZ(i, vx * k, vy * k, vz * k * 0.85);
+    }
+    g.deleteAttribute("uv");
+    const out = g.translate(x, y, z);
+    out.computeVertexNormals();
+    return out;
+  });
+  const merged = mergeGeometries(lumps)!;
+  lumps.forEach((g) => g.dispose());
+  return merged;
 }
 
 // Low-poly broadleaf trees: chunky crowns in a few greens (one draw call for crowns).
 function TreeClumps({ trees }: { trees: readonly Tree[] }) {
   const parts = useMemo(() => {
     const trunk = new CylinderGeometry(0.35, 0.5, 4, 5).rotateX(Math.PI / 2).translate(0, 0, 2);
-    const crown = new IcosahedronGeometry(3.6, 0).scale(1, 1, 0.85).translate(0, 0, 6.2);
+    const crown = broadleafCrown();
     const o = new Object3D();
     const matrices = trees.map((t) => {
       o.position.set(t.x, t.y, 0);
@@ -644,7 +762,7 @@ function TreeClumps({ trees }: { trees: readonly Tree[] }) {
       trunk, crown, matrices,
       colours: trees.map((t) => greens[Math.floor(t.shade * greens.length) % greens.length]),
       bark: new MeshStandardMaterial({ color: "#5d4a38", roughness: 1 }),
-      leaves: new MeshStandardMaterial({ roughness: 0.9, flatShading: true }),
+      leaves: new MeshStandardMaterial({ roughness: 0.9 }),
     };
   }, [trees]);
   const crowns = useRef<InstancedMesh>(null);
@@ -708,16 +826,84 @@ function Sky({ wet, sunDisc }: { wet: boolean; sunDisc: boolean }) {
     [],
   );
   const sky = useRef<Mesh>(null);
+  const { gl, scene } = useThree();
   useLayoutEffect(() => {
     material.uniforms.horizon.value.set(wet ? SKY.wetHorizon : SKY.horizon);
     material.uniforms.zenith.value.set(wet ? SKY.wetZenith : SKY.zenith);
     material.uniforms.sunOn.value = !wet && sunDisc ? 1 : 0;
-  }, [material, wet, sunDisc]);
+    // Image-based light from this same sky, prefiltered once: paint, glass and wet asphalt
+    // reflect the real sky and the shadowed sides of everything pick up its soft fill.
+    const probe = new Scene();
+    const dome = new Mesh(new SphereGeometry(100, 32, 16).rotateX(Math.PI / 2), material);
+    probe.add(dome);
+    // A sunlit ground below the horizon so reflections are not black underneath.
+    const ground = new Mesh(
+      new PlaneGeometry(400, 400),
+      new MeshStandardMaterial({ color: wet ? "#3a4038" : "#55663f", emissive: wet ? "#2a2f2b" : "#4a5a36", emissiveIntensity: 0.6 }),
+    );
+    ground.position.z = -2;
+    probe.add(ground);
+    material.uniforms.sunOn.value = !wet ? 1 : 0;
+    const pmrem = new PMREMGenerator(gl);
+    const target = pmrem.fromScene(probe, 0.02, 0.1, 500);
+    material.uniforms.sunOn.value = !wet && sunDisc ? 1 : 0;
+    scene.environment = target.texture;
+    scene.environmentIntensity = wet ? 0.55 : 0.75;
+    pmrem.dispose();
+    dome.geometry.dispose();
+    ground.geometry.dispose();
+    (ground.material as MeshStandardMaterial).dispose();
+    return () => {
+      if (scene.environment === target.texture) scene.environment = null;
+      target.dispose();
+    };
+  }, [material, wet, sunDisc, gl, scene]);
   // The sky follows the camera so it never clips at the far plane.
   useFrame(({ camera }) => sky.current?.position.copy(camera.position));
   return (
     <mesh ref={sky} geometry={geometry} material={material} renderOrder={-1} />
   );
+}
+
+/**
+ * Low hills on the horizon, well beyond the plantation, so the view does not end in a flat
+ * line. Illustrative (no terrain data): a seeded ring that the fog fades into the sky.
+ */
+function Hills({ bounds, wet }: { bounds: EnvironmentLayout["bounds"]; wet: boolean }) {
+  const geometry = useMemo(() => {
+    const cx = (bounds.minX + bounds.maxX) / 2,
+      cy = (bounds.minY + bounds.maxY) / 2;
+    const inner = Math.hypot(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) / 2 + 1500;
+    const seg = 160,
+      rings = 4,
+      depth = 1400;
+    const positions: number[] = [];
+    const index: number[] = [];
+    for (let r = 0; r <= rings; r++)
+      for (let k = 0; k <= seg; k++) {
+        const a = (k / seg) * Math.PI * 2;
+        const t = r / rings;
+        const ridge =
+          60 + 70 * Math.sin(a * 3 + 1.1) + 45 * Math.sin(a * 7 + 0.4) + 25 * Math.sin(a * 17 + 2.3);
+        const h = Math.max(0, ridge) * Math.sin(Math.PI * t) * (0.6 + 0.4 * t);
+        const radius = inner + depth * t;
+        positions.push(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius, h - 2);
+        if (r && k) {
+          const i = r * (seg + 1) + k;
+          index.push(i - seg - 2, i - 1, i, i - seg - 2, i, i - seg - 1);
+        }
+      }
+    const g = new BufferGeometry();
+    g.setAttribute("position", new BufferAttribute(new Float32Array(positions), 3));
+    g.setIndex(index);
+    g.computeVertexNormals();
+    return g;
+  }, [bounds]);
+  const material = useMemo(() => new MeshStandardMaterial({ color: "#3f5a36", roughness: 1, side: DoubleSide }), []);
+  useLayoutEffect(() => {
+    material.color.set(wet ? "#3d4a3c" : "#3f5a36");
+  }, [material, wet]);
+  return <mesh geometry={geometry} material={material} />;
 }
 
 export default function Environment({
@@ -737,18 +923,35 @@ export default function Environment({
     return {
       geometry: new PlaneGeometry(maxX - minX + pad * 2, maxY - minY + pad * 2),
       position: [(minX + maxX) / 2, (minY + maxY) / 2, LAYER.ground] as const,
-      material: new MeshStandardMaterial({
+      material: withMacroVariation(new MeshStandardMaterial({
         color: "#4f6b3c",
         roughness: 1,
         ...lower,
         polygonOffsetFactor: 4,
         polygonOffsetUnits: 4,
-      }),
+      })),
+      size: [maxX - minX + pad * 2, maxY - minY + pad * 2] as const,
     };
   }, [layout]);
+  // Grass detail on Balanced and High: one 24 m repeat over the whole ground plane.
+  useLayoutEffect(() => {
+    const m = ground.material;
+    if (quality.terrain && !m.map) {
+      const t = grassTexture();
+      t.repeat.set(ground.size[0] / 24, ground.size[1] / 24);
+      m.map = t;
+      m.color.set("#ffffff");
+    } else if (!quality.terrain && m.map) {
+      m.map.dispose();
+      m.map = null;
+      m.color.set("#4f6b3c");
+    }
+    m.needsUpdate = true;
+  }, [ground, quality.terrain]);
   return (
     <>
       <Sky wet={wet} sunDisc={quality.sunDisc} />
+      {quality.terrain && <Hills bounds={layout.bounds} wet={wet} />}
       <mesh
         geometry={ground.geometry}
         material={ground.material}

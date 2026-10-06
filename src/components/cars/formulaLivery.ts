@@ -1,7 +1,7 @@
 import {
   Color,
   DoubleSide,
-  MeshStandardMaterial,
+  MeshPhysicalMaterial,
   Vector3,
   type Texture,
 } from "three";
@@ -96,7 +96,7 @@ export function createFormulaMaterialLibrary(
   const fallback = definitions.get(fallbackId);
   if (!fallback || definitions.size !== profiles.length)
     throw new Error("Invalid livery library");
-  const materials = new Map<string, MeshStandardMaterial>();
+  const materials = new Map<string, MeshPhysicalMaterial>();
   function get(
     id: string = fallbackId,
     requested: VisualTyreCompound = "UNKNOWN",
@@ -111,12 +111,16 @@ export function createFormulaMaterialLibrary(
     const key = JSON.stringify([definition.id, compound]);
     const cached = materials.get(key);
     if (cached) return cached;
-    const material = new MeshStandardMaterial({
+    // Physical paint: a clear coat over the bodywork reflects the sky like a real livery.
+    // The coat is masked off tyres and the dark lower carbon in the shader below.
+    const material = new MeshPhysicalMaterial({
       name: `SVL · ${definition.id} · ${compound}`,
       color: "#ffffff",
       map: definition.liveryTexture ?? null,
       roughness: definition.surface.bodyRoughness,
       metalness: definition.surface.bodyMetalness,
+      clearcoat: 1,
+      clearcoatRoughness: 0.08,
       side: DoubleSide,
     });
     material.onBeforeCompile = (shader) => {
@@ -168,9 +172,13 @@ export function createFormulaMaterialLibrary(
         .replace(
           "#include <metalnessmap_fragment>",
           "#include <metalnessmap_fragment>\nmetalnessFactor=mix(mix(svlMetalness.x,svlMetalness.y,svlLow),0.0,svlTyre);",
+        )
+        .replace(
+          "#include <lights_physical_fragment>",
+          "#include <lights_physical_fragment>\nmaterial.clearcoat*=(1.0-svlTyre)*(1.0-svlLow*0.85);",
         );
     };
-    material.customProgramCacheKey = () => "svl-formula-v24-standard";
+    material.customProgramCacheKey = () => "svl-formula-v25-physical";
     materials.set(key, material);
     return material;
   }
@@ -223,8 +231,8 @@ export function teamLivery(colour: string): FormulaLiveryDefinition {
       technical: "#e3e7e6",
     }),
     surface: Object.freeze({
-      bodyRoughness: 0.42,
-      carbonRoughness: 0.7,
+      bodyRoughness: 0.34,
+      carbonRoughness: 0.55,
       rubberRoughness: 0.96,
       bodyMetalness: 0.25,
       mechanicalMetalness: 0.3,

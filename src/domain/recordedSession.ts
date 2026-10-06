@@ -124,7 +124,33 @@ export interface MotionSample {
   heading: number;
 }
 
-/** Motion at a time: linear in distance between samples, held (and marked stale) across gaps. */
+/**
+ * Monotone cubic Hermite (Fritsch-Carlson) between samples i and j, with tangents from the
+ * neighbouring samples. It passes through every sample, never overshoots between two of them,
+ * and keeps speed continuous, so cars no longer jerk at each ~4 Hz sample. Returns the value
+ * and its rate per millisecond. Neighbours across a data gap are ignored.
+ */
+function smoothBetween(t: ArrayLike<number>, v: ArrayLike<number>, i: number, j: number, f: number) {
+  const gap = t[j] - t[i];
+  if (j === i || !(gap > 0)) return { value: v[i], rate: 0 };
+  const chord = (v[j] - v[i]) / gap;
+  const slope = (a: number, b: number) => {
+    const dt = t[b] - t[a];
+    return dt > 0 && dt <= STALE_AFTER_MS + gap ? (v[b] - v[a]) / dt : chord;
+  };
+  const limit = (m: number) => (chord === 0 || Math.sign(m) !== Math.sign(chord) ? 0 : Math.sign(chord) * Math.min(Math.abs(m), 3 * Math.abs(chord)));
+  const mi = limit(i > 0 && t[i] - t[i - 1] <= STALE_AFTER_MS ? slope(i - 1, j) : chord);
+  const mj = limit(j + 1 < t.length && t[j + 1] - t[j] <= STALE_AFTER_MS ? slope(i, j + 1) : chord);
+  const f2 = f * f, f3 = f2 * f;
+  const value = (2 * f3 - 3 * f2 + 1) * v[i] + (f3 - 2 * f2 + f) * gap * mi + (3 * f2 - 2 * f3) * v[j] + (f3 - f2) * gap * mj;
+  const rate = ((6 * f2 - 6 * f) * (v[i] - v[j])) / gap + (3 * f2 - 4 * f + 1) * mi + (3 * f2 - 2 * f) * mj;
+  return { value, rate };
+}
+
+/** Largest yaw (rad) added for sideways motion; real cars rarely point further off the road line. */
+const MAX_LANE_YAW = 0.3;
+
+/** Motion at a time: smooth between samples, held (and marked stale) across gaps. */
 export function motionAt(d: DriverTrack, track: TrackProfile, time: number): MotionSample {
   const i = lastAtOrBefore(d.t, time);
   if (i < 0) return { present: false, stale: true, onTrack: false, distance: d.s[0] ?? 0, lateral: 0, x: d.wx[0] ?? 0, y: d.wy[0] ?? 0, heading: 0 };
@@ -134,12 +160,16 @@ export function motionAt(d: DriverTrack, track: TrackProfile, time: number): Mot
   const stale = hold && time - d.t[i] > STALE_AFTER_MS;
   const f = hold || gap <= 0 ? 0 : (time - d.t[i]) / gap;
   const onTrack = Math.abs(d.lateral[i]) <= ON_TRACK_METRES && Math.abs(d.lateral[j]) <= ON_TRACK_METRES;
-  const distance = d.s[i] + (d.s[j] - d.s[i]) * f;
-  const lateral = d.lateral[i] + (d.lateral[j] - d.lateral[i]) * f;
+  const along = smoothBetween(d.t, d.s, i, hold ? i : j, f);
+  const across = smoothBetween(d.t, d.lateral, i, hold ? i : j, f);
+  const distance = along.value;
+  const lateral = across.value;
   if (onTrack) {
     const pose = poseAtDistance(track, distance);
     const nx = -Math.sin(pose.heading), ny = Math.cos(pose.heading);
-    return { present: true, stale, onTrack, distance, lateral, x: pose.x + nx * lateral, y: pose.y + ny * lateral, heading: pose.heading };
+    // Point the car where it is going: a lane change yaws the nose instead of crabbing sideways.
+    const yaw = along.rate > 0.003 ? Math.max(-MAX_LANE_YAW, Math.min(MAX_LANE_YAW, Math.atan2(across.rate, along.rate))) : 0;
+    return { present: true, stale, onTrack, distance, lateral, x: pose.x + nx * lateral, y: pose.y + ny * lateral, heading: pose.heading + yaw };
   }
   // Off the profile (pit lane centre line is UNAVAILABLE): raw aligned position, no snapping.
   const x = d.wx[i] + (d.wx[j] - d.wx[i]) * f, y = d.wy[i] + (d.wy[j] - d.wy[i]) * f;

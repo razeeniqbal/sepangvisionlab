@@ -4,6 +4,7 @@ import { Html } from "@react-three/drei";
 import {
   BufferAttribute,
   BufferGeometry,
+  CanvasTexture,
   DirectionalLight,
   Fog,
   Group,
@@ -13,6 +14,7 @@ import {
   MeshBasicMaterial,
   Object3D,
   PerspectiveCamera,
+  PlaneGeometry,
   Raycaster,
   Vector3,
 } from "three";
@@ -41,6 +43,7 @@ import {
 } from "./cameraRig";
 import FormulaCar from "../cars/FormulaCar";
 import PerfStats from "./PerfStats";
+import Effects from "./Effects";
 import { QUALITY, type QualitySettings } from "./quality";
 import { themedAccent } from "../../themeRuntime";
 import { SimplifiedCar } from "../cars/CarRepresentation";
@@ -50,7 +53,10 @@ import {
   attitudeTarget,
   curvatureAt,
   ease,
+  rideDrop,
+  roadShake,
   spinDelta,
+  spring,
   steerAngle,
 } from "../../domain/carMotion";
 import {
@@ -64,6 +70,7 @@ import {
 import {
   createGeneratedWheels,
   modelWheelDriver,
+  wheelBlur,
 } from "../cars/wheels/generatedWheels";
 
 // Metric scene: 1 unit = 1 m, z up, built from the same profile the physics samples.
@@ -90,6 +97,40 @@ export interface DriverSceneProps {
   wet?: boolean;
   quality?: QualitySettings;
 }
+
+// Soft contact shadow under every car (one shared texture and plane): grounds the cars that
+// are outside the sun's shadow box, and darkens the road right under the floor like a real car.
+const contactShadow = (() => {
+  let texture: CanvasTexture | null = null;
+  if (typeof document !== "undefined") {
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 128;
+    const c = canvas.getContext("2d");
+    if (c) {
+      const g = c.createRadialGradient(32, 64, 6, 32, 64, 64);
+      g.addColorStop(0, "rgba(0,0,0,0.75)");
+      g.addColorStop(0.5, "rgba(0,0,0,0.45)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      c.fillStyle = g;
+      c.fillRect(0, 0, 64, 128);
+    }
+    texture = new CanvasTexture(canvas);
+  }
+  return {
+    geometry: new PlaneGeometry(2.6, 6.4).rotateZ(Math.PI / 2),
+    material: new MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.85,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+    }),
+  };
+})();
+// Rear rain light: blinks in the wet and in the pit lane (speed limiter), as on the real cars.
+const rainLightMaterial = new MeshBasicMaterial({ color: "#ff2a2a", toneMapped: false });
 
 // Line-of-sight test against scenery tagged as an occluder (buildings, gantry, boards, trees).
 const ray = new Raycaster();
@@ -145,7 +186,11 @@ function DriverCar({
   occluders,
   tyresKnown,
   onSelect,
+  wet,
+  shadowCaster,
 }: {
+  wet: boolean;
+  shadowCaster: boolean;
   car: CarDefinition;
   index: number;
   field: RefObject<CarState[]>;
@@ -164,6 +209,8 @@ function DriverCar({
   const shown = useRef("");
   const body = useRef<Group>(null);
   const attitude = useRef<Group>(null);
+  const pivot = useRef<Group>(null);
+  const rainLight = useRef<Mesh>(null);
   const compound = visualTyreCompound(
     field.current[index]?.compound,
     tyresKnown,
@@ -192,7 +239,9 @@ function DriverCar({
     steer: 0,
     spin: 0,
     pitch: 0,
+    pitchV: 0,
     roll: 0,
+    rollV: 0,
     model: null as ReturnType<typeof modelWheelDriver>,
   });
   useFrame(({ camera }, delta) => {
@@ -270,9 +319,19 @@ function DriverCar({
       delta,
       10,
     );
-    m.pitch = ease(m.pitch, target.pitch, delta, 6);
-    m.roll = ease(m.roll, target.roll, delta, 6);
-    attitude.current?.rotation.set(m.roll, m.pitch, 0);
+    // Sprung body: dives, squats and rolls with a little overshoot; a paused replay holds still.
+    const step = dt > 0 && dt < 1 ? delta : 0;
+    [m.pitch, m.pitchV] = spring(m.pitch, m.pitchV, target.pitch, step);
+    [m.roll, m.rollV] = spring(m.roll, m.rollV, target.roll, step);
+    const shake = roadShake(clock.current, speed, index * 1.37);
+    attitude.current?.rotation.set(m.roll + shake.roll, m.pitch + shake.pitch, 0);
+    if (pivot.current) pivot.current.position.z = HUB_Z - rideDrop(speed) / CAR_SCALE;
+    wheels.blur.opacity = wheelBlur(speed);
+    if (rainLight.current) {
+      const inPit = (state as Posed & { inPit?: boolean }).inPit === true;
+      rainLight.current.visible =
+        present && (wet || inPit) && Math.floor(clock.current * 4) % 2 === 0;
+    }
     if (WHEELS === "model" && attitude.current)
       m.model ??= modelWheelDriver(attitude.current);
     wheels.root.visible = !m.model;
@@ -284,7 +343,12 @@ function DriverCar({
       }
     // The GLB loads asynchronously, so keep the shadow flag in step with selection.
     body.current?.traverse((object) => {
-      if (object instanceof Mesh) object.castShadow = selected;
+      if (
+        object instanceof Mesh &&
+        object.material !== wheels.blur &&
+        object.material !== rainLightMaterial
+      )
+        object.castShadow = shadowCaster;
     });
   });
   return (
@@ -299,7 +363,7 @@ function DriverCar({
     >
       <group ref={body} scale={CAR_SCALE}>
         {/* Pitch and roll pivot at hub height; the wheels stay planted. */}
-        <group position={[0, 0, HUB_Z]}>
+        <group ref={pivot} position={[0, 0, HUB_Z]}>
           <group ref={attitude}>
             <group position={[0, 0, -HUB_Z]}>
               <FormulaCar
@@ -307,11 +371,25 @@ function DriverCar({
                 teamColor={car.color}
                 fallback={<SimplifiedCar />}
               />
+              <mesh
+                ref={rainLight}
+                material={rainLightMaterial}
+                position={[-0.522, 0, 0.074]}
+                visible={false}
+              >
+                <boxGeometry args={[0.006, 0.026, 0.01]} />
+              </mesh>
             </group>
           </group>
         </group>
         <primitive object={wheels.root} />
       </group>
+      <mesh
+        geometry={contactShadow.geometry}
+        material={contactShadow.material}
+        position={[0, 0, 0.012]}
+        renderOrder={1}
+      />
       <Html position={[0, 0, 2.4]} center zIndexRange={[20, 0]}>
         <div
           ref={label}
@@ -505,7 +583,7 @@ function CameraRig({
   return (
     <>
       <hemisphereLight
-        args={["#e8f1f4", "#4c5a3e", 1.4]}
+        args={["#e8f1f4", "#4c5a3e", 0.75]}
         position={[0, 0, 1]}
       />
       {/* A tight shadow camera that follows the selected car; only that car casts. */}
@@ -579,6 +657,7 @@ function World({
         wet={wet}
         quality={quality}
       />
+      {quality.effects && <Effects />}
       {ghost && <GhostCar ghost={ghost} clock={clock} />}
       {entries.map(
         (car, index) =>
@@ -597,6 +676,8 @@ function World({
               occluders={occluders}
               tyresKnown={tyresKnown}
               onSelect={onSelect}
+              wet={wet}
+              shadowCaster={car.id === selectedId || quality.allCarShadows}
             />
           ),
       )}
