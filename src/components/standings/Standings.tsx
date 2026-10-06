@@ -56,7 +56,7 @@ export default function Standings({
   return (
     <section
       className={
-        "standings-panel bc-tower" +
+        "standings-panel bc-tower glass" +
         (collapsed ? " is-collapsed" : "") +
         (extras ? " has-extras" : "")
       }

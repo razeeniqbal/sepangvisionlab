@@ -4,12 +4,13 @@ const CHIP: Record<TrackStatus, string> = {
   GREEN: "Green",
   YELLOW: "Yellow",
   SC: "Safety car",
-  VSC: "Virtual safety car",
+  VSC: "VSC",
   RED: "Red flag",
   CHEQUERED: "Chequered",
-  NONE: "No status",
+  NONE: "—",
 };
 
+/** Race-control toast: track status chip and the latest message at the replay time. */
 export default function RaceControlTicker({
   latest,
   status,
@@ -21,23 +22,23 @@ export default function RaceControlTicker({
   yellowSectors: readonly number[];
   clock: (t: number) => string;
 }) {
+  const sectors =
+    status === "YELLOW" && yellowSectors.length
+      ? yellowSectors.length > 3
+        ? ` · ${yellowSectors.length} sectors`
+        : ` · S${yellowSectors.join(", S")}`
+      : "";
   return (
-    <section className="rec-ticker" aria-label="Race control" aria-live="polite">
-      <strong className="rec-ticker-title">Race control</strong>
-      {latest ? (
-        <>
-          <time>{clock(latest.t)}</time>
-          <span className="rec-ticker-message">{latest.message}</span>
-        </>
-      ) : (
-        <span className="rec-ticker-message">No messages yet</span>
-      )}
-      <span className={"rec-flag is-" + status.toLowerCase()}>
+    <section className="sv-toast glass" aria-label="Race control" aria-live="polite">
+      <span className={"sv-flag is-" + status.toLowerCase()}>
+        <i aria-hidden="true" />
         {CHIP[status]}
-        {status === "YELLOW" && yellowSectors.length > 0 && (
-          <> · S{yellowSectors.join(", S")}</>
-        )}
+        {sectors}
       </span>
+      <span className="sv-toast-message" title={latest?.message ?? undefined}>
+        {latest ? latest.message : "No race control messages yet"}
+      </span>
+      {latest && <time className="sv-muted">{clock(latest.t)}</time>}
     </section>
   );
 }

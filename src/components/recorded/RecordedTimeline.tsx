@@ -1,14 +1,15 @@
 import type { Marker } from "../../domain/recordedSession";
 import { PLAYBACK_SPEEDS } from "../../domain/replay";
+import Icon from "../ui/Icon";
 
 const LABEL: Record<Marker["kind"], string> = {
   start: "Start",
-  yellow: "Y",
-  sc: "SC",
-  vsc: "VSC",
-  red: "Red",
-  chequered: "Fin",
-  trackLimits: "TL",
+  yellow: "Yellow flag",
+  sc: "Safety car",
+  vsc: "Virtual safety car",
+  red: "Red flag",
+  chequered: "Chequered flag",
+  trackLimits: "Track limits",
 };
 
 export function clockText(ms: number) {
@@ -20,7 +21,7 @@ export function clockText(ms: number) {
   return h ? h + ":" + mm : mm;
 }
 
-/** Replay on the real session timeline (UTC shown), with race-control markers. */
+/** Floating replay bar on the real session timeline (UTC shown), with race-control markers. */
 export default function RecordedTimeline({
   time,
   duration,
@@ -45,76 +46,74 @@ export default function RecordedTimeline({
   onSpeed: (speed: number) => void;
 }) {
   const utc = new Date(Date.parse(t0) + time * 1000).toISOString().slice(11, 19);
-  // Track-limit notes are frequent; show them only as thin ticks.
+  const pct = (t: number) => `${(t / duration) * 100}%`;
   return (
     <section
       id="race-replay"
       tabIndex={-1}
-      className="timeline-panel rec-timeline"
+      className="sv-replay glass"
       aria-label="Recorded session replay"
     >
-      <div className="timeline-heading">
-        <h2>
-          Replay <span>/ recorded</span>
-        </h2>
-        <strong data-testid="replay-time">
-          {clockText(time * 1000)} / {clockText(duration * 1000)}
-        </strong>
-        <span className="rec-utc">{utc} UTC</span>
+      <div className="sv-replay-buttons">
+        <button className="sv-icon-button" onClick={() => onSeek(start)} aria-label="Jump to session start" title="Session start">
+          <Icon name="start" />
+        </button>
+        <button className="sv-icon-button" onClick={() => onSeek(time - 10)} aria-label="Rewind 10 seconds" title="−10 s">
+          <Icon name="back" />
+        </button>
+        <button className="sv-play" onClick={onToggle} aria-label={running ? "Pause replay" : "Play replay"}>
+          <Icon name={running ? "pause" : "play"} size={20} />
+        </button>
+        <button className="sv-icon-button" onClick={() => onSeek(time + 10)} aria-label="Forward 10 seconds" title="+10 s">
+          <Icon name="forward" />
+        </button>
       </div>
-      <div className="timeline-controls">
-        <button onClick={() => onSeek(start)} aria-label="Jump to session start">
-          Session start
-        </button>
-        <button onClick={() => onSeek(time - 10)} aria-label="Rewind 10 seconds">
-          −10s
-        </button>
-        <button className="primary" onClick={onToggle}>
-          {running ? "Pause replay" : "Play replay"}
-        </button>
-        <button onClick={() => onSeek(time + 10)} aria-label="Forward 10 seconds">
-          +10s
-        </button>
-        <label>
-          Speed{" "}
-          <select
-            aria-label="Playback speed"
-            value={speed}
-            onChange={(event) => onSpeed(Number(event.target.value))}
-          >
-            {PLAYBACK_SPEEDS.map((value) => (
-              <option key={value} value={value}>
-                {value}×
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="sv-time" data-testid="replay-time">
+        <strong>{clockText(time * 1000)}</strong>
+        <span>
+          / {clockText(duration * 1000)} · {utc} UTC
+        </span>
       </div>
-      <input
-        className="replay-slider"
-        type="range"
-        min="0"
-        max={duration}
-        step="0.1"
-        value={time}
-        aria-label="Session time"
-        aria-valuetext={clockText(time * 1000)}
-        onChange={(event) => onSeek(Number(event.target.value))}
-      />
-      <div className="lap-markers rec-markers">
-        {markers.map((m, i) => (
-          <button
-            key={i}
-            className={"rec-marker is-" + m.kind}
-            style={{ left: `${(m.t / 1000 / duration) * 100}%` }}
-            onClick={() => onSeek(m.t / 1000)}
-            title={clockText(m.t) + " · " + m.label}
-            aria-label={`Jump to ${m.label} at ${clockText(m.t)}`}
-          >
-            {m.kind === "trackLimits" ? "" : LABEL[m.kind]}
-          </button>
-        ))}
+      <div className="sv-scrub">
+        <div className="sv-scrub-markers" aria-label="Race control events">
+          {markers.map((m, i) => (
+            <button
+              key={i}
+              className={"sv-marker is-" + m.kind}
+              style={{ left: pct(m.t / 1000) }}
+              onClick={() => onSeek(m.t / 1000)}
+              title={clockText(m.t) + " · " + m.label}
+              aria-label={`${LABEL[m.kind]} at ${clockText(m.t)}: jump`}
+            />
+          ))}
+        </div>
+        <input
+          className="sv-range replay-slider"
+          type="range"
+          min="0"
+          max={duration}
+          step="0.1"
+          value={time}
+          style={{ ["--fill" as string]: pct(time) }}
+          aria-label="Session time"
+          aria-valuetext={clockText(time * 1000)}
+          onChange={(event) => onSeek(Number(event.target.value))}
+        />
       </div>
+      <label className="sv-speed">
+        <span className="visually-hidden">Playback speed</span>
+        <select
+          aria-label="Playback speed"
+          value={speed}
+          onChange={(event) => onSpeed(Number(event.target.value))}
+        >
+          {PLAYBACK_SPEEDS.map((value) => (
+            <option key={value} value={value}>
+              {value}×
+            </option>
+          ))}
+        </select>
+      </label>
     </section>
   );
 }

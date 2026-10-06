@@ -26,6 +26,17 @@ import {
 } from "./cameraRig";
 import { trackSize, trackCenter, trackCurve } from "./trackCurve";
 import CarMarker from "../cars/CarMarker";
+import Icon, { type IconName } from "../ui/Icon";
+import Popover from "../ui/Popover";
+
+const MODE_ICON: Record<CameraMode, IconName> = {
+  engineering: "map",
+  chase: "chase",
+  onboard: "onboard",
+  tv: "tv",
+  heli: "heli",
+  inspect: "inspect",
+};
 import {
   QUALITY,
   QUALITY_LABELS,
@@ -267,134 +278,94 @@ function CircuitScene(props: Props) {
   });
   return (
     <div className="circuit-view-controls">
-      <div
-        className="circuit-camera-toolbar"
-        aria-label="Circuit view controls"
-      >
-        <span role="group" aria-label="Camera mode" className="camera-modes">
+      {/* Camera dock: one tap per view; everything else lives in the Display popover. */}
+      <div className="sv-dock glass" role="toolbar" aria-label="Camera">
+        <div role="group" aria-label="Camera mode" className="sv-segmented camera-modes">
           {CAMERA_MODES.map((m) => (
             <button
               key={m}
               aria-pressed={mode === m}
               onClick={() => changeMode(m)}
+              title={CAMERA_LABELS[m]}
             >
-              {CAMERA_LABELS[m]}
+              <Icon name={MODE_ICON[m]} />
+              <span>{m === "engineering" ? "Map" : CAMERA_LABELS[m]}</span>
             </button>
           ))}
-        </span>
-        {mode !== "engineering" && (
-          <>
-            <button
-              onClick={() => applyRigAction(rig.current, "zoomIn")}
-              disabled={mode === "onboard"}
-            >
-              Zoom +
-            </button>
-            <button
-              onClick={() => applyRigAction(rig.current, "zoomOut")}
-              disabled={mode === "onboard"}
-            >
-              Zoom −
-            </button>
-            <button
-              aria-label="Orbit left"
-              onClick={() => applyRigAction(rig.current, "rotateLeft")}
-              disabled={mode === "tv"}
-            >
-              ⟲
-            </button>
-            <button
-              aria-label="Orbit right"
-              onClick={() => applyRigAction(rig.current, "rotateRight")}
-              disabled={mode === "tv"}
-            >
-              ⟳
-            </button>
-            <label className="quality-select">
-              <span className="visually-hidden">Quality</span>
-              <select
-                aria-label="Rendering quality"
-                value={quality}
-                onChange={(e) => setQuality(e.target.value as Quality)}
-              >
-                {QUALITY_LEVELS.map((q) => (
-                  <option key={q} value={q}>
-                    {QUALITY_LABELS[q]}
-                  </option>
-                ))}
-              </select>
+        </div>
+        <Popover
+          label="Display and camera options"
+          button={<Icon name="sliders" />}
+          placement="top"
+          className="sv-display"
+        >
+          <div className="sv-menu-section">
+            <h3>Camera</h3>
+            {mode === "engineering" ? (
+              <>
+                <div className="sv-row">
+                  <button className="sv-chip" onClick={() => zoom(1 / 1.2)} aria-label="Zoom out"><Icon name="minus" /></button>
+                  <button className="sv-chip" onClick={() => zoom(1.2)} aria-label="Zoom in"><Icon name="plus" /></button>
+                  <button className="sv-chip" onClick={() => rotate(-15)} aria-label="Rotate left"><Icon name="rotateLeft" /></button>
+                  <button className="sv-chip" onClick={() => rotate(15)} aria-label="Rotate right"><Icon name="rotateRight" /></button>
+                </div>
+                <div className="sv-row">
+                  <div className="sv-segmented is-small" role="group" aria-label="Map projection">
+                    <button aria-pressed={view.tilt === 48} onClick={() => setView((v) => ({ ...v, tilt: 48 }))}>3D</button>
+                    <button aria-pressed={view.tilt === 0} onClick={() => setView((v) => ({ ...v, tilt: 0 }))}>Top</button>
+                  </div>
+                  <button className="sv-chip" onClick={focusSelected}>Focus car</button>
+                  <button className="sv-chip" onClick={() => setView(overview())}>Reset</button>
+                </div>
+                <div className="sv-row sv-pan" role="group" aria-label="Pan">
+                  <button className="sv-chip" aria-label="Pan left" onClick={() => pan(-1, 0)}>←</button>
+                  <button className="sv-chip" aria-label="Pan up" onClick={() => pan(0, 1)}>↑</button>
+                  <button className="sv-chip" aria-label="Pan down" onClick={() => pan(0, -1)}>↓</button>
+                  <button className="sv-chip" aria-label="Pan right" onClick={() => pan(1, 0)}>→</button>
+                  <span className="sv-muted" data-testid="circuit-view-state">
+                    {view.zoom.toFixed(2)}× · {view.angle}°
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="sv-row">
+                <button className="sv-chip" onClick={() => applyRigAction(rig.current, "zoomOut")} disabled={mode === "onboard"} aria-label="Zoom out"><Icon name="minus" /></button>
+                <button className="sv-chip" onClick={() => applyRigAction(rig.current, "zoomIn")} disabled={mode === "onboard"} aria-label="Zoom in"><Icon name="plus" /></button>
+                <button className="sv-chip" onClick={() => applyRigAction(rig.current, "rotateLeft")} disabled={mode === "tv"} aria-label="Orbit left"><Icon name="rotateLeft" /></button>
+                <button className="sv-chip" onClick={() => applyRigAction(rig.current, "rotateRight")} disabled={mode === "tv"} aria-label="Orbit right"><Icon name="rotateRight" /></button>
+              </div>
+            )}
+          </div>
+          <div className="sv-menu-section">
+            <h3>Overlays</h3>
+            <label className="sv-switch">
+              <input type="checkbox" checked={labels} onChange={(e) => setLabels(e.target.checked)} />
+              <span>Driver labels</span>
             </label>
-            <button aria-label="Fullscreen viewport" onClick={fullscreen}>
-              ⤢
+            <label className="sv-switch">
+              <input type="checkbox" checked={trails} onChange={(e) => setTrails(e.target.checked)} />
+              <span>Trails</span>
+            </label>
+          </div>
+          <div className="sv-menu-section">
+            <h3>Quality</h3>
+            <div className="sv-segmented is-small" role="group" aria-label="Rendering quality">
+              {QUALITY_LEVELS.map((q) => (
+                <button key={q} aria-pressed={quality === q} onClick={() => setQuality(q)}>
+                  {QUALITY_LABELS[q]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="sv-menu-section sv-row">
+            <button className="sv-chip" onClick={fullscreen}><Icon name="fullscreen" /> Fullscreen</button>
+            <button className="sv-chip" aria-pressed={presenting} onClick={() => present(!presenting)} title="Present mode (P)">
+              <Icon name="present" /> Present <kbd>P</kbd>
             </button>
-            <button
-              aria-pressed={presenting}
-              onClick={() => present(!presenting)}
-              title="Present mode (P)"
-            >
-              Present <kbd>P</kbd>
-            </button>
-            <span className="view-toggles" role="group" aria-label="Overlays">
-              <button
-                className="toggle"
-                aria-pressed={labels}
-                onClick={() => setLabels((v) => !v)}
-              >
-                Labels
-              </button>
-              <button
-                className="toggle"
-                aria-pressed={trails}
-                onClick={() => setTrails((v) => !v)}
-              >
-                Trails
-              </button>
-            </span>
-          </>
-        )}
-        {mode === "engineering" && (
-          <>
-            <button onClick={() => zoom(1.2)}>Zoom +</button>
-            <button onClick={() => zoom(1 / 1.2)}>Zoom −</button>
-            <button onClick={() => rotate(-15)}>Rotate −15°</button>
-            <button onClick={() => rotate(15)}>Rotate +15°</button>
-            <button onClick={() => setView(overview())}>Reset view</button>
-            <button
-              aria-pressed={view.tilt === 48}
-              onClick={() => setView((v) => ({ ...v, tilt: 48 }))}
-            >
-              3D view
-            </button>
-            <button
-              aria-pressed={view.tilt === 0}
-              onClick={() => setView((v) => ({ ...v, tilt: 0 }))}
-            >
-              Top view
-            </button>
-            <button onClick={focusSelected}>Focus selected</button>
-            <button aria-label="Pan left" onClick={() => pan(-1, 0)}>
-              ←
-            </button>
-            <button aria-label="Pan right" onClick={() => pan(1, 0)}>
-              →
-            </button>
-            <button aria-label="Pan up" onClick={() => pan(0, 1)}>
-              ↑
-            </button>
-            <button aria-label="Pan down" onClick={() => pan(0, -1)}>
-              ↓
-            </button>
-            <span data-testid="circuit-view-state">
-              {view.zoom.toFixed(2)}× / {view.angle}° /{" "}
-              {view.tilt === 0 ? "TOP" : "3D"}
-            </span>
-          </>
-        )}
+          </div>
+          <p className="sv-menu-note">Flat elevation · illustrative surroundings</p>
+        </Popover>
       </div>
-      <span className="circuit-accuracy-note">
-        {props.sessionLabel && <>{props.sessionLabel} · </>}
-        Flat elevation · illustrative track surroundings
-      </span>
       {mode !== "engineering" ? (
         <DriverBoundary onBack={() => changeMode("engineering")}>
           <Suspense

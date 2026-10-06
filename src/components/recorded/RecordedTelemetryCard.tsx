@@ -1,5 +1,4 @@
 import { useState } from "react";
-
 import type { RecordedCarState } from "../../domain/recordedSession";
 import { formatLap } from "../../domain/inspection";
 import TeamGlyph, { type DriverIdentity } from "../broadcast/TeamGlyph";
@@ -9,7 +8,7 @@ const LEDS = 15,
   RPM_MAX = 12500;
 // OpenF1 DRS codes: 10, 12, 14 open; 8 eligible; others closed; -1 unknown (null in source).
 const drsLabel = (code: number) =>
-  code < 0 ? "DRS —" : code >= 10 ? "DRS open" : code === 8 ? "DRS ready" : "DRS off";
+  code < 0 ? "—" : code >= 10 ? "Open" : code === 8 ? "Ready" : "Off";
 
 /** Recorded telemetry: real channels from OpenF1 car_data, held up to 2 s, never invented. */
 export default function RecordedTelemetryCard({
@@ -32,90 +31,85 @@ export default function RecordedTelemetryCard({
         : "On track";
   return (
     <section
-      className={"rec-card" + (collapsed ? " is-collapsed" : "")}
+      className={"sv-card sv-telemetry glass" + (collapsed ? " is-collapsed" : "")}
       aria-label={"Telemetry for " + driver.name}
+      style={{ ["--team" as string]: color }}
     >
-      <header className="rec-card-head" style={{ borderTopColor: color }}>
-        <span className="rec-card-number" style={{ color }}>
-          {car.number}
-        </span>
-        <span className="rec-card-name">
-          <small>Driver telemetry</small>
+      <header className="sv-card-head">
+        <span className="sv-number">{car.number}</span>
+        <span className="sv-driver">
           <strong>{driver.name}</strong>
           <span>
-            <TeamGlyph team={driver.team} color={color} size={11} /> {driver.code}{" "}
-            · {driver.team.name}
+            <TeamGlyph team={driver.team} color={color} size={10} /> {driver.team.name}
           </span>
         </span>
-        <span className="rec-card-pos">
-          <small>Pos</small>P{car.position}
-        </span>
-        <Chevron
-          collapsed={collapsed}
-          label="driver telemetry"
-          onToggle={() => setCollapsed((c) => !c)}
-        />
+        <span className="sv-position">P{car.position}</span>
+        <Chevron collapsed={collapsed} label="driver telemetry" onToggle={() => setCollapsed((c) => !c)} />
       </header>
       {!collapsed && (
         <>
-          <div className="rec-leds" aria-label={`${Math.round(car.rpm)} rpm`}>
+          <div className="sv-leds" aria-label={`${Math.round(car.rpm)} rpm`}>
             {Array.from({ length: LEDS }, (_, i) => (
-              <i
-                key={i}
-                className={
-                  i < lit ? (i < 5 ? "is-green" : i < 10 ? "is-red" : "is-blue") : ""
-                }
-              />
+              <i key={i} className={i < lit ? (i < 5 ? "is-green" : i < 10 ? "is-red" : "is-blue") : ""} />
             ))}
-            <span>{Math.round(car.rpm).toLocaleString("en-GB")} rpm</span>
           </div>
-          <div className="rec-main">
-            <div className="rec-speed">
+          <div className="sv-gauges">
+            <div className="sv-speed-readout">
               <strong>{Math.round(car.speedKph)}</strong>
               <small>km/h</small>
             </div>
-            <div className="rec-gear" aria-label={"Gear " + car.gear}>
+            <div className="sv-gear" aria-label={"Gear " + car.gear}>
               <strong>{car.gear || "N"}</strong>
               <small>Gear</small>
             </div>
-            <div className="rec-lap">
-              <strong>{car.lap || "—"}</strong>
-              <small>Lap</small>
+            <div className="sv-stat">
+              <strong>{Math.round(car.rpm).toLocaleString("en-GB")}</strong>
+              <small>RPM</small>
             </div>
           </div>
-          <div className="rec-pedals">
-            <label>
-              Throttle <b>{Math.round(car.throttle)}%</b>
-              <meter min={0} max={100} value={car.throttle} className="is-throttle" />
-            </label>
-            <label>
-              Brake <b>{car.brake > 0 ? "On" : "Off"}</b>
-              <meter min={0} max={100} value={car.brake} className="is-brake" />
-            </label>
-          </div>
-          <div className="rec-laps">
+          <div className="sv-bars">
             <div>
-              <small>Last lap</small>
-              <strong>{formatLap(car.lastLap)}</strong>
+              <span>Throttle</span>
+              <i style={{ ["--level" as string]: car.throttle / 100 }} className="is-throttle" />
+              <b>{Math.round(car.throttle)}%</b>
             </div>
             <div>
-              <small>Best lap</small>
-              <strong className="is-best">{formatLap(car.bestLap)}</strong>
+              <span>Brake</span>
+              <i style={{ ["--level" as string]: car.brake / 100 }} className="is-brake" />
+              <b>{car.brake > 0 ? "On" : "Off"}</b>
             </div>
           </div>
-          <footer className="rec-card-foot">
-            <span className={"compound compound-" + car.compound.toLowerCase()}>
-              {car.compound === "UNKNOWN" ? "?" : car.compound[0]}
-            </span>
-            <span>
-              {car.compound === "UNKNOWN" ? "Tyre unknown" : car.compound.toLowerCase()} ·{" "}
-              {car.tyreAge} laps
-            </span>
-            <span className="rec-drs">{drsLabel(car.drs)}</span>
-            <span className={"rec-status is-" + status.split(" ")[0].toLowerCase()}>
-              {status}
-            </span>
-          </footer>
+          <dl className="sv-facts">
+            <div>
+              <dt>Lap</dt>
+              <dd>{car.lap || "—"}</dd>
+            </div>
+            <div>
+              <dt>Last</dt>
+              <dd>{formatLap(car.lastLap)}</dd>
+            </div>
+            <div>
+              <dt>Best</dt>
+              <dd className="is-best">{formatLap(car.bestLap)}</dd>
+            </div>
+            <div>
+              <dt>Tyre</dt>
+              <dd>
+                <span className={"compound compound-" + car.compound.toLowerCase()}>
+                  {car.compound === "UNKNOWN" ? "?" : car.compound[0]}
+                </span>{" "}
+                {car.tyreAge} laps
+              </dd>
+            </div>
+            <div>
+              <dt>DRS</dt>
+              <dd>{drsLabel(car.drs)}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd className={"sv-status-text is-" + status.split(" ")[0].toLowerCase()}>{status}</dd>
+            </div>
+          </dl>
         </>
       )}
     </section>

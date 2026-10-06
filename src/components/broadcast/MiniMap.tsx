@@ -68,7 +68,7 @@ export default function MiniMap({
   );
   return (
     <figure
-      className={"bc-minimap" + (collapsed ? " is-collapsed" : "")}
+      className={"bc-minimap glass" + (collapsed ? " is-collapsed" : "")}
       aria-label="Track map with car positions"
     >
       <figcaption className="bc-overlay-head">
@@ -82,7 +82,7 @@ export default function MiniMap({
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"
-        aria-label="Sepang outline with simulated car positions"
+        aria-label="Sepang outline with car positions"
       >
         <path d={path} className="bc-minimap-track" />
         <path d={path} className="bc-minimap-line" />
