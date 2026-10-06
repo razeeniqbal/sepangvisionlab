@@ -4,11 +4,13 @@
 import type { CarState, TyreCompound } from "./field.ts";
 import { poseAtDistance, type TrackProfile } from "./lapPhysics.ts";
 import { apply, nearestOnTrack, type Similarity } from "./alignment.ts";
+import { curvatureAt } from "./carMotion.ts";
+import { pitOffsetAt, type PitLane } from "./pitLane.ts";
 import type { ResultRow } from "./pick.ts";
 
 export const STALE_AFTER_MS = 2000;
 /** |lateral| beyond this is off the racing surface (pit lane, garage): drawn raw, not snapped. */
-export const ON_TRACK_METRES = 12;
+export const ON_TRACK_METRES = 10; // the DERIVED pit lane runs ~12 m off the centre line, so it must fall outside
 
 // ---- file formats (written by scripts/build_recorded_session.py) ----
 export interface DriverIdentity {
@@ -70,11 +72,13 @@ export interface DriverTrack {
   lateral: Float64Array; // signed offset from the centre line, metres (+ left)
   wx: Float64Array; // aligned world position, metres
   wy: Float64Array;
+  /** Per sample: 1 on the race track, 2 in the DERIVED pit lane, 0 elsewhere (garage, grass). */
+  road: Uint8Array;
   tel: { t: Float64Array; speed: Float64Array; rpm: Float64Array; gear: Float64Array; throttle: Float64Array; brake: Float64Array; drs: Float64Array };
 }
 
 /** Align every sample, project it on the centre line and unwrap lap crossings. */
-export function prepareDriver(file: DriverFile, transform: Similarity, track: TrackProfile): DriverTrack {
+export function prepareDriver(file: DriverFile, transform: Similarity, track: TrackProfile, pit?: PitLane): DriverTrack {
   const t = undelta(file.location.t), x = undelta(file.location.x), y = undelta(file.location.y);
   const n = t.length, L = track.length;
   const s = new Float64Array(n), lateral = new Float64Array(n), wx = new Float64Array(n), wy = new Float64Array(n);
@@ -96,10 +100,20 @@ export function prepareDriver(file: DriverFile, transform: Similarity, track: Tr
     previous = along;
     s[i] = along + offset;
   }
-  smoothLateral(t, lateral);
+  // Classify on the raw offsets, then smooth along both roads: the pit lane gets the same
+  // jitter-free, curve-following motion as the race track.
+  const road = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const k = Math.floor((((s[i] % L) + L) % L / L) * track.count) % track.count;
+    const lane = pit ? pitOffsetAt(pit, k, track.count) : null;
+    road[i] = Math.abs(lateral[i]) <= ON_TRACK_METRES ? 1 : lane !== null && Math.abs(lateral[i] - lane) <= 4.5 ? 2 : 0;
+  }
+  const onRoad = (k: number) => road[k] > 0;
+  smoothDistance(t, s, lateral, onRoad);
+  smoothLateral(t, lateral, onRoad);
   const c = file.telemetry;
   return {
-    number: file.number, t, s, lateral, wx, wy,
+    number: file.number, t, s, lateral, wx, wy, road,
     tel: {
       t: undelta(c.t), speed: Float64Array.from(c.speed), rpm: Float64Array.from(c.rpm), gear: Float64Array.from(c.gear),
       throttle: Float64Array.from(c.throttle), brake: Float64Array.from(c.brake), drs: Float64Array.from(c.drs),
@@ -108,26 +122,65 @@ export function prepareDriver(file: DriverFile, transform: Similarity, track: Tr
 }
 
 /**
- * Positioning noise makes the across-track offset wobble by up to a metre between samples,
- * which reads as a twitching car. A short weighted average (about +-0.5 s) keeps the real
- * line and lane changes. Only on-track runs without data gaps are smoothed; pit-lane and
- * garage samples keep their raw value.
+ * Gaussian-weighted local linear fit of `v` against time at every sample, using only on-track
+ * samples within 3σ and without a data gap. A straight-line fit (not an average) keeps constant
+ * speed and steady drifts exact and ignores timing jitter; the Gaussian keeps it smooth enough
+ * that the rendered motion stays within what a car can do (see scripts/physics-check.ts).
  */
-export function smoothLateral(t: ArrayLike<number>, lateral: Float64Array) {
-  const raw = Float64Array.from(lateral);
-  const weights = [0.1, 0.2, 0.4, 0.2, 0.1];
-  for (let i = 0; i < raw.length; i++) {
-    if (Math.abs(raw[i]) > ON_TRACK_METRES) continue;
-    let sum = 0, total = 0;
-    for (let k = -2; k <= 2; k++) {
-      const j = i + k;
-      if (j < 0 || j >= raw.length || Math.abs(raw[j]) > ON_TRACK_METRES) continue;
-      if (Math.abs(t[j] - t[i]) > 700) continue;
-      sum += raw[j] * weights[k + 2];
-      total += weights[k + 2];
+function localLinear(t: ArrayLike<number>, v: ArrayLike<number>, on: (k: number) => boolean, sigma: number) {
+  const out = Float64Array.from(v);
+  const reach = 3 * sigma;
+  for (let i = 0; i < out.length; i++) {
+    if (!on(i)) continue;
+    let w0 = 0, wt = 0, wv = 0;
+    let lo = i, hi = i;
+    while (lo > 0 && t[i] - t[lo - 1] <= reach && on(lo - 1) && t[lo] - t[lo - 1] <= STALE_AFTER_MS) lo--;
+    while (hi < out.length - 1 && t[hi + 1] - t[i] <= reach && on(hi + 1) && t[hi + 1] - t[hi] <= STALE_AFTER_MS) hi++;
+    if (hi - lo < 2) continue;
+    for (let j = lo; j <= hi; j++) {
+      const w = Math.exp(-0.5 * ((t[j] - t[i]) / sigma) ** 2);
+      w0 += w;
+      wt += w * t[j];
+      wv += w * v[j];
     }
-    lateral[i] = sum / total;
+    const mt = wt / w0, mv = wv / w0;
+    let num = 0, den = 0;
+    for (let j = lo; j <= hi; j++) {
+      const w = Math.exp(-0.5 * ((t[j] - t[i]) / sigma) ** 2);
+      num += w * (t[j] - mt) * (v[j] - mv);
+      den += w * (t[j] - mt) ** 2;
+    }
+    out[i] = den > 0 ? mv + (num / den) * (t[i] - mt) : mv;
   }
+  return out;
+}
+
+/**
+ * OpenF1 position timestamps jitter: a car at 200 km/h can "move" 0.5 m in 160 ms and then
+ * jump ahead, and a few samples even step backwards. Passed through faithfully, the car stalls
+ * and lurches. On-track distance is refitted (σ 350 ms) and kept non-decreasing. Pit-lane and
+ * garage samples are left raw.
+ */
+export function smoothDistance(
+  t: ArrayLike<number>,
+  s: Float64Array,
+  lateral: ArrayLike<number>,
+  on: (k: number) => boolean = (k) => Math.abs(lateral[k]) <= ON_TRACK_METRES,
+) {
+  s.set(localLinear(t, s, on, 500));
+  for (let i = 1; i < s.length; i++)
+    if (on(i) && on(i - 1) && t[i] - t[i - 1] <= STALE_AFTER_MS && s[i] < s[i - 1]) s[i] = s[i - 1];
+}
+
+/**
+ * Positioning noise makes the across-track offset wobble by up to a metre between samples,
+ * which reads as a twitching car. A Gaussian local linear fit (σ 450 ms) keeps the racing line
+ * and lane changes. Only on-track runs without data gaps are smoothed; pit-lane and garage
+ * samples keep their raw value.
+ */
+export function smoothLateral(t: ArrayLike<number>, lateral: Float64Array, on?: (k: number) => boolean) {
+  const raw = Float64Array.from(lateral);
+  lateral.set(localLinear(t, raw, on ?? ((k) => Math.abs(raw[k]) <= ON_TRACK_METRES), 600));
 }
 
 /** Last index with arr[i] <= value, or -1. */
@@ -143,7 +196,8 @@ export function lastAtOrBefore(arr: ArrayLike<number>, value: number): number {
 export interface MotionSample {
   present: boolean; // false before the first sample
   stale: boolean; // no fresh sample for more than STALE_AFTER_MS: held, not invented
-  onTrack: boolean; // snapped to the profile; false = raw aligned position (pit lane, garage)
+  onTrack: boolean; // snapped to the profile (race track or DERIVED pit lane); false = raw aligned position
+  pitLane: boolean; // in the DERIVED pit lane
   distance: number; // unwrapped metres
   lateral: number;
   x: number;
@@ -174,19 +228,20 @@ function smoothBetween(t: ArrayLike<number>, v: ArrayLike<number>, i: number, j:
   return { value, rate };
 }
 
-/** Largest yaw (rad) added for sideways motion; real cars rarely point further off the road line. */
-const MAX_LANE_YAW = 0.3;
+/** Largest yaw (rad) off the centre-line direction: cars cross the track at up to ~20 deg on a racing line. */
+const MAX_LANE_YAW = 0.4;
 
 /** Motion at a time: smooth between samples, held (and marked stale) across gaps. */
 export function motionAt(d: DriverTrack, track: TrackProfile, time: number): MotionSample {
   const i = lastAtOrBefore(d.t, time);
-  if (i < 0) return { present: false, stale: true, onTrack: false, distance: d.s[0] ?? 0, lateral: 0, x: d.wx[0] ?? 0, y: d.wy[0] ?? 0, heading: 0 };
+  if (i < 0) return { present: false, stale: true, onTrack: false, pitLane: false, distance: d.s[0] ?? 0, lateral: 0, x: d.wx[0] ?? 0, y: d.wy[0] ?? 0, heading: 0 };
   const j = i + 1 < d.t.length ? i + 1 : i;
   const gap = d.t[j] - d.t[i];
   const hold = j === i || gap > STALE_AFTER_MS;
   const stale = hold && time - d.t[i] > STALE_AFTER_MS;
   const f = hold || gap <= 0 ? 0 : (time - d.t[i]) / gap;
-  const onTrack = Math.abs(d.lateral[i]) <= ON_TRACK_METRES && Math.abs(d.lateral[j]) <= ON_TRACK_METRES;
+  const onTrack = d.road[i] > 0 && d.road[j] > 0;
+  const pitLane = d.road[i] === 2 || d.road[j] === 2;
   const along = smoothBetween(d.t, d.s, i, hold ? i : j, f);
   const across = smoothBetween(d.t, d.lateral, i, hold ? i : j, f);
   const distance = along.value;
@@ -194,16 +249,20 @@ export function motionAt(d: DriverTrack, track: TrackProfile, time: number): Mot
   if (onTrack) {
     const pose = poseAtDistance(track, distance);
     const nx = -Math.sin(pose.heading), ny = Math.cos(pose.heading);
-    // Point the car where it is going: a lane change yaws the nose instead of crabbing sideways.
-    const yaw = along.rate > 0.003 ? Math.max(-MAX_LANE_YAW, Math.min(MAX_LANE_YAW, Math.atan2(across.rate, along.rate))) : 0;
-    return { present: true, stale, onTrack, distance, lateral, x: pose.x + nx * lateral, y: pose.y + ny * lateral, heading: pose.heading + yaw };
+    // Point the car along its true path: on a racing line it crosses the track diagonally, and
+    // off the centre line the ground covered per metre of centre line is scaled by (1 - k·lateral).
+    // Faded in from 8 m/s: at walking pace the lateral noise would swing the nose around.
+    const fade = Math.max(0, Math.min(1, (along.rate - 0.008) / 0.012));
+    const forward = along.rate * Math.max(0.2, 1 - curvatureAt(track, distance) * lateral);
+    const yaw = fade * Math.max(-MAX_LANE_YAW, Math.min(MAX_LANE_YAW, Math.atan2(across.rate, forward)));
+    return { present: true, stale, onTrack, pitLane, distance, lateral, x: pose.x + nx * lateral, y: pose.y + ny * lateral, heading: pose.heading + yaw };
   }
   // Off the profile (pit lane centre line is UNAVAILABLE): raw aligned position, no snapping.
   const x = d.wx[i] + (d.wx[j] - d.wx[i]) * f, y = d.wy[i] + (d.wy[j] - d.wy[i]) * f;
   let k = j;
   while (k < d.t.length - 1 && Math.hypot(d.wx[k] - d.wx[i], d.wy[k] - d.wy[i]) < 1) k++;
   const heading = k > i ? Math.atan2(d.wy[k] - d.wy[i], d.wx[k] - d.wx[i]) : 0;
-  return { present: true, stale, onTrack, distance, lateral, x, y, heading };
+  return { present: true, stale, onTrack, pitLane, distance, lateral, x, y, heading };
 }
 
 export interface TelemetrySample { speed: number; rpm: number; gear: number; throttle: number; brake: number; drs: number; fresh: boolean }
@@ -410,7 +469,7 @@ export function recordedFieldAt(session: RecordedSession, time: number): Recorde
       pose: { x: m.x, y: m.y, heading: m.heading },
       present: m.present,
       stale: m.stale,
-      inPit: inPitLane(file.pit, d.number, t) || (m.present && !m.onTrack),
+      inPit: inPitLane(file.pit, d.number, t) || (m.present && (m.pitLane || !m.onTrack)),
       onTrack: m.onTrack,
       throttle: tel.throttle,
       brake: tel.brake,

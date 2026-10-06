@@ -1,4 +1,6 @@
 import { sepangTrack } from "../data/sepangPace";
+import pitLaneData from "../data/circuits/sepangPitLane.json";
+import type { PitLane } from "../domain/pitLane";
 import type { Similarity } from "../domain/alignment";
 import type { CarDefinition } from "../domain/field";
 import {
@@ -48,7 +50,7 @@ export async function loadRecordedSession(
   const drivers = [];
   for (const [i, f] of files.entries()) {
     if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-    drivers.push(prepareDriver(f, alignment.transform, sepangTrack));
+    drivers.push(prepareDriver(f, alignment.transform, sepangTrack, pitLaneData as PitLane));
     onProgress(i + 1, files.length);
     await new Promise((resolve) => setTimeout(resolve, 0));
   }

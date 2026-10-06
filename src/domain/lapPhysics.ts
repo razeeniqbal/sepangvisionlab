@@ -235,10 +235,31 @@ export function poseAtDistance(track: TrackProfile, distance: number): TrackPose
   const d = ((distance % track.length) + track.length) % track.length;
   const n = track.count, i = search(track.distance, d, n), j = (i + 1) % n;
   const f = (d - track.distance[i]) / Math.max(1e-9, track.distance[i + 1] - track.distance[i]);
-  const a = (i - 3 + n) % n, b = (i + 4) % n;
+  // Heading from a wide chord at each sample, blended along the segment: constant per segment,
+  // it stepped by up to 12 degrees every 4 m in tight corners, so cars and steering jerked.
+  const at = (k: number) => {
+    const a = (k - 3 + n) % n, b = (k + 4) % n;
+    return Math.atan2(track.y[b] - track.y[a], track.x[b] - track.x[a]);
+  };
+  // Heading as a cubic through the neighbouring sample headings: its rate of turn changes
+  // smoothly too, so a car offset from the centre line is not kicked sideways at each sample.
+  const wrapA = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+  const h0 = at(i);
+  const hp = h0 + wrapA(at((i - 1 + n) % n) - h0),
+    h1 = h0 + wrapA(at(j) - h0),
+    hq = h1 + wrapA(at((j + 1) % n) - h1);
+  const g2 = f * f, g3 = g2 * f;
+  const heading =
+    (2 * g3 - 3 * g2 + 1) * h0 + (g3 - 2 * g2 + f) * ((h1 - hp) / 2) + (3 * g2 - 2 * g3) * h1 + (g3 - g2) * ((hq - h0) / 2);
+  // Position on a Catmull-Rom curve through the samples, not the straight chord: the chord
+  // turns instantly at every sample, which a moving car would feel as a huge lateral jolt.
+  const p = (i - 1 + n) % n, q = (j + 1) % n;
+  const f2 = f * f, f3 = f2 * f;
+  const cr = (v: Float64Array) =>
+    0.5 * (2 * v[i] + (v[j] - v[p]) * f + (2 * v[p] - 5 * v[i] + 4 * v[j] - v[q]) * f2 + (3 * v[i] - v[p] - 3 * v[j] + v[q]) * f3);
   return {
-    x: track.x[i] + (track.x[j] - track.x[i]) * f,
-    y: track.y[i] + (track.y[j] - track.y[i]) * f,
-    heading: Math.atan2(track.y[b] - track.y[a], track.x[b] - track.x[a]),
+    x: cr(track.x),
+    y: cr(track.y),
+    heading,
   };
 }

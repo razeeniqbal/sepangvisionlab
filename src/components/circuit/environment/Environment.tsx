@@ -22,6 +22,8 @@ import {
 } from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import pitLaneData from "../../../data/circuits/sepangPitLane.json";
+import { PIT_LANE_HALF_WIDTH, pitOffsetAt, type PitLane } from "../../../domain/pitLane";
 import type { TrackProfile } from "../../../domain/lapPhysics";
 import { anchorInProfile } from "./anchors";
 import { findCorners, poseAtDistance } from "../../../domain/lapPhysics";
@@ -69,6 +71,11 @@ import {
   kerbTexture,
   turnBoardTexture,
 } from "./textures";
+
+/** DERIVED from where cars drove during the 2026 race pit stops (scripts/derive-pit-lane.ts). */
+export const PIT_LANE = pitLaneData as PitLane;
+/** Inner face of the pit wall, just outside the white edge line on the pit side. */
+export const PIT_WALL_OFFSET = TRACK_HALF_WIDTH + 0.25;
 
 // Objects that block a camera's view of a car: used by TV camera picking and tag fading.
 export const OCCLUDER = { occluder: true };
@@ -480,7 +487,7 @@ function Grandstand({ b }: { b: Building }) {
 }
 
 function Gantry({ p }: { p: Placement }) {
-  const span = TRACK_HALF_WIDTH + 3;
+  const span = PIT_WALL_OFFSET + 0.25;
   return (
     <group
       position={[p.x, p.y, 0]}
@@ -874,6 +881,85 @@ function Sky({ wet, sunDisc }: { wet: boolean; sunDisc: boolean }) {
 }
 
 /**
+ * The pit lane: asphalt along the DERIVED centre line, a concrete apron out to the garages, and
+ * a concrete pit wall with catch fencing wherever the lane runs separate from the track.
+ * Entry and exit blend into the track edge, so cars drive in and out on the surface they use.
+ */
+function PitLaneSurfaces({ track, lane, terrain }: { track: TrackProfile; lane: PitLane; terrain: boolean }) {
+  const parts = useMemo(() => {
+    const normals = leftNormals(track);
+    const side = lane.side;
+    const centre = (i: number) => pitOffsetAt(lane, i, track.count) ?? side * PIT_WALL_OFFSET;
+    // Offsets are signed; work in "distance out on the pit side" and convert back.
+    const out = (i: number) => centre(i) * side;
+    const inner = (i: number) => Math.max(TRACK_HALF_WIDTH - 0.2, out(i) - PIT_LANE_HALF_WIDTH);
+    const outer = (i: number) => out(i) + PIT_LANE_HALF_WIDTH;
+    const ordered = (a: (i: number) => number, b: (i: number) => number, za: number, zb: number) =>
+      side > 0
+        ? ([{ offset: a, z: za }, { offset: b, z: zb }] as const)
+        : ([{ offset: (i: number) => -b(i), z: zb }, { offset: (i: number) => -a(i), z: za }] as const);
+    const range = { from: lane.from, to: lane.to };
+    const asphalt = buildStrip(track, normals, {
+      edges: ordered(inner, outer, LAYER.asphalt - 0.005, LAYER.asphalt - 0.005),
+      ...range,
+    });
+    // Separate stretch: the lane is clear of the track edge by at least a wall's width.
+    let a = 0;
+    while (a < lane.offsets.length && lane.offsets[a] * side - PIT_LANE_HALF_WIDTH < PIT_WALL_OFFSET + 0.6) a++;
+    let b = lane.offsets.length - 1;
+    while (b > a && lane.offsets[b] * side - PIT_LANE_HALF_WIDTH < PIT_WALL_OFFSET + 0.6) b--;
+    const wallRange = { from: lane.from + a, to: lane.from + b };
+    const w0 = () => PIT_WALL_OFFSET,
+      w1 = () => PIT_WALL_OFFSET + 0.5;
+    const wall = mergeStrips([
+      buildStrip(track, normals, { edges: ordered(w0, w0, 0, 1.05), ...wallRange, uLength: 4 }),
+      buildStrip(track, normals, { edges: ordered(w1, w1, 0, 1.05), ...wallRange, uLength: 4 }),
+      buildStrip(track, normals, { edges: ordered(w0, w1, 1.05, 1.05), ...wallRange, uLength: 4 }),
+    ]);
+    const fence = buildStrip(track, normals, {
+      edges: ordered(() => PIT_WALL_OFFSET + 0.25, () => PIT_WALL_OFFSET + 0.25, 1.05, 3.4),
+      ...wallRange,
+      uLength: 2.4,
+    });
+    const apron = buildStrip(track, normals, {
+      edges: ordered(outer, (i) => Math.max(outer(i) + 0.1, 22), LAYER.runoff + 0.02, LAYER.runoff + 0.02),
+      ...wallRange,
+      uLength: 8,
+    });
+    // Pit-lane edge line on the garage side.
+    const line = buildStrip(track, normals, {
+      edges: ordered((i) => outer(i) - 0.25, outer, LAYER.asphalt + 0.02, LAYER.asphalt + 0.02),
+      ...range,
+    });
+    const asphaltMap = asphaltTexture();
+    asphaltMap.repeat.set(1, 0.7);
+    const fenceMap = fenceTexture();
+    fenceMap.repeat.set(1, 1.2);
+    return {
+      asphalt: toGeometry(asphalt),
+      wall: toGeometry(wall),
+      fence: toGeometry(fence),
+      apron: toGeometry(apron),
+      line: toGeometry(line),
+      asphaltMaterial: new MeshStandardMaterial({ map: asphaltMap, color: "#d6d9da", roughness: 0.9 }),
+      wallMaterial: new MeshStandardMaterial({ color: "#d4d6d2", roughness: 0.85, side: DoubleSide }),
+      fenceMaterial: new MeshStandardMaterial({ map: fenceMap, alphaTest: 0.35, side: DoubleSide, metalness: 0.6, roughness: 0.5 }),
+      apronMaterial: new MeshStandardMaterial({ color: "#8d9192", roughness: 0.95 }),
+      lineMaterial: new MeshStandardMaterial({ color: "#eef0ea", roughness: 0.7 }),
+    };
+  }, [track, lane]);
+  return (
+    <>
+      <mesh geometry={parts.apron} material={parts.apronMaterial} receiveShadow />
+      <mesh geometry={parts.asphalt} material={parts.asphaltMaterial} receiveShadow />
+      <mesh geometry={parts.line} material={parts.lineMaterial} receiveShadow />
+      <mesh geometry={parts.wall} material={parts.wallMaterial} castShadow receiveShadow userData={OCCLUDER} />
+      {terrain && <mesh geometry={parts.fence} material={parts.fenceMaterial} />}
+    </>
+  );
+}
+
+/**
  * Start/finish: a chequered stripe across the track at the timing line, and 22 painted grid
  * boxes behind it, 8 m apart and staggered left/right like a real grid.
  */
@@ -1148,6 +1234,7 @@ export default function Environment({
         receiveShadow
       />
       <Surfaces track={track} wet={wet} apexes={layout.apexes} />
+      <PitLaneSurfaces track={track} lane={PIT_LANE} terrain={quality.terrain} />
       <StartGrid track={track} gantry={layout.gantry} />
       <TyreWalls track={track} apexes={layout.apexes} />
       {quality.terrain && <CatchFence track={track} />}

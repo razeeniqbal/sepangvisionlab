@@ -63,8 +63,20 @@ def plan(session: dict, drivers: list[int], minutes: int) -> list[tuple[str, Pat
     return jobs
 
 
+def cached(address: str, path: Path) -> bool:
+    """A cached window counts only if it was fetched for exactly this URL. A run that ended at
+    the scheduled finish cached a short last window; reusing it after the end moved later left
+    a 15-minute hole in the 2026 race (09:30-09:45 UTC) for every driver."""
+    if not (ROOT / path).exists():
+        return False
+    try:
+        return read_cache(ROOT / path)["meta"]["url"] == address
+    except (OSError, KeyError, ValueError):
+        return False
+
+
 def run(jobs: list[tuple[str, Path]], limiter: RateLimiter, workers: int) -> dict[str, int]:
-    pending = [(u, p) for u, p in jobs if not (ROOT / p).exists()]
+    pending = [(u, p) for u, p in jobs if not cached(u, p)]
     print(f"{len(jobs)} requests, {len(jobs) - len(pending)} cached, {len(pending)} to fetch", flush=True)
     done = 0
     failed: list[str] = []

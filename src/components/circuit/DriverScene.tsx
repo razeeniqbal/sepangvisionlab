@@ -23,6 +23,7 @@ import { sepangTrack } from "../../data/sepangPace";
 import { poseAtDistance } from "../../domain/lapPhysics";
 import type { CarDefinition, CarState } from "../../domain/field";
 import Environment, {
+  PIT_WALL_OFFSET,
   SKY,
   useEnvironmentLayout,
   type EnvironmentLayout,
@@ -239,6 +240,8 @@ function DriverCar({
     acceleration: 0,
     steer: 0,
     spin: 0,
+    heading: NaN,
+    pathCurvature: 0,
     pitch: 0,
     pitchV: 0,
     roll: 0,
@@ -306,17 +309,27 @@ function DriverCar({
           sepangTrack.length,
         );
     m.spin = (m.spin + spin) % (Math.PI * 2);
+    // Curvature of the car's own path (racing line included), from how far its heading turned
+    // over the ground covered this frame; the centre line stands in when it barely moves.
+    const travelled = spin * WHEEL_RADIUS_METRES;
+    const onLine = curvatureAt(sepangTrack, distance);
+    if (Math.abs(travelled) > 0.05 && !Number.isNaN(m.heading)) {
+      const turn = Math.atan2(Math.sin(p.heading - m.heading), Math.cos(p.heading - m.heading));
+      m.pathCurvature = ease(m.pathCurvature, Math.max(-0.12, Math.min(0.12, turn / travelled)), delta, 12);
+    } else if (Math.abs(travelled) <= 0.05) m.pathCurvature = ease(m.pathCurvature, onLine, delta, 4);
+    m.heading = p.heading;
     m.distance = distance;
     m.speed = speed;
     m.time = clock.current;
-    const target = attitudeTarget(
-      m.acceleration,
-      speed,
-      curvatureAt(sepangTrack, distance),
-    );
+    const target = attitudeTarget(m.acceleration, speed, m.pathCurvature);
+    // Bicycle model on the real path: δ = atan(L·k), drawn at STEER_GAIN so it reads on screen.
+    const steerTarget =
+      Math.abs(travelled) > 0.05
+        ? Math.atan(WHEELBASE * m.pathCurvature)
+        : steerAngle(sepangTrack, distance, WHEELBASE, 9);
     m.steer = ease(
       m.steer,
-      Math.max(-0.42, Math.min(0.42, steerAngle(sepangTrack, distance, WHEELBASE, 9) * STEER_GAIN)),
+      Math.max(-0.42, Math.min(0.42, steerTarget * STEER_GAIN)),
       delta,
       10,
     );
@@ -465,7 +478,7 @@ function trackside(layout: EnvironmentLayout): Vec3[] {
     }
   for (const side of [-1, 1]) {
     const g = layout.gantry,
-      span = 11;
+      span = PIT_WALL_OFFSET + 0.25;
     obstacles.push({
       x: g.x - Math.sin(g.heading) * side * span,
       y: g.y + Math.cos(g.heading) * side * span,
