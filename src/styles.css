@@ -1499,44 +1499,9 @@ button:disabled {
 }
 
 /* ==========================================================================
-   Kept from earlier milestones: hand-tracking panel, engineering-view labels,
-   tyre colours. Restyled by the tokens above.
+   Kept from earlier milestones: hand-tracking panel and tyre colours.
+   Restyled by the tokens above.
    ========================================================================== */
-.track-label {
-  white-space: nowrap;
-  font:
-    8px var(--font-num);
-  color: #a8b8b4;
-  letter-spacing: 1px;
-}
-.car-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  background: #0c2220;
-  border: 1px solid #008c87;
-  border-left: 3px solid #00bbb3;
-  padding: 4px 7px;
-  font:
-    9px var(--font-num);
-  color: #ecfffb;
-}
-.car-label i {
-  height: 10px;
-  border-right: 1px solid #3e6861;
-}
-.car-label-compact {
-  padding: 2px 4px;
-  font-size: 8px;
-  line-height: 10px;
-  border-left-width: 2px;
-  background: #101817;
-  color: #e9f0ed;
-}
-.car-label {
-  pointer-events: none;
-}
 .compound-soft,
 .tyre-soft {
   color: #e39d93;
@@ -1548,20 +1513,6 @@ button:disabled {
 .compound-hard,
 .tyre-hard {
   color: #d8e0da;
-}
-button.car-label {
-  pointer-events: auto;
-  cursor: pointer;
-  line-height: 12px;
-}
-button.car-label:hover,
-button.car-label:focus-visible {
-  background: #32433a;
-  filter: none;
-}
-.car-label-selected {
-  background: #173d35;
-  box-shadow: 0 0 0 1px #d5f1e4;
 }
 .strategy-table-wrap {
   overflow: auto;

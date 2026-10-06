@@ -4,16 +4,14 @@
 import { findCorners, type TrackProfile } from "../../domain/lapPhysics.ts";
 
 export const CAMERA_MODES = [
-  "engineering",
+  "tv",
   "chase",
   "onboard",
-  "tv",
   "heli",
   "inspect",
 ] as const;
 export type CameraMode = (typeof CAMERA_MODES)[number];
 export const CAMERA_LABELS: Record<CameraMode, string> = {
-  engineering: "Engineering",
   chase: "Chase",
   onboard: "Onboard",
   tv: "TV",
@@ -41,7 +39,7 @@ type Orbiting = keyof typeof DIST;
 const orbiting = (mode: CameraMode): mode is Orbiting => mode in DIST;
 export const YAW_STEP = 0.4;
 
-export function createRig(mode: CameraMode = "engineering"): CameraRigState {
+export function createRig(mode: CameraMode = "tv"): CameraRigState {
   const dist = orbiting(mode) ? DIST[mode][1] : DIST.chase[1];
   return {
     mode,
@@ -74,7 +72,6 @@ export function applyRigAction(
   action: RigAction,
 ): boolean {
   const mode = rig.mode;
-  if (mode === "engineering") return false;
   if (action === "rotateLeft" || action === "rotateRight") {
     if (mode === "tv") return false;
     rig.targetYaw += action === "rotateLeft" ? YAW_STEP : -YAW_STEP;

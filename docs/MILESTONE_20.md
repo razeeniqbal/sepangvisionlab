@@ -17,3 +17,7 @@
 Every stored session in `public/sessions/1308` was compared with the live OpenF1 API: session keys and start times, drivers and teams, every lap time, stints, pit stops, race-control messages and the classification. All five sessions match exactly.
 
 OpenF1's meeting record for key 1308 names the event "Bahrain Grand Prix" with country "Bahrain", although the location is Kuala Lumpur. The app never shows that field, so nothing is affected.
+
+## 3D only
+
+The flat "Map" (engineering) camera mode was removed. The app opens in the 3D TV camera, and the dock offers TV, Chase, Onboard, Heli and Inspect. The small track map in the top-right corner stays. The Fullscreen button now targets the stage correctly.

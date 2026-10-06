@@ -34,7 +34,7 @@ test("cycling visits every mode and wraps", () => {
   for (let i = 1; i < CAMERA_MODES.length; i++)
     seen.push((mode = nextMode(mode)));
   assert.deepEqual(seen, [...CAMERA_MODES]);
-  assert.equal(nextMode(mode), "engineering");
+  assert.equal(nextMode(mode), "tv");
 });
 
 test("actions change targets only, per mode", () => {
@@ -54,12 +54,6 @@ test("actions change targets only, per mode", () => {
   assert.equal(applyRigAction(rig, "zoomIn"), false);
   for (let i = 0; i < 10; i++) applyRigAction(rig, "rotateLeft");
   assert.equal(rig.targetYaw, 1.2);
-  setMode(rig, "engineering");
-  assert.equal(
-    applyRigAction(rig, "zoomIn"),
-    false,
-    "engineering keeps its own controls",
-  );
 });
 
 test("easing converges and is frame-rate independent", () => {

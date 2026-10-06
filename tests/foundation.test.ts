@@ -11,7 +11,6 @@ import {
   surfaceFrame,
   surfaceRibbon,
 } from "../src/components/circuit/surfaceGeometry.ts";
-import { engineeringCamera } from "../src/components/circuit/cameraView.ts";
 import {
   FOUNDATION,
   PIT_LANE,
@@ -137,23 +136,4 @@ test("kerb ranges generate raised coloured geometry without inventing a pit lane
       10,
     ),
   );
-});
-test("engineering camera remains orthogonal with top/oblique/orbit poses", () => {
-  for (const tilt of [0, 48])
-    for (const angle of [-180, -90, 0, 90, 180]) {
-      const pose = engineeringCamera({
-        zoom: 1,
-        angle,
-        tilt,
-        target: [2, 3, 0],
-      });
-      assert.ok(Math.abs(pose.position.distanceTo(pose.target) - 45) < 1e-9);
-      assert.ok(
-        Math.abs(
-          pose.position.clone().sub(pose.target).normalize().dot(pose.up),
-        ) < 1e-9,
-      );
-      assert.ok(pose.position.z > 0);
-      assert.deepEqual(pose.target.toArray(), [2, 3, 0]);
-    }
 });
