@@ -1,6 +1,7 @@
-import { Component, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useState, type ReactNode } from "react";
 import { GestureProvider } from "./components/handtracking/GestureContext";
-import HandTrackingPanel from "./components/handtracking/HandTrackingPanel";
+// Loaded on first open: most visitors never use hand tracking.
+const HandTrackingPanel = lazy(() => import("./components/handtracking/HandTrackingPanel"));
 import RecordedWorkspace from "./components/recorded/RecordedWorkspace";
 
 // Last-resort boundary: the circuit has its own; this keeps the page usable if anything else fails.
@@ -24,20 +25,28 @@ class AppBoundary extends Component<{ children: ReactNode }, { failed: boolean }
 export default function App() {
   // Hand tracking stays mounted (a running camera keeps working) and opens as a sheet.
   const [handsOpen, setHandsOpen] = useState(false);
+  const [handsUsed, setHandsUsed] = useState(false);
   return (
     <div className="shell shell-broadcast">
       <GestureProvider>
         <AppBoundary>
           <RecordedWorkspace
             handsOpen={handsOpen}
-            onHands={() => setHandsOpen((open) => !open)}
+            onHands={() => {
+              setHandsUsed(true);
+              setHandsOpen((open) => !open);
+            }}
           />
         </AppBoundary>
         <div
           className={"hands-sheet" + (handsOpen ? " is-open" : "")}
           aria-label="Hand tracking"
         >
-          <HandTrackingPanel onClose={() => setHandsOpen(false)} />
+          {handsUsed && (
+            <Suspense fallback={<p className="sv-muted">Loading hand tracking…</p>}>
+              <HandTrackingPanel onClose={() => setHandsOpen(false)} />
+            </Suspense>
+          )}
         </div>
       </GestureProvider>
     </div>

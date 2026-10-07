@@ -1,8 +1,9 @@
 import type { CarVisualIdentity, VisualTyreCompound } from "./carVisualState";
 import {
   BoxGeometry,
-  MeshStandardMaterial,
+  Color,
   MeshBasicMaterial,
+  MeshStandardMaterial,
   RingGeometry,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -34,7 +35,7 @@ const markerGeometry = new RingGeometry(0.55, 1, 4);
 const neutral = new MeshBasicMaterial({ color: "#94a9a5", depthTest: false });
 // Selected-car identifier in the theme accent (teal in SVL, red in Broadcast).
 const turquoise = new MeshBasicMaterial({
-  color: themedAccent(),
+  color: themedAccent(new Color()),
   depthTest: false,
 });
 export function CarIdentifier({

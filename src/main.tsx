@@ -12,6 +12,9 @@ import "@fontsource/barlow-condensed/600.css";
 import "@fontsource/barlow-condensed/700.css";
 import "./styles.css";
 applyTheme(initialTheme());
+// Start fetching the 3D engine now, in parallel with the session data, instead of after the
+// lazy CircuitScene chunk asks for it.
+void import("./components/circuit/DriverScene");
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />

@@ -4,6 +4,7 @@ import {
   BufferAttribute,
   BufferGeometry,
   CanvasTexture,
+  Color,
   DirectionalLight,
   Fog,
   Group,
@@ -513,14 +514,14 @@ function DriverCar({
 
 // Translucent replay of a saved setup. Shares the GLB geometry; its own material only.
 const ghostMaterial = new MeshBasicMaterial({
-  color: themedAccent(),
+  color: themedAccent(new Color()),
   transparent: true,
   opacity: 0.32,
   depthWrite: false,
 });
 // Selection ring under the followed car, in the theme accent.
 const ringMaterial = new MeshBasicMaterial({
-  color: themedAccent(),
+  color: themedAccent(new Color()),
   transparent: true,
   opacity: 0.45,
 });
