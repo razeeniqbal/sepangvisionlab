@@ -26,7 +26,10 @@ export default function GestureControls({
   live,
   latency,
   aspect,
+  view = "main",
 }: {
+  /** "main": switch, last action and the gesture list; "tests": try each action without a camera. */
+  view?: "main" | "tests";
   hands: TrackedHand[];
   live: boolean;
   latency: number | null;
@@ -78,6 +81,23 @@ export default function GestureControls({
     document.addEventListener("keydown", reset);
     return () => document.removeEventListener("keydown", reset);
   }, []);
+  if (view === "tests")
+    return (
+      <div className="sv-hands-tests">
+        <h3>Try the actions without a camera</h3>
+        <p className="sv-hands-note">Fires each action through the same path as a gesture. Tests the wiring, not recognition.</p>
+        <div className="sv-row">
+          {gestureActions.map((a) => (
+            <button key={a.action} className="sv-chip" onClick={() => fire(a.action)}>
+              {a.label}
+            </button>
+          ))}
+        </div>
+        <p className="sv-hands-last" role="status">
+          <Icon name="hand" /> {last}
+        </p>
+      </div>
+    );
   return (
     <div className="sv-hands-gestures">
       <div className="sv-hands-arm">
@@ -97,18 +117,13 @@ export default function GestureControls({
           {armed && live ? "Armed" : live ? "Off" : "Camera off"}
         </span>
       </div>
-      <p className="sv-hands-note">
-        {armed && live
-          ? "Hold each pose for half a second, then relax your hand before the next one. A fist pauses and switches gestures off."
-          : "Turn the camera on, then switch gestures on. The camera alone never controls the app."}
-      </p>
       <p className="sv-hands-last" role="status" data-testid="gesture-feedback">
-        <Icon name="hand" /> {last}
+        <Icon name="hand" />{" "}
+        {armed && live ? last : live ? "Switch on, then hold a pose for half a second." : "Turn the camera on first."}
       </p>
-      <h3>Gestures</h3>
       <ul className="sv-hands-grid">
         {gestureActions.map((a) => (
-          <li key={a.action}>
+          <li key={a.action} title={a.pose}>
             <span className="sv-hands-icon">
               <Icon name={ACTION_ICON[a.action]} />
             </span>
@@ -119,16 +134,6 @@ export default function GestureControls({
           </li>
         ))}
       </ul>
-      <details className="sv-hands-more">
-        <summary>Try the actions without a camera</summary>
-        <div className="sv-row">
-          {gestureActions.map((a) => (
-            <button key={a.action} className="sv-chip" onClick={() => fire(a.action)}>
-              {a.label}
-            </button>
-          ))}
-        </div>
-      </details>
     </div>
   );
 }

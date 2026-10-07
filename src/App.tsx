@@ -41,6 +41,12 @@ export default function App() {
         <div
           className={"hands-sheet" + (handsOpen ? " is-open" : "")}
           aria-label="Hand tracking"
+          role="dialog"
+          aria-modal={handsOpen}
+          onClick={(e) => {
+            // A click on the dim backdrop (not inside the panel) closes it.
+            if (e.target === e.currentTarget) setHandsOpen(false);
+          }}
         >
           {handsUsed && (
             <Suspense fallback={<p className="sv-muted">Loading hand tracking…</p>}>
