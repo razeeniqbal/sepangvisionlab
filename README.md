@@ -4,7 +4,7 @@ A 3D, broadcast-style replay of the 2026 Sepang weekend (OpenF1 meeting 1308, 2 
 
 Live: https://sepangvisionlab.madebyrazeen.com/
 
-![Chase camera with the driving HUD](docs/screenshots/chase-hud.png)
+![Main straight: grandstand, pit building and grid](docs/screenshots/main-straight.png)
 
 ## Features
 
@@ -18,14 +18,16 @@ Live: https://sepangvisionlab.madebyrazeen.com/
   - **Track:** textured asphalt with rubber marks, raised kerbs, gravel traps, tyre walls, guardrails and catch fencing.
   - **Start area:** a chequered start line and painted grid boxes.
   - **Pit lane:** a separate lane with a pit wall.
-  - **Surroundings:** grandstand crowd, oil palms, trees and distant hills.
+  - **The venue, after the circuit's own description:** a 33-garage pit building, the double-fronted main grandstand under hibiscus-inspired petal canopies, the covered K1 stand at Turn 1, and the C2 grass hillstand over Turns 9–11, all with crowds.
+  - **Surroundings:** oil palms, trees and distant hills.
 - **Quality presets:** Low, Balanced (default) and High; High adds sun shadows for every nearby car.
 - **Themes:** SVL (teal) and Broadcast (red), both glass-panel layouts. Present mode (`P`) hides the chrome.
 - **Optional hand gestures** through the webcam (MediaPipe, runs locally; see docs/GESTURE_CONTROLS.md).
 
 | | |
 |---|---|
-| ![Onboard](docs/screenshots/onboard.png) | ![Pit lane](docs/screenshots/pit-lane.png) |
+| ![Chase camera with the driving HUD](docs/screenshots/chase-hud.png) | ![Pit lane](docs/screenshots/pit-lane.png) |
+| ![Onboard](docs/screenshots/onboard.png) | ![Car close-up](docs/screenshots/car-inspect.png) |
 | ![Pick your winner](docs/screenshots/pick-winner.png) | ![Result at the flag](docs/screenshots/pick-result.png) |
 
 ## Run
@@ -110,7 +112,7 @@ Pushing to `main` deploys production. `vercel.json` runs `npm run build`, then `
 
 ## History
 
-Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILESTONE_23.md`:
+Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILESTONE_24.md`:
 
 | Milestone | What it covers |
 |---|---|
@@ -120,5 +122,6 @@ Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILES
 | M21 | Realism |
 | M22 | HUD, pick your winner, wheels and track detail |
 | M23 | Physical motion, pit lane, and the race data fix |
+| M24 | Steady labels, tyres, and the Sepang venue |
 
 Earlier work (a synthetic physics session, the 2017 Malaysian Grand Prix replay, strategy and Monte Carlo tools, a race engineer and a flat map view) was removed to focus on the 2026 replay and remains in the git history. `docs/PRD.md` is the original product brief.

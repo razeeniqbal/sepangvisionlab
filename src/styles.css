@@ -1181,8 +1181,19 @@ button:disabled {
   border: 1px solid rgba(255, 255, 255, 0.14);
   white-space: nowrap;
   pointer-events: none;
-  transform: translateY(-50%);
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
   transition: opacity 0.2s linear;
+}
+/* Overlay for car tags, positioned each frame by TagLayer (DriverScene). */
+.sv-tag-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
 }
 .bc-car-tag::before {
   content: attr(data-position);

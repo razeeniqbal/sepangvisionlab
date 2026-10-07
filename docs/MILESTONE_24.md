@@ -1,0 +1,19 @@
+# Milestone 24: steady labels, fixed tyres, and the real Sepang venue
+
+## Driver labels no longer shake
+drei's `<Html>` projected each tag during the frame, but before that frame's camera and car positions were applied. Every tag was drawn where its car had been one frame earlier, about 1–1.5 m at racing speed, so tags shook against their cars. Tags now live in one overlay that is positioned from the scene's after-render hook, once the camera and every car are final. The fade behind scenery also changes only when two checks in a row agree, so tags at the edge of a board no longer flicker.
+
+## Tyres
+- The white sidewall marks sat past the tyre's bulge and poked out like spikes. They now sit flat on the sidewall band.
+- Rear tyres are 1.3 times wider than the fronts (real cars run 405 mm rears and 305 mm fronts). They grow outward from the hub.
+- The speed-blur disc covers only the wheel face, not the tyre sidewall, and is darker and subtler.
+
+## The venue, from the circuit's own description
+Sources: sepangcircuit.com/architecture (accessed 2026-10-07) and spectator guides. Shapes are illustrative where the source gives no geometry. Each item is registered in `sepangSpatialReferences.ts`.
+
+- **Pit building:** 33 garages, each 8 m wide and 24 m deep (sourced), on the ground floor. The paddock club sits behind glass on the first floor, suites are set back on the second, and a rooftop canopy reaches over the pit lane. The taller end blocks are illustrative.
+- **Main grandstand:** double-fronted along the OFFICIAL east-west alignment, with stepped rows of spectators facing both straights. It sits under a row of white petal-shaped canopies on masts, after the hibiscus-inspired "umbrella shade" roof. The exact canopy geometry is not published.
+- **K1 grandstand:** a covered stand on the outside of Turn 1, at the end of the main straight.
+- **C2 hillstand:** a grass bank with spectators and a partial roof beside the Turns 9–11 complex.
+- **Pit lane:** registered as DERIVED (from the 73 race pit stops).
+- **Turn boards:** now show a plain back instead of mirrored numbers.

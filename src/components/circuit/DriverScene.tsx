@@ -1,6 +1,5 @@
-import { useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Html } from "@react-three/drei";
 import {
   BufferAttribute,
   BufferGeometry,
@@ -167,6 +166,51 @@ function pose(car: Posed) {
 
 const TRAIL_POINTS = 32;
 const tagPoint = new Vector3();
+const TAG_HEIGHT = 2.4;
+
+/** Car tags drawn by TagLayer: each car registers its element and the group it follows. */
+type TagRegistry = Map<string, { group: RefObject<Group | null>; el: HTMLDivElement }>;
+
+/**
+ * Positions every car tag once per frame, from the scene's after-render hook: by then the
+ * camera and every car are final for the frame. drei's <Html> projected each tag before the
+ * cars and camera updated, so tags trailed their car by a frame and shook at speed.
+ */
+function TagLayer({ registry }: { registry: TagRegistry }) {
+  const { gl, scene } = useThree();
+  const container = useMemo(() => {
+    const div = document.createElement("div");
+    div.className = "sv-tag-layer";
+    return div;
+  }, []);
+  useLayoutEffect(() => {
+    const host = gl.domElement.parentElement;
+    host?.appendChild(container);
+    const v = new Vector3();
+    const previous = scene.onAfterRender;
+    scene.onAfterRender = (_renderer, _scene, camera) => {
+      const width = gl.domElement.clientWidth,
+        height = gl.domElement.clientHeight;
+      for (const { group, el } of registry.values()) {
+        if (el.parentElement !== container) container.appendChild(el);
+        const g = group.current;
+        if (!g || el.hidden) continue;
+        v.set(g.position.x, g.position.y, g.position.z + TAG_HEIGHT).project(camera);
+        const visible = v.z < 1 && Math.abs(v.x) < 1.2 && Math.abs(v.y) < 1.2;
+        el.style.visibility = visible ? "" : "hidden";
+        if (!visible) continue;
+        const x = ((v.x + 1) / 2) * width,
+          y = ((1 - v.y) / 2) * height;
+        el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -50%)`;
+      }
+    };
+    return () => {
+      scene.onAfterRender = previous;
+      container.remove();
+    };
+  }, [gl, scene, container, registry]);
+  return null;
+}
 
 // Today's GLB is one merged mesh, so wheels are generated; see wheelLayout.ts.
 const WHEELS: WheelSource = "generated";
@@ -190,9 +234,11 @@ function DriverCar({
   onSelect,
   wet,
   shadowCaster,
+  registry,
 }: {
   wet: boolean;
   shadowCaster: boolean;
+  registry: TagRegistry;
   car: CarDefinition;
   index: number;
   field: RefObject<CarState[]>;
@@ -207,8 +253,25 @@ function DriverCar({
   onSelect: (id: string) => void;
 }) {
   const group = useRef<Group>(null);
-  const label = useRef<HTMLDivElement>(null);
+  const label = useRef<HTMLDivElement | null>(null);
   const shown = useRef("");
+  const occludedVotes = useRef({ last: false, applied: false });
+  // The tag element lives in TagLayer's overlay, not in the 3D tree.
+  useEffect(() => {
+    const el = document.createElement("div");
+    el.className = "bc-car-tag";
+    el.hidden = true;
+    label.current = el;
+    registry.set(car.id, { group, el });
+    return () => {
+      registry.delete(car.id);
+      el.remove();
+      label.current = null;
+    };
+  }, [registry, car.id]);
+  useEffect(() => {
+    label.current?.classList.toggle("is-selected", selected);
+  }, [selected]);
   const body = useRef<Group>(null);
   const attitude = useRef<Group>(null);
   const pivot = useRef<Group>(null);
@@ -269,12 +332,17 @@ function DriverCar({
         label.current.hidden = !near;
       }
       // Fade a tag that scenery hides; staggered so each car is checked every 6th frame.
+      // Two checks in a row must agree before the fade changes, so tags at the edge of a
+      // board do not flicker.
       if (near && check.current++ % 6 === 0) {
-        tagPoint.copy(group.current.position).setZ(2.4);
-        label.current.classList.toggle(
-          "is-occluded",
-          blocked(camera.position, tagPoint, occluders.current, 1),
-        );
+        tagPoint.copy(group.current.position).setZ(TAG_HEIGHT);
+        const hit = blocked(camera.position, tagPoint, occluders.current, 1);
+        const votes = occludedVotes.current;
+        if (hit === votes.last && hit !== votes.applied) {
+          votes.applied = hit;
+          label.current.classList.toggle("is-occluded", hit);
+        }
+        votes.last = hit;
       }
     }
     const m = motion.current,
@@ -404,13 +472,6 @@ function DriverCar({
         position={[0, 0, 0.012]}
         renderOrder={1}
       />
-      <Html position={[0, 0, 2.4]} center zIndexRange={[20, 0]}>
-        <div
-          ref={label}
-          className={"bc-car-tag" + (selected ? " is-selected" : "")}
-          hidden
-        />
-      </Html>
       {ring && (
         <mesh position={[0, 0, 0.02]}>
           <ringGeometry args={[3.1, 3.25, 40]} />
@@ -663,6 +724,7 @@ function World({
   const layout = useEnvironmentLayout(sepangTrack, coordinates);
   const occluders = useRef<Object3D[]>([]);
   const scans = useRef(0);
+  const registry = useMemo<TagRegistry>(() => new Map(), []);
   useFrame(({ scene }) => {
     field.current = sample(clock.current);
     // Occluders mount over the first frames and change with the quality preset:
@@ -715,9 +777,11 @@ function World({
               onSelect={onSelect}
               wet={wet}
               shadowCaster={car.id === selectedId || quality.allCarShadows}
+              registry={registry}
             />
           ),
       )}
+      <TagLayer registry={registry} />
     </>
   );
 }

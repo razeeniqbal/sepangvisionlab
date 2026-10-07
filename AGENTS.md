@@ -1,6 +1,6 @@
 # Sepang Vision Lab — agent instructions
 
-A static React app: a 3D broadcast-style replay of the 2026 Sepang weekend from OpenF1 data (FP1, FP2, FP3, Qualifying, Race). README.md describes the features, the data pipeline and the accuracy limits. The latest milestone notes (docs/MILESTONE_18.md to docs/MILESTONE_23.md) explain why things are the way they are. docs/PRD.md is the original brief, and much of it has since been removed.
+A static React app: a 3D broadcast-style replay of the 2026 Sepang weekend from OpenF1 data (FP1, FP2, FP3, Qualifying, Race). README.md describes the features, the data pipeline and the accuracy limits. The latest milestone notes (docs/MILESTONE_18.md to docs/MILESTONE_24.md) explain why things are the way they are. docs/PRD.md is the original brief, and much of it has since been removed.
 
 ## Stack
 

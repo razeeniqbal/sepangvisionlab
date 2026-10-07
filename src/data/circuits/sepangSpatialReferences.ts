@@ -458,12 +458,22 @@ export const SEPANG_SPATIAL_REFERENCES = parseSpatialReferences([
       [
         "env-pit-building",
         "Driver view pit building",
-        "Centred on the SOURCED anchor pit-building and aligned to the main straight; footprint, height and orientation are illustrative.",
+        "Centred on the SOURCED anchor pit-building and aligned to the main straight. Floor plan from the circuit's own description (sepangcircuit.com/architecture, accessed 2026-10-07): 33 pit garages, each 8 m wide and 24 m long, paddock club on the first floor, suites on the second, rooftop above. Heights, glazing and finishes are illustrative.",
       ],
       [
         "env-main-grandstand",
         "Driver view main grandstand",
-        "Centred on the SOURCED anchor main-grandstand with the OFFICIAL east-west alignment; footprint and height are illustrative.",
+        "Centred on the SOURCED anchor main-grandstand with the OFFICIAL east-west alignment and double frontage. The roof is drawn as a row of white petal-shaped canopies after the circuit's hibiscus-inspired \"umbrella shade\" roof; the exact canopy geometry is not published, so its shape, footprint and height are illustrative.",
+      ],
+      [
+        "env-k1-grandstand",
+        "Driver view K1 grandstand",
+        "A covered stand on the outside of T1; ticket guides place K1 at the end of the main straight facing T1-T2. Position beside the DERIVED T1 board, size and roof are illustrative.",
+      ],
+      [
+        "env-c2-hillstand",
+        "Driver view C2 hillstand",
+        "A grass bank with spectators and a partial roof beside the T9-T11 complex; ticket guides describe C2 as a partly covered natural grass amphitheatre overlooking T9-T11. Shape and placement are illustrative.",
       ],
       [
         "env-start-gantry",
@@ -492,6 +502,16 @@ export const SEPANG_SPATIAL_REFERENCES = parseSpatialReferences([
       "ILLUSTRATIVE",
       notes,
     ),
+  ),
+  fact(
+    "env-pit-lane",
+    "Driver view pit lane",
+    "visual",
+    null,
+    null,
+    "svlEnvironment",
+    "DERIVED",
+    "Centre line DERIVED from aligned OpenF1 positions during all 73 race pit stops (median across-track offset per 4 m profile sample, smoothed; scripts/derive-pit-lane.ts, src/data/circuits/sepangPitLane.json). Lane width, pit wall, fence and apron are illustrative.",
   ),
   fact(
     "env-turn-boards",

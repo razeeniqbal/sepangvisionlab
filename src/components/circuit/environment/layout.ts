@@ -397,3 +397,27 @@ export function palmRows(
   }
   return out;
 }
+
+/**
+ * A building beside a turn: on the outside of the bend at the apex, long side parallel to the
+ * track, its near face `offset` metres from the centre line. Shrunk by fitBuilding until it
+ * keeps that clearance from every part of the circuit.
+ */
+export function besideTurn(
+  track: TrackProfile,
+  normals: { nx: Float64Array; ny: Float64Array },
+  apex: number,
+  offset: number,
+  length: number,
+  depth: number,
+): Building {
+  const i = wrap(apex, track.count);
+  const side = track.curvature[i] > 0 ? -1 : 1; // the outside of a left bend is on the right
+  const o = side * (offset + depth / 2);
+  const anchor = {
+    x: track.x[i] + normals.nx[i] * o,
+    y: track.y[i] + normals.ny[i] * o,
+    heading: poseAtDistance(track, track.distance[i]).heading,
+  };
+  return fitBuilding(track, anchor, length, depth, offset - 2);
+}

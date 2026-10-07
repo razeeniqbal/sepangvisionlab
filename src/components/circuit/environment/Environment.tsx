@@ -44,6 +44,7 @@ import {
   treeClumps,
   type Palm,
   type Tree,
+  besideTurn,
   fitBuilding,
   gantryAt,
   kerbRuns,
@@ -64,6 +65,7 @@ import {
   asphaltTexture,
   barrierTexture,
   chequerTexture,
+  crowdTexture,
   fenceTexture,
   grassTexture,
   gravelTexture,
@@ -136,6 +138,10 @@ const lower = {
 export interface EnvironmentLayout {
   pit: Building;
   stand: Building;
+  /** Covered K1 grandstand on the outside of T1 (null if the turn map is unavailable). */
+  k1: Building | null;
+  /** C2 hillstand, a grass bank over the T9-T11 complex (null if unavailable). */
+  hill: Building | null;
   gantry: Placement;
   boards: Placement[];
   turns: TurnBoard[];
@@ -164,45 +170,40 @@ export function useEnvironmentLayout(
       minY = Math.min(minY, track.y[i]);
       maxY = Math.max(maxY, track.y[i]);
     }
+    // OFFICIAL (sepangcircuit.com/architecture): 33 pits, each 8 m wide and 24 m long.
+    const pit = fitBuilding(
+      track,
+      { ...pitAnchor, heading: trackBearing(track, pitAnchor.x, pitAnchor.y) },
+      PIT_GARAGES * PIT_GARAGE_WIDTH + 24,
+      24,
+    );
+    // OFFICIAL "double frontage; east-west alignment": heading 0 (east).
+    const stand = fitBuilding(track, { ...standAnchor, heading: 0 }, 320, 44, TRACK_HALF_WIDTH + 10);
+    // Numbered T1-T15 when the detector matches the official layout; else unnumbered.
+    const turns = officialTurnBoards(track, normals);
+    const apexOf = (n: number) => turns.find((t) => t.turn === n)?.apex;
+    const t1 = apexOf(1), t9 = apexOf(9), t11 = apexOf(11);
+    // SOURCED: K1 grandstand at the end of the main straight facing T1-T2; C2 hillstand a grass
+    // amphitheatre over T9-T11. Placement beside those turns is illustrative.
+    const k1 = t1 === undefined ? null : besideTurn(track, normals, t1, 40, 150, 24);
+    const hill =
+      t9 === undefined || t11 === undefined
+        ? null
+        : besideTurn(track, normals, Math.round((t9 + t11) / 2), 42, 200, 55);
+    const buildings = [pit, stand, ...(k1 ? [k1] : []), ...(hill ? [hill] : [])];
     return {
-      pit: fitBuilding(
-        track,
-        {
-          ...pitAnchor,
-          heading: trackBearing(track, pitAnchor.x, pitAnchor.y),
-        },
-        420,
-        24,
-      ),
-      // OFFICIAL "double frontage; east-west alignment": heading 0 (east).
-      stand: fitBuilding(
-        track,
-        { ...standAnchor, heading: 0 },
-        320,
-        44,
-        TRACK_HALF_WIDTH + 10,
-      ),
+      pit,
+      stand,
+      k1,
+      hill,
       gantry: gantryAt(track, finish.x, finish.y),
-      // Numbered T1-T15 when the detector matches the official layout; else unnumbered.
-      ...(() => {
-        const turns = officialTurnBoards(track, normals);
-        return {
-          turns,
-          boards: turns.length ? turns : cornerBoards(track, normals),
-        };
-      })(),
+      turns,
+      boards: turns.length ? turns : cornerBoards(track, normals),
       bounds: { minX, maxX, minY, maxY },
-      ...(() => {
-        const turns = officialTurnBoards(track, normals);
-        const pit = fitBuilding(track, { ...pitAnchor, heading: trackBearing(track, pitAnchor.x, pitAnchor.y) }, 420, 24);
-        const stand = fitBuilding(track, { ...standAnchor, heading: 0 }, 320, 44, TRACK_HALF_WIDTH + 10);
-        return {
-          apexes: turns.length ? turns.map((t) => t.apex) : findCorners(track),
-          // Clumps keep clear of every trackside camera position, so TV shots stay open.
-          trees: treeClumps(track, normals, { avoid: tvPoints(track, normals), buildings: [pit, stand] }),
-          palms: palmRows(track, { buildings: [pit, stand] }),
-        };
-      })(),
+      apexes: turns.length ? turns.map((t) => t.apex) : findCorners(track),
+      // Clumps keep clear of every trackside camera position, so TV shots stay open.
+      trees: treeClumps(track, normals, { avoid: tvPoints(track, normals), buildings }),
+      palms: palmRows(track, { buildings }),
     };
   }, [track, coordinates]);
 }
@@ -397,37 +398,145 @@ const steel = new MeshStandardMaterial({
   metalness: 0.5,
 });
 
-function PitBuilding({ b, track }: { b: Building; track: TrackProfile }) {
-  // Which long side faces the circuit (local +y or -y)?
+/** Which long side of a building faces the circuit: +1 for local +y, -1 for local -y. */
+function facing(b: Building, track: TrackProfile) {
   const { index } = nearestSample(track, b.x, b.y);
-  const c = Math.cos(-b.heading), s = Math.sin(-b.heading);
-  const face = (track.x[index] - b.x) * s + (track.y[index] - b.y) * c > 0 ? 1 : -1;
-  const bays = Math.max(4, Math.floor(b.length / 14));
-  const bay = b.length / bays;
+  const c = Math.cos(-b.heading),
+    s = Math.sin(-b.heading);
+  return (track.x[index] - b.x) * s + (track.y[index] - b.y) * c > 0 ? 1 : -1;
+}
+
+/** OFFICIAL (sepangcircuit.com/architecture): 33 pit garages, each 8 m wide and 24 m long. */
+export const PIT_GARAGES = 33;
+export const PIT_GARAGE_WIDTH = 8;
+
+/**
+ * Pit building: 33 garages on the ground floor facing the pit lane, the paddock club behind
+ * glass on the first floor, suites set back on the second, and a rooftop with a canopy over
+ * the pit lane. The floor plan follows the SOURCED description; heights and finishes are
+ * illustrative.
+ */
+function PitBuilding({ b, track }: { b: Building; track: TrackProfile }) {
+  const face = facing(b, track);
+  const bay = Math.min(PIT_GARAGE_WIDTH, (b.length - 8) / PIT_GARAGES);
+  const start = (-bay * PIT_GARAGES) / 2;
+  const front = face * (b.depth / 2);
   return (
-    <group
-      position={[b.x, b.y, 0]}
-      rotation={[0, 0, b.heading]}
-      userData={OCCLUDER}
-    >
-      <mesh material={concrete} position={[0, 0, 4]} castShadow receiveShadow>
-        <boxGeometry args={[b.length, b.depth, 8]} />
+    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
+      <mesh material={concrete} position={[0, 0, 3.25]} castShadow receiveShadow>
+        <boxGeometry args={[b.length, b.depth, 6.5]} />
       </mesh>
-      <mesh material={glass} position={[0, 0, 11]}>
-        <boxGeometry args={[b.length * 0.98, b.depth * 0.9, 6]} />
-      </mesh>
-      <mesh material={roof} position={[0, 0, 14.4]} castShadow>
-        <boxGeometry args={[b.length * 1.02, b.depth * 1.25, 0.8]} />
-      </mesh>
-      {Array.from({ length: bays }, (_, i) => {
-        const x = -b.length / 2 + bay * (i + 0.5);
+      {Array.from({ length: PIT_GARAGES }, (_, i) => {
+        const x = start + bay * (i + 0.5);
         return (
-          <group key={i} position={[x, face * (b.depth / 2 + 0.05), 0]}>
-            <mesh material={garageDoor} position={[0, 0, 2.6]}>
-              <boxGeometry args={[bay * 0.82, 0.2, 5.2]} />
+          <group key={i} position={[x, front + face * 0.05, 0]}>
+            <mesh material={garageDoor} position={[0, 0, 2.5]}>
+              <boxGeometry args={[bay * 0.84, 0.2, 5]} />
             </mesh>
-            <mesh material={GARAGE_BANDS[i % GARAGE_BANDS.length]} position={[0, 0, 6]}>
-              <boxGeometry args={[bay * 0.92, 0.3, 0.9]} />
+            <mesh material={GARAGE_BANDS[Math.floor(i / 2) % GARAGE_BANDS.length]} position={[0, 0, 5.6]}>
+              <boxGeometry args={[bay * 0.92, 0.3, 0.8]} />
+            </mesh>
+          </group>
+        );
+      })}
+      {/* Floor slabs read as white bands between the storeys. */}
+      {[6.5, 10.7].map((z) => (
+        <mesh key={z} material={roof} position={[0, face * 0.6, z]}>
+          <boxGeometry args={[b.length * 1.005, b.depth + 1.2, 0.5]} />
+        </mesh>
+      ))}
+      <mesh material={glass} position={[0, face * 0.4, 8.6]}>
+        <boxGeometry args={[b.length * 0.99, b.depth * 0.96, 3.8]} />
+      </mesh>
+      <mesh material={glass} position={[0, -face * b.depth * 0.08, 12.6]}>
+        <boxGeometry args={[b.length * 0.97, b.depth * 0.8, 3.4]} />
+      </mesh>
+      {/* Rooftop with a canopy reaching out over the pit lane. */}
+      <mesh material={roof} position={[0, face * 2.5, 14.6]} castShadow>
+        <boxGeometry args={[b.length * 1.02, b.depth + 5, 0.6]} />
+      </mesh>
+      <mesh material={steel} position={[0, front + face * 4.9, 15.4]}>
+        <boxGeometry args={[b.length * 1.02, 0.12, 1]} />
+      </mesh>
+      {/* Taller end blocks (stairs and services). */}
+      {[-1, 1].map((end) => (
+        <mesh key={end} material={concrete} position={[end * (b.length / 2 - 5), 0, 8.5]} castShadow>
+          <boxGeometry args={[10, b.depth * 1.02, 17]} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * One petal of the main grandstand roof: a white shell, highest along the spine and falling to
+ * both frontages, pointed at both ends. The real roof is described as hibiscus-inspired
+ * "umbrella shade"; this shape is illustrative, not a survey of it.
+ */
+function petalGeometry(length: number, width: number, base: number, rise: number) {
+  const nA = 20,
+    nC = 14;
+  const positions: number[] = [];
+  const index: number[] = [];
+  for (let i = 0; i <= nA; i++) {
+    const a = i / nA,
+      petal = Math.pow(Math.sin(Math.PI * a), 0.6);
+    for (let j = 0; j <= nC; j++) {
+      const c = -1 + (2 * j) / nC;
+      positions.push(
+        (a - 0.5) * length,
+        c * (width / 2) * (0.3 + 0.7 * petal),
+        base + rise * petal * (1 - 0.6 * c * c) - 1.2 * (1 - petal),
+      );
+      if (i && j) {
+        const k = i * (nC + 1) + j;
+        index.push(k - nC - 2, k - 1, k, k - nC - 2, k, k - nC - 1);
+      }
+    }
+  }
+  const g = new BufferGeometry();
+  g.setAttribute("position", new BufferAttribute(new Float32Array(positions), 3));
+  g.setIndex(index);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * Main grandstand, double-fronted (OFFICIAL): stepped seating with spectators rising from each
+ * straight to a central concourse, under a row of white petal-shaped canopies on masts.
+ */
+function Grandstand({ b }: { b: Building }) {
+  const rows = 10,
+    half = b.depth / 2,
+    rowDepth = (half - 3) / rows,
+    count = Math.max(3, Math.round(b.length / 46)),
+    petalLength = (b.length / count) * 1.22;
+  const petal = useMemo(() => petalGeometry(petalLength, b.depth * 1.15, 21, 6), [petalLength, b.depth]);
+  return (
+    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
+      {[-1, 1].flatMap((side) =>
+        Array.from({ length: rows }, (_, r) => (
+          <mesh
+            key={side + ":" + r}
+            material={seats}
+            position={[0, side * (half - (r + 0.5) * rowDepth), (1.2 + r * 0.95) / 2]}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={[b.length, rowDepth, 1.2 + r * 0.95]} />
+          </mesh>
+        )),
+      )}
+      <mesh material={concrete} position={[0, 0, (1.2 + rows * 0.95) / 2]} receiveShadow>
+        <boxGeometry args={[b.length, 6, 1.2 + rows * 0.95]} />
+      </mesh>
+      {Array.from({ length: count }, (_, i) => {
+        const x = -b.length / 2 + (b.length / count) * (i + 0.5);
+        return (
+          <group key={i} position={[x, 0, 0]}>
+            <mesh geometry={petal} material={roof} castShadow receiveShadow />
+            <mesh material={steel} position={[0, 0, 13]}>
+              <cylinderGeometry args={[0.7, 1.1, 26, 10]} />
             </mesh>
           </group>
         );
@@ -436,52 +545,97 @@ function PitBuilding({ b, track }: { b: Building; track: TrackProfile }) {
   );
 }
 
-// Double-frontage stand: two tiers rising away from each straight to a central spine.
-function Grandstand({ b }: { b: Building }) {
-  const tiers = 4,
-    half = b.depth / 2,
-    columns = Math.max(2, Math.round(b.length / 40)) + 1;
+/**
+ * Covered K1 grandstand at the end of the main straight (SOURCED: faces T1-T2). Rows rise away
+ * from the track under a cantilevered roof on rear columns; size and finish are illustrative.
+ */
+function CoveredStand({ b, track }: { b: Building; track: TrackProfile }) {
+  const face = facing(b, track);
+  const rows = 12,
+    rowDepth = (b.depth - 4) / rows,
+    top = 1 + rows * 0.8;
   return (
-    <group
-      position={[b.x, b.y, 0]}
-      rotation={[0, 0, b.heading]}
-      userData={OCCLUDER}
-    >
-      {[-1, 1].flatMap((side) =>
-        Array.from({ length: tiers }, (_, t) => (
-          <mesh
-            key={side + ":" + t}
-            material={seats}
-            position={[
-              0,
-              side * (half - ((t + 0.5) * half) / tiers),
-              1.5 + t * 3,
-            ]}
-            castShadow
-            receiveShadow
-          >
-            <boxGeometry args={[b.length, half / tiers, 3 + t * 6]} />
+    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
+      {Array.from({ length: rows }, (_, r) => (
+        <mesh
+          key={r}
+          material={seats}
+          position={[0, face * (b.depth / 2 - 2 - (r + 0.5) * rowDepth), (1 + r * 0.8) / 2]}
+          castShadow
+          receiveShadow
+        >
+          <boxGeometry args={[b.length, rowDepth, 1 + r * 0.8]} />
+        </mesh>
+      ))}
+      <mesh material={roof} position={[0, -face * 1, top + 6]} rotation={[face * 0.12, 0, 0]} castShadow>
+        <boxGeometry args={[b.length * 1.02, b.depth + 2, 0.4]} />
+      </mesh>
+      {Array.from({ length: Math.round(b.length / 18) + 1 }, (_, i) => (
+        <mesh key={i} material={steel} position={[-b.length / 2 + i * 18, -face * (b.depth / 2 - 0.5), (top + 6) / 2]}>
+          <boxGeometry args={[0.6, 0.6, top + 6]} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * C2 hillstand (SOURCED: a natural grass amphitheatre over T9-T11, partly covered). A grass
+ * bank rising away from the track with spectators on its face and a canopy over one end.
+ */
+function Hillstand({ b, track }: { b: Building; track: TrackProfile }) {
+  const face = facing(b, track);
+  const parts = useMemo(() => {
+    const L = b.length / 2,
+      D = b.depth / 2,
+      low = 0.4,
+      high = 13;
+    // Front edge low by the track, back edge high; ends taper down to the ground.
+    const yf = face * D,
+      yb = -face * D;
+    const p = [
+      [-L, yf, low], [L, yf, low], [L * 0.8, yb, high], [-L * 0.8, yb, high],
+      [-L, yb, 0], [L, yb, 0],
+    ];
+    const tris = [[0, 1, 2], [0, 2, 3], [0, 3, 4], [1, 5, 2], [3, 2, 5], [3, 5, 4]];
+    const positions = tris.flatMap((t) => t.flatMap((k) => p[k]));
+    const ground = new BufferGeometry();
+    ground.setAttribute("position", new BufferAttribute(new Float32Array(positions), 3));
+    ground.computeVertexNormals();
+    const slope = Math.atan2(high - low, b.depth);
+    const crowd = crowdTexture();
+    crowd.repeat.set(6, 2.5);
+    return {
+      ground,
+      slope,
+      crowdLength: b.length * 0.62,
+      crowdDepth: Math.hypot(high - low, b.depth) * 0.8,
+      mid: (low + high) / 2,
+      grass: new MeshStandardMaterial({ map: grassTexture(), color: "#c8d6b0", roughness: 1, side: DoubleSide }),
+      people: new MeshStandardMaterial({ map: crowd, transparent: true, alphaTest: 0.3, roughness: 0.9 }),
+    };
+  }, [b, face]);
+  return (
+    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
+      <mesh geometry={parts.ground} material={parts.grass} castShadow receiveShadow />
+      <mesh
+        material={parts.people}
+        position={[0, 0, parts.mid + 0.35]}
+        rotation={[-face * parts.slope, 0, 0]}
+      >
+        <planeGeometry args={[parts.crowdLength, parts.crowdDepth]} />
+      </mesh>
+      {/* The covered section. */}
+      <mesh material={roof} position={[b.length * 0.28, 0, 17]} castShadow>
+        <boxGeometry args={[b.length * 0.3, b.depth * 0.7, 0.4]} />
+      </mesh>
+      {[-1, 1].flatMap((sx) =>
+        [-1, 1].map((sy) => (
+          <mesh key={sx + ":" + sy} material={steel} position={[b.length * 0.28 + sx * b.length * 0.13, sy * b.depth * 0.3, 8.5]}>
+            <boxGeometry args={[0.5, 0.5, 17]} />
           </mesh>
         )),
       )}
-      <mesh material={roof} position={[0, 0, 26]} castShadow>
-        <boxGeometry args={[b.length * 1.02, b.depth * 0.95, 0.6]} />
-      </mesh>
-      {/* Canopy fascia on both frontages. */}
-      {[-1, 1].map((side) => (
-        <mesh key={side} material={steel} position={[0, side * b.depth * 0.475, 25.2]}>
-          <boxGeometry args={[b.length * 1.02, 0.4, 1.6]} />
-        </mesh>
-      ))}
-      {Array.from({ length: columns }, (_, i) => (
-        <mesh
-          key={i}
-          material={steel}
-          position={[-b.length / 2 + (i * b.length) / (columns - 1), 0, 13]}
-        >
-          <boxGeometry args={[0.8, 0.8, 26]} />
-        </mesh>
-      ))}
     </group>
   );
 }
@@ -561,9 +715,9 @@ function TurnBoards({
     () =>
       turns.map((t) => ({
         ...t,
+        // Front only: from behind, a board shows its plain back, not mirrored numbers.
         material: new MeshStandardMaterial({
           map: turnBoardTexture(t.turn, track.curvature[t.apex] > 0),
-          side: DoubleSide,
           roughness: 0.6,
         }),
       })),
@@ -586,6 +740,9 @@ function TurnBoards({
             position={[0, 0, 3.6]}
             rotation={[Math.PI / 2, -Math.PI / 2, 0]}
           >
+            <planeGeometry args={[2.4, 3]} />
+          </mesh>
+          <mesh material={steel} position={[-0.02, 0, 3.6]} rotation={[Math.PI / 2, Math.PI / 2, 0]}>
             <planeGeometry args={[2.4, 3]} />
           </mesh>
         </group>
@@ -1240,6 +1397,8 @@ export default function Environment({
       {quality.terrain && <CatchFence track={track} />}
       <PitBuilding b={layout.pit} track={track} />
       <Grandstand b={layout.stand} />
+      {layout.k1 && <CoveredStand b={layout.k1} track={track} />}
+      {layout.hill && <Hillstand b={layout.hill} track={track} />}
       <Gantry p={layout.gantry} />
       {layout.turns.length ? (
         <TurnBoards turns={layout.turns} track={track} />

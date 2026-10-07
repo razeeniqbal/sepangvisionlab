@@ -51,12 +51,16 @@ function tinted(geometry: BufferGeometry, colour: string) {
  * 18-inch era: a low-profile tyre with rounded shoulders, a dark wheel cover with a centre
  * nut, the compound stripe and two white sidewall marks so rotation reads at low speed.
  */
-export function wheelGeometry(compound: VisualTyreCompound, side: 1 | -1) {
-  const key = compound + side;
+// Real rear tyres are about a third wider than the fronts (405 vs 305 mm); the rear grows
+// outward from the derived hub so it never cuts into the floor or diffuser.
+export const REAR_WIDTH = 1.3;
+
+export function wheelGeometry(compound: VisualTyreCompound, side: 1 | -1, widthScale = 1) {
+  const key = compound + side + ":" + widthScale;
   const cached = cache.get(key);
   if (cached) return cached;
   const r = WHEEL_RADIUS * COVER,
-    w = WHEEL_WIDTH * COVER,
+    w = WHEEL_WIDTH * COVER * widthScale,
     rim = r * 0.7;
   // Tyre cross-section revolved about the axle: bead, sidewall bulge, rounded shoulder, tread.
   const profile = [
@@ -96,8 +100,8 @@ export function wheelGeometry(compound: VisualTyreCompound, side: 1 | -1) {
     // Two generic white sidewall marks (no lettering or brand).
     ...[0, Math.PI].map((angle) =>
       tinted(
-        new BoxGeometry(r * 0.16, 0.0012, r * 0.045)
-          .translate(r * 0.92, 0, 0)
+        new BoxGeometry(r * 0.06, 0.0012, r * 0.03)
+          .translate(r * 0.885, 0, 0)
           .rotateY(angle)
           .translate(0, sidewall, 0),
         "#e9ecea",
@@ -135,14 +139,15 @@ function blurTexture() {
   }
   return (blurMap = new CanvasTexture(canvas));
 }
-const blurDisc = new CircleGeometry(WHEEL_RADIUS * COVER * 0.86, 24);
+// Covers the wheel face only (inside the rim lip), never the tyre sidewall.
+const blurDisc = new CircleGeometry(WHEEL_RADIUS * COVER * 0.69, 24);
 
 /** Four generated wheels at the derived hubs: hub → steer → spin → mesh, plus a blur disc. */
 export function createGeneratedWheels(compound: VisualTyreCompound) {
   const root = new Group();
   // Per car: its opacity follows that car's speed.
   const blur = new MeshBasicMaterial({
-    color: "#4a5154",
+    color: "#2c3134",
     alphaMap: blurTexture(),
     transparent: true,
     opacity: 0,
@@ -152,13 +157,16 @@ export function createGeneratedWheels(compound: VisualTyreCompound) {
     const steer = new Group(),
       spin = new Group();
     steer.position.set(...hub.position);
-    const mesh = new Mesh(wheelGeometry(compound, hub.side), material);
+    const scale = hub.front ? 1 : REAR_WIDTH;
+    const mesh = new Mesh(wheelGeometry(compound, hub.side, scale), material);
+    // Wider rears grow outward only: shift the wheel by half the extra width.
+    mesh.position.y = (hub.side * WHEEL_WIDTH * COVER * (scale - 1)) / 2;
     mesh.castShadow = false;
     spin.add(mesh);
     steer.add(spin);
     const disc = new Mesh(blurDisc, blur);
     disc.rotation.x = hub.side > 0 ? -Math.PI / 2 : Math.PI / 2;
-    disc.position.y = hub.side * ((WHEEL_WIDTH * COVER) / 2 + 0.0016);
+    disc.position.y = hub.side * ((WHEEL_WIDTH * COVER * scale) / 2 + 0.0016) + mesh.position.y;
     disc.renderOrder = 1;
     steer.add(disc);
     root.add(steer);
@@ -168,7 +176,7 @@ export function createGeneratedWheels(compound: VisualTyreCompound) {
 }
 
 /** Blur opacity for a road speed in m/s: none below ~55 km/h, full by ~200 km/h. */
-export const wheelBlur = (speed: number) => Math.max(0, Math.min(0.92, (speed - 15) / 40));
+export const wheelBlur = (speed: number) => Math.max(0, Math.min(0.75, (speed - 15) / 45));
 
 const Z = new Vector3(0, 0, 1),
   Y = new Vector3(0, 1, 0);

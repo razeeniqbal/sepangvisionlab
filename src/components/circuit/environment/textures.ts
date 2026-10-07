@@ -138,6 +138,25 @@ export const fenceTexture = () => {
   return texture;
 };
 
+/** Spectators on a grass bank: people in mixed shirt colours over a transparent ground. */
+export const crowdTexture = () => {
+  const texture = canvasTexture(128, 64, (c) => {
+    const rand = noise(29);
+    const shirts = ["#e8e4dc", "#c8323c", "#2b8a83", "#f0c23c", "#3a6fa0", "#1d1f22", "#e66b2e", "#d8d8d8"];
+    const skin = ["#c58c63", "#8d5a3b", "#e0b48f", "#6b4630"];
+    c.clearRect(0, 0, 128, 64);
+    for (let y = 1; y < 64; y += 3)
+      for (let x = (y % 2) * 1.5; x < 128; x += 3) {
+        if (rand() > 0.55) continue;
+        c.fillStyle = shirts[Math.floor(rand() * shirts.length)];
+        c.fillRect(Math.round(x + rand()), y + 1, 2, 2);
+        c.fillStyle = skin[Math.floor(rand() * skin.length)];
+        c.fillRect(Math.round(x + rand()), y, 2, 1);
+      }
+  });
+  return texture;
+};
+
 /** Gravel trap: pale stones of mixed size. */
 export const gravelTexture = () =>
   canvasTexture(128, 128, (c) => {
