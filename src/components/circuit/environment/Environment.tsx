@@ -47,6 +47,7 @@ import {
   besideTurn,
   fitBuilding,
   groundHeight,
+  terrainHeight,
   gantryAt,
   kerbRuns,
   trackBearing,
@@ -93,6 +94,19 @@ export function groundOf(track: TrackProfile) {
   let g = grounds.get(track);
   if (!g) grounds.set(track, (g = groundHeight(track)));
   return g;
+}
+/** Drape target for strips beside the road: the terrain surface, 0.3 m allowance for sag on slopes. */
+function drapeOf(track: TrackProfile) {
+  const t = terrainOf(track);
+  return (x: number, y: number) => t(x, y) + 0.25 + 0.3;
+}
+// The terrain surface itself (lowered near other sections; see terrainHeight): free-standing
+// things like trees stand on this, trackside things on their own road's level (groundOf).
+const terrains = new WeakMap<TrackProfile, (x: number, y: number) => number>();
+function terrainOf(track: TrackProfile) {
+  let t = terrains.get(track);
+  if (!t) terrains.set(track, (t = terrainHeight(track)));
+  return t;
 }
 
 // Objects that block a camera's view of a car: used by TV camera picking and tag fading.
@@ -237,6 +251,7 @@ function Surfaces({
     const normals = leftNormals(track);
     const strip = (spec: StripSpec) => buildStrip(track, normals, spec);
     const w = TRACK_HALF_WIDTH;
+    const drape = drapeOf(track);
     const kerbs = kerbRuns(track).flatMap((run) => {
       const inner = run.side * w,
         ridge = run.side * (w + KERB_WIDTH * 0.55),
@@ -262,8 +277,8 @@ function Surfaces({
         b = run.side * (RUNOFF_OUTER - 1);
       return strip({
         edges: [
-          { offset: Math.min(a, b), z: LAYER.runoff + 0.02 },
-          { offset: Math.max(a, b), z: LAYER.runoff + 0.02 },
+          { offset: Math.min(a, b), z: LAYER.runoff + 0.02, drape },
+          { offset: Math.max(a, b), z: LAYER.runoff + 0.02, drape },
         ],
         from: run.from,
         to: run.to,
@@ -273,8 +288,8 @@ function Surfaces({
     const barriers = ([-1, 1] as const).map((side) =>
       strip({
         edges: [
-          { offset: (i: number) => barrierOffset(track, i, side), z: 0 },
-          { offset: (i: number) => barrierOffset(track, i, side), z: 1.1 },
+          { offset: (i: number) => barrierOffset(track, i, side), z: 0, drape },
+          { offset: (i: number) => barrierOffset(track, i, side), z: 1.1, drape },
         ],
       }),
     );
@@ -307,14 +322,14 @@ function Surfaces({
         mergeStrips([
           strip({
             edges: [
-              { offset: -RUNOFF_OUTER, z: LAYER.runoff },
+              { offset: -RUNOFF_OUTER, z: LAYER.runoff, drape },
               { offset: -w, z: LAYER.runoff },
             ],
           }),
           strip({
             edges: [
               { offset: w, z: LAYER.runoff },
-              { offset: RUNOFF_OUTER, z: LAYER.runoff },
+              { offset: RUNOFF_OUTER, z: LAYER.runoff, drape },
             ],
           }),
         ]),
@@ -820,7 +835,7 @@ function Palms({ palms: all, count, track }: { palms: readonly Palm[]; count: nu
     const crown = palmCrown();
     const o = new Object3D();
     const matrices = palms.map((p) => {
-      o.position.set(p.x, p.y, groundOf(track)(p.x, p.y) - 0.3);
+      o.position.set(p.x, p.y, terrainOf(track)(p.x, p.y) - 0.1);
       o.rotation.set(0, 0, p.rotation);
       o.scale.setScalar(p.scale);
       o.updateMatrix();
@@ -939,7 +954,7 @@ function TreeClumps({ trees, track }: { trees: readonly Tree[]; track: TrackProf
     const crown = broadleafCrown();
     const o = new Object3D();
     const matrices = trees.map((t) => {
-      o.position.set(t.x, t.y, groundOf(track)(t.x, t.y) - 0.3);
+      o.position.set(t.x, t.y, terrainOf(track)(t.x, t.y) - 0.1);
       o.rotation.set(0, 0, t.rotation);
       o.scale.setScalar(t.scale);
       o.updateMatrix();
@@ -1223,7 +1238,7 @@ function TyreWalls({ track, apexes }: { track: TrackProfile; apexes: readonly nu
           const f = k / steps;
           const px = ax + (bx - ax) * f,
             py = ay + (by - ay) * f;
-          o.position.set(px, py, groundOf(track)(px, py));
+          o.position.set(px, py, Math.min(groundOf(track)(px, py), drapeOf(track)(px, py)));
           o.rotation.set(0, 0, 0);
           o.updateMatrix();
           matrices.push(o.matrix.clone());
@@ -1269,8 +1284,8 @@ function CatchFence({ track }: { track: TrackProfile }) {
       ([-1, 1] as const).map((side) =>
         buildStrip(track, normals, {
           edges: [
-            { offset: at(side), z: base },
-            { offset: at(side), z: top },
+            { offset: at(side), z: base, drape: drapeOf(track) },
+            { offset: at(side), z: top, drape: drapeOf(track) },
           ],
           uLength: 1.6,
         }),
@@ -1281,8 +1296,8 @@ function CatchFence({ track }: { track: TrackProfile }) {
         [1.15, 2, 2.85, 3.7, 4.45].map((z) =>
           buildStrip(track, normals, {
             edges: [
-              { offset: (i: number) => at(side)(i) - side * 0.06, z },
-              { offset: (i: number) => at(side)(i) - side * 0.06, z: z + 0.04 },
+              { offset: (i: number) => at(side)(i) - side * 0.06, z, drape: drapeOf(track) },
+              { offset: (i: number) => at(side)(i) - side * 0.06, z: z + 0.04, drape: drapeOf(track) },
             ],
           }),
         ),
@@ -1293,13 +1308,12 @@ function CatchFence({ track }: { track: TrackProfile }) {
     const post = new BoxGeometry(0.14, 0.2, top).translate(0, 0, top / 2);
     const o = new Object3D();
     const posts: Matrix4[] = [];
-    const ground = groundOf(track);
     for (let i = 0; i < track.count; i++)
       for (const side of [-1, 1] as const) {
         const off = barrierOffset(track, i, side) + side * 0.1;
         const x = track.x[i] + normals.nx[i] * off,
           y = track.y[i] + normals.ny[i] * off;
-        o.position.set(x, y, track.z?.[i] ?? ground(x, y));
+        o.position.set(x, y, Math.min(track.z?.[i] ?? 0, drapeOf(track)(x, y)));
         o.rotation.set(0, 0, Math.atan2(normals.ny[i], normals.nx[i]));
         o.updateMatrix();
         posts.push(o.matrix.clone());
@@ -1413,10 +1427,11 @@ export default function Environment({
       h = maxY - minY + pad * 2;
     const nx = Math.ceil(w / cell),
       ny = Math.ceil(h / cell);
-    const height = groundOf(track);
-    let level = 0;
-    for (let i = 0; i < track.count; i++) level += track.z?.[i] ?? 0;
-    level /= track.count;
+    const terrain = terrainOf(track);
+    // The surrounding plain sits at the circuit's lowest point: anywhere higher, the flat plane
+    // would cut across every stretch of road below it (the T2-T3 dip is ~13 m under the mean).
+    let level = Infinity;
+    for (let i = 0; i < track.count; i++) level = Math.min(level, track.z?.[i] ?? 0);
     const positions = new Float32Array((nx + 1) * (ny + 1) * 3),
       uvs = new Float32Array((nx + 1) * (ny + 1) * 2);
     for (let j = 0; j <= ny; j++)
@@ -1425,7 +1440,7 @@ export default function Environment({
           y = y0 + (j / ny) * h;
         const outside = Math.max(minX - x, x - maxX, minY - y, y - maxY, 0);
         const fade = Math.min(1, outside / 600);
-        const z = (height(x, y) - 0.25) * (1 - fade) + (level - 0.4) * fade;
+        const z = terrain(x, y) * (1 - fade) + (level - 0.4) * fade;
         const k = j * (nx + 1) + i;
         positions.set([x, y, z + LAYER.ground], k * 3);
         uvs.set([i / nx, j / ny], k * 2);
@@ -1445,7 +1460,7 @@ export default function Environment({
     return {
       geometry,
       plain,
-      plainPosition: [x0 + w / 2, y0 + h / 2, level - 0.45 + LAYER.ground] as const,
+      plainPosition: [x0 + w / 2, y0 + h / 2, level - 0.6 + LAYER.ground] as const,
       position: [0, 0, 0] as const,
       material: withMacroVariation(new MeshStandardMaterial({
         color: "#4f6b3c",

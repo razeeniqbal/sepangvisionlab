@@ -805,11 +805,16 @@ button:disabled {
 .sv-leds i.is-blue {
   background: #5aa8ff;
 }
+/* Fixed columns and tabular digits: the gear box stays put as speed and RPM change width. */
 .sv-gauges {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr) 64px 76px;
   align-items: end;
   gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.sv-gauges strong {
+  font-variant-numeric: tabular-nums;
 }
 .sv-gauges small {
   display: block;
@@ -822,7 +827,7 @@ button:disabled {
 .sv-gear {
   display: grid;
   place-items: center;
-  min-width: 52px;
+  width: 64px;
   padding: 6px 8px;
   border-radius: 12px;
   background: var(--accent-fill);

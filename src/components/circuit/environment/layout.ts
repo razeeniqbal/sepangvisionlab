@@ -475,3 +475,41 @@ export function groundHeight(track: TrackProfile, cell = 60) {
     return height;
   };
 }
+
+/**
+ * Terrain height for the ground mesh: no higher than any road within `reach` plus a gentle
+ * `slope` (15%) rising from beyond its run-off, i.e. min over nearby samples of
+ * (height + slope × distance past 26 m), and
+ * 0.25 m below the surfaces. Sepang's own grades stay under ~6%, so along a single slope the
+ * road's own samples decide; next to a lower road (the T1-T2 hairpin drops ~8 m in ~100 m of
+ * lap) the ground falls towards it instead of burying it. Run-off, barriers and fences drape
+ * onto this surface (StripEdge.drape), so the grass between the two roads forms the bank.
+ */
+export function terrainHeight(track: TrackProfile, reach = 150, slope = 0.15, cell = 60) {
+  const z = track.z;
+  if (!z) return () => -0.25;
+  const n = track.count;
+  const buckets = new Map<string, number[]>();
+  const key = (x: number, y: number) => Math.floor(x / cell) + ":" + Math.floor(y / cell);
+  for (let i = 0; i < n; i++) {
+    const k = key(track.x[i], track.y[i]);
+    const list = buckets.get(k);
+    if (list) list.push(i);
+    else buckets.set(k, [i]);
+  }
+  const nearest = groundHeight(track, cell);
+  const r = Math.ceil(reach / cell) + 1;
+  return (x: number, y: number) => {
+    let h = Infinity;
+    const cx = Math.floor(x / cell),
+      cy = Math.floor(y / cell);
+    for (let dx = -r; dx <= r; dx++)
+      for (let dy = -r; dy <= r; dy++)
+        for (const i of buckets.get(cx + dx + ":" + (cy + dy)) ?? []) {
+          const d = Math.hypot(track.x[i] - x, track.y[i] - y);
+          // Flat across the road and run-off (26 m from the centre line), then the slope.
+          if (d <= reach) h = Math.min(h, z[i] + slope * Math.max(0, d - 26));
+        }
+    return (h === Infinity ? nearest(x, y) : h) - 0.25;
+  };
+}

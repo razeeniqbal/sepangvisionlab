@@ -6,6 +6,11 @@ export type Offset = number | ((index: number) => number);
 export interface StripEdge {
   offset: Offset;
   z: number;
+  /**
+   * Terrain under any point: the edge drops onto it where it is lower than the edge's own road
+   * (run-off, barriers and fences beside a lower section of the circuit), never rising above.
+   */
+  drape?: (x: number, y: number) => number;
 }
 export interface StripSpec {
   edges: readonly [StripEdge, StripEdge];
@@ -79,12 +84,11 @@ export function buildStrip(
       const raw =
         typeof edge.offset === "number" ? edge.offset : edge.offset(i);
       const o = clampInside(track, i, raw);
+      const x = track.x[i] + normals.nx[i] * o,
+        y = track.y[i] + normals.ny[i] * o;
+      const road = track.z?.[i] ?? 0;
       positions.set(
-        [
-          track.x[i] + normals.nx[i] * o,
-          track.y[i] + normals.ny[i] * o,
-          edge.z + (track.z?.[i] ?? 0),
-        ],
+        [x, y, edge.z + (edge.drape ? Math.min(road, edge.drape(x, y)) : road)],
         s * 6 + e * 3,
       );
       uvs.set([u, e], s * 4 + e * 2);

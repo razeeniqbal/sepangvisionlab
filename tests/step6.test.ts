@@ -86,3 +86,20 @@ test("ground height follows the nearest track sample, and is flat without elevat
     assert.equal(ground(x, y), raised.z[nearestSample(track, x, y).index], `${x},${y}`);
   }
 });
+
+test("terrain never rises over a road, even between sections at different heights", async () => {
+  const { terrainHeight } = await import("../src/components/circuit/environment/layout.ts");
+  // Every sample its own height: neighbouring sections of the lap differ a lot.
+  const z = Float64Array.from({ length: track.count }, (_, i) => 10 + 8 * Math.sin((i / track.count) * 6 * Math.PI));
+  const raised = { ...track, z };
+  const terrain = terrainHeight(raised);
+  for (let i = 0; i < track.count; i += 7) {
+    // Points across the 16 m road: the surface must never be buried.
+    for (const off of [-8, -4, 0, 4, 8]) {
+      const a = Math.atan2(track.y[(i + 1) % track.count] - track.y[i], track.x[(i + 1) % track.count] - track.x[i]);
+      const x = track.x[i] - Math.sin(a) * off, y = track.y[i] + Math.cos(a) * off;
+      assert.ok(terrain(x, y) <= z[i] - 0.15, `sample ${i} offset ${off}: ${terrain(x, y)} > ${z[i]}`);
+    }
+  }
+  assert.equal(terrainHeight(track)(0, 0), -0.25, "flat profile: just below the surfaces");
+});

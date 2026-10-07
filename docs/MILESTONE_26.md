@@ -26,3 +26,9 @@ The guide now opens every time the app does, unless "Don't show again" is ticked
 - **Menu:** the app menu closes when you pick Hand tracking or Quick guide.
 
 Sources: [Geobrugg project at Sepang](https://www.geobrugg.com/project_tr,,5193.html), [PMW Magazine on the FIA-approved debris fence](https://pmw-magazine.com/news/safety/new-track-debris-fencing-gets-fia-approval.html).
+
+## Follow-up: sunken track and a steady gear box
+- **Sunken road:** the flat plain around the circuit sat at the mean track height (~13 m), so wherever the track runs lower (the T2-T3 dip goes to 0 m) the plain cut across the road. It now sits at the lowest track point.
+- **Terrain under roads:** the terrain is now a lower envelope: no higher than any road within 150 m, rising at most 15% beyond each road's 26 m run-off. Ground between two sections at different heights can never cover the lower one.
+- **Draping:** run-off, gravel, barriers, fences and tyre walls drape onto that terrain beside a lower section, so the slope between the T1 and T2 legs reads as a grass bank. A test checks the terrain never rises over a road.
+- **Gear box:** the driver card's speed, gear and RPM sit in fixed-width columns with even-width digits, so the gear box no longer shifts as the numbers change.
