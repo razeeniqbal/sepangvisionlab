@@ -240,11 +240,11 @@ export function useEnvironmentLayout(
 
 function Surfaces({
   track,
-  wet,
+  wetness,
   apexes,
 }: {
   track: TrackProfile;
-  wet: boolean;
+  wetness: number;
   apexes: readonly number[];
 }) {
   const meshes = useMemo(() => {
@@ -366,10 +366,11 @@ function Surfaces({
   }, []);
   // Wet track: darker, glossier asphalt (a reflective sheen, not simulated standing water).
   useLayoutEffect(() => {
-    materials.asphalt.color.set(wet ? "#7d8589" : "#ffffff");
-    materials.asphalt.roughness = wet ? 0.38 : 0.92;
-    materials.asphalt.metalness = wet ? 0.22 : 0;
-  }, [materials, wet]);
+    // Darker and glossier as the track gets wetter (a sheen, not simulated standing water).
+    materials.asphalt.color.set("#ffffff").lerp(new Color("#7d8589"), wetness);
+    materials.asphalt.roughness = 0.92 - 0.54 * wetness;
+    materials.asphalt.metalness = 0.22 * wetness;
+  }, [materials, wetness]);
   return (
     <>
       <mesh
@@ -1407,11 +1408,14 @@ export default function Environment({
   track,
   layout,
   wet = false,
+  wetness = wet ? 1 : 0,
   quality = QUALITY.balanced,
 }: {
   track: TrackProfile;
   layout: EnvironmentLayout;
   wet?: boolean;
+  /** Track wetness 0..1 for the asphalt sheen. */
+  wetness?: number;
   quality?: QualitySettings;
 }) {
   // Terrain: a height grid around the circuit following the track's DERIVED elevation (each
@@ -1494,7 +1498,7 @@ export default function Environment({
       {quality.terrain && <Hills bounds={layout.bounds} wet={wet} base={ground.level} />}
       <mesh geometry={ground.geometry} material={ground.material} receiveShadow />
       <mesh geometry={ground.plain} material={ground.material} position={[...ground.plainPosition]} />
-      <Surfaces track={track} wet={wet} apexes={layout.apexes} />
+      <Surfaces track={track} wetness={wetness} apexes={layout.apexes} />
       <PitLaneSurfaces track={track} lane={PIT_LANE} terrain={quality.terrain} />
       <StartGrid track={track} gantry={layout.gantry} />
       <TyreWalls track={track} apexes={layout.apexes} />

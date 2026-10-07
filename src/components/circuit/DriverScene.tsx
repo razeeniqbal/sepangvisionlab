@@ -1,13 +1,16 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
+  BoxGeometry,
   BufferAttribute,
   BufferGeometry,
   CanvasTexture,
   Color,
   DirectionalLight,
+  DoubleSide,
   Fog,
   Group,
+  InstancedMesh,
   Line,
   LineBasicMaterial,
   Mesh,
@@ -104,8 +107,10 @@ export interface DriverSceneProps {
   ghost?: { id: string; sample: (time: number) => Posed | null };
   labels?: boolean;
   trails?: boolean;
-  /** Real rainfall (recorded sessions): wetter asphalt, greyer sky, shorter fog. */
+  /** Raining now (recorded rain readings): greyer sky, shorter fog, falling rain, rain lights. */
   wet?: boolean;
+  /** Track wetness 0..1: asphalt sheen and spray behind cars (see domain/wetness.ts). */
+  wetness?: number;
   quality?: QualitySettings;
 }
 
@@ -140,6 +145,73 @@ const contactShadow = (() => {
     }),
   };
 })();
+// Spray thrown up behind a car on a wet track: two crossed soft quads, shared by every car;
+// length follows the car's speed, opacity the track wetness.
+const spray = (() => {
+  let texture: CanvasTexture | null = null;
+  if (typeof document !== "undefined") {
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 64;
+    const c = canvas.getContext("2d");
+    if (c) {
+      // A soft ellipse, densest near the car (right, u=1) and fully clear before every edge, so
+      // the quads never show a hard border.
+      c.setTransform(1.55, 0, 0, 1, 80 - 80 * 1.55, 0);
+      const g = c.createRadialGradient(80, 32, 0, 80, 32, 29);
+      g.addColorStop(0, "rgba(255,255,255,0.85)");
+      g.addColorStop(0.5, "rgba(235,240,242,0.4)");
+      g.addColorStop(1, "rgba(235,240,242,0)");
+      c.fillStyle = g;
+      c.fillRect(0, 0, 128, 64);
+    }
+    texture = new CanvasTexture(canvas);
+  }
+  const material = new MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+    opacity: 0,
+    color: "#dfe6e8",
+    side: DoubleSide,
+  });
+  // Unit length along -x (behind the car), starting at the rear wheels.
+  const flat = new PlaneGeometry(1, 1).translate(-0.5, 0, 0);
+  const upright = flat.clone().rotateX(Math.PI / 2);
+  return { material, flat, upright };
+})();
+
+/** Falling rain around the camera: thin streaks in a 120 m box that follows it. */
+function RainField({ count = 2400 }: { count?: number }) {
+  const mesh = useRef<InstancedMesh>(null);
+  const drops = useMemo(() => {
+    const seed = { s: 7 };
+    const rand = () => ((seed.s = (seed.s * 16807) % 2147483647) / 2147483647);
+    return Array.from({ length: count }, () => ({ x: rand() * 120 - 60, y: rand() * 120 - 60, z: rand() * 40, v: 14 + rand() * 6 }));
+  }, [count]);
+  const geometry = useMemo(() => new BoxGeometry(0.02, 0.02, 0.9), []);
+  const material = useMemo(
+    () => new MeshBasicMaterial({ color: "#c9d4da", transparent: true, opacity: 0.45, depthWrite: false }),
+    [],
+  );
+  const o = useMemo(() => new Object3D(), []);
+  useFrame(({ camera }, delta) => {
+    const m = mesh.current;
+    if (!m) return;
+    const step = Math.min(delta, 0.1);
+    drops.forEach((d, i) => {
+      d.z -= d.v * step;
+      if (d.z < -8) d.z += 48;
+      o.position.set(camera.position.x + d.x, camera.position.y + d.y, camera.position.z - 20 + d.z);
+      o.rotation.set(0.12, 0, 0);
+      o.updateMatrix();
+      m.setMatrixAt(i, o.matrix);
+    });
+    m.instanceMatrix.needsUpdate = true;
+  });
+  return <instancedMesh ref={mesh} args={[geometry, material, count]} frustumCulled={false} />;
+}
+
 // Rear rain light: blinks in the wet and in the pit lane (speed limiter), as on the real cars.
 const rainLightMaterial = new MeshBasicMaterial({ color: "#ff2a2a", toneMapped: false });
 
@@ -297,6 +369,7 @@ function DriverCar({
   const body = useRef<Group>(null);
   const attitude = useRef<Group>(null);
   const pivot = useRef<Group>(null);
+  const sprayRef = useRef<Group>(null);
   const rainLight = useRef<Mesh>(null);
   const compound = visualTyreCompound(
     field.current[index]?.compound,
@@ -452,6 +525,15 @@ function DriverCar({
     else attitude.current?.rotation.set(m.roll + shake.roll, m.pitch + shake.pitch, 0);
     if (pivot.current) pivot.current.position.z = HUB_Z - rideDrop(speed) / CAR_SCALE;
     wheels.blur.opacity = wheelBlur(speed);
+    // Spray: longer and taller with speed; none below ~90 km/h or on a dry track.
+    if (sprayRef.current) {
+      const on = present && spray.material.opacity > 0.01 && speed > 25;
+      sprayRef.current.visible = on;
+      if (on) {
+        const k = Math.min(1, (speed - 25) / 45);
+        sprayRef.current.scale.set(4 + 14 * k, 2.2 + 1.2 * k, 1 + 1.6 * k);
+      }
+    }
     // Illustrative brake temperature from braking power; glows above ~550 °C.
     m.brakeTemp = brakeTemperature(m.brakeTemp, rec.gLong ?? m.acceleration / 9.81, speed, dt > 0 && dt < 1 ? dt : 0);
     wheels.glow.opacity = brakeGlow(m.brakeTemp) * 0.9;
@@ -522,6 +604,10 @@ function DriverCar({
         position={[0, 0, 0.012]}
         renderOrder={1}
       />
+      <group ref={sprayRef} position={[-2.4, 0, 0.55]} visible={false}>
+        <mesh geometry={spray.flat} material={spray.material} renderOrder={3} />
+        <mesh geometry={spray.upright} material={spray.material} renderOrder={3} />
+      </group>
       {ring && (
         <mesh position={[0, 0, 0.02]}>
           <ringGeometry args={[3.1, 3.25, 40]} />
@@ -802,8 +888,12 @@ function World({
   labels = true,
   trails = false,
   wet = false,
+  wetness = 0,
   quality = QUALITY.balanced,
 }: DriverSceneProps) {
+  useEffect(() => {
+    spray.material.opacity = 0.55 * wetness;
+  }, [wetness]);
   const field = useRef<CarState[]>(sample(clock.current));
   const layout = useEnvironmentLayout(sepangTrack, coordinates);
   const occluders = useRef<Object3D[]>([]);
@@ -835,10 +925,12 @@ function World({
         wet={wet}
         quality={quality}
       />
+      {wet && <RainField count={quality.trees ? 2400 : 1200} />}
       <Environment
         track={sepangTrack}
         layout={layout}
         wet={wet}
+        wetness={wetness}
         quality={quality}
       />
       {ghost && <GhostCar ghost={ghost} clock={clock} />}

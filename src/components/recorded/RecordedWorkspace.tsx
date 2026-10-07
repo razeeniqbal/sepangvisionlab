@@ -34,6 +34,7 @@ import QuickGuide from "./QuickGuide";
 import CompareTab from "./CompareTab";
 import { ghostTime } from "../../domain/compare";
 import { buildShare, parseShare } from "../../domain/share";
+import { rainingAt, wetnessAt } from "../../domain/wetness";
 import { CAMERA_MODES } from "../circuit/cameraRig";
 
 // A shared link (#s=race&t=9697&d=3&cam=chase), read once when the app opens.
@@ -276,7 +277,10 @@ function RecordedReplay({
     () => entries.map((e) => identities.get(Number(e.number))!.code),
     [entries, identities],
   );
-  const wet = (weather?.rain ?? 0) > 0;
+  // Raining now (sky, rain, fog) and how wet the track is (sheen, spray), from OpenF1 rain
+  // readings; wetness is rounded to 5% so the memoised 3D scene re-renders only on real change.
+  const wet = rainingAt(file.weather, time * 1000);
+  const wetness = Math.round(wetnessAt(file.weather, time * 1000) * 20) / 20;
   const lapRows = file.laps
     .filter((l) => l.d === number && l.t !== null && l.dur && l.t + l.dur * 1000 <= time * 1000)
     .sort((a, b) => b.n - a.n)
@@ -382,6 +386,7 @@ function RecordedReplay({
             onSelect={setSelectedId}
             tags={tags}
             wet={wet}
+            wetness={wetness}
             onModeChange={setCameraMode}
             initialMode={sharedCamera}
             ghost={ghost}

@@ -84,6 +84,8 @@ interface Props {
   tags: readonly string[];
   /** Real rainfall (recorded sessions) drives the wet look in the 3D views. */
   wet?: boolean;
+  /** Track wetness 0..1 (asphalt sheen, spray), rounded so it changes rarely. */
+  wetness?: number;
   /** Told when the camera mode changes (the workspace shows a driving HUD in chase/onboard). */
   onModeChange?: (mode: CameraMode) => void;
   /** Camera to open with (shared links); later changes come from the dock. */
@@ -294,6 +296,7 @@ function CircuitScene(props: Props) {
             sample={props.session.sample}
             tags={props.tags}
             wet={props.wet}
+            wetness={props.wetness}
             tyresKnown
             selectedId={props.selectedId}
             onSelect={props.onSelect}
