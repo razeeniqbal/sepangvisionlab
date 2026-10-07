@@ -1,5 +1,4 @@
 import {
-  BoxGeometry,
   BufferGeometry,
   CanvasTexture,
   CircleGeometry,
@@ -77,37 +76,28 @@ export function wheelGeometry(compound: VisualTyreCompound, side: 1 | -1, widthS
     [rim, 0.46],
   ].map(([radius, y]) => new Vector2(radius, y * w));
   const sidewall = side * (w * 0.5 + 0.0006);
-  const parts = [
-    tinted(new LatheGeometry(profile, 40), "#141617"),
-    // Wheel cover, slightly dished, and the rim lip around it.
-    tinted(new CylinderGeometry(rim, rim, w * 0.9, 36, 1), "#262b2e"),
+  const face = (g: RingGeometry | CircleGeometry) => g.rotateX(side > 0 ? -Math.PI / 2 : Math.PI / 2);
+  // Compound band: an arc pair with two small gaps, so the wheel's rotation stays visible.
+  const band = [0, Math.PI].map((start) =>
     tinted(
-      new RingGeometry(rim * 0.94, rim, 36)
-        .rotateX(side > 0 ? -Math.PI / 2 : Math.PI / 2)
-        .translate(0, side * (w * 0.45 + 0.0004), 0),
-      "#8d9599",
-    ),
-    tinted(
-      new CylinderGeometry(rim * 0.2, rim * 0.24, w * 0.16, 12, 1).translate(0, side * w * 0.5, 0),
-      "#b9c0c2",
-    ),
-    // Compound stripe on the outer sidewall, like the real coloured tyre markings.
-    tinted(
-      new RingGeometry(r * 0.83, r * 0.875, 40)
-        .rotateX(side > 0 ? -Math.PI / 2 : Math.PI / 2)
-        .translate(0, sidewall, 0),
+      face(new RingGeometry(r * 0.79, r * 0.875, 24, 1, start + 0.12, Math.PI - 0.24)).translate(0, sidewall, 0),
       TYRE_COLOURS[compound],
     ),
-    // Two generic white sidewall marks (no lettering or brand).
-    ...[0, Math.PI].map((angle) =>
-      tinted(
-        new BoxGeometry(r * 0.06, 0.0012, r * 0.03)
-          .translate(r * 0.885, 0, 0)
-          .rotateY(angle)
-          .translate(0, sidewall, 0),
-        "#e9ecea",
-      ),
+  );
+  const parts = [
+    tinted(new LatheGeometry(profile, 40), "#121415"),
+    // Near-black carbon wheel cover, set just inside the tyre face, and a thin metal rim lip.
+    tinted(new CylinderGeometry(rim, rim, w * 0.86, 36, 1), "#0d1011"),
+    tinted(
+      face(new RingGeometry(rim * 0.95, rim * 1.01, 36)).translate(0, side * (w * 0.43 + 0.0004), 0),
+      "#4e5558",
     ),
+    // Small centre nut, flush with the cover (never past the tyre face).
+    tinted(
+      face(new CircleGeometry(rim * 0.17, 16)).translate(0, side * (w * 0.43 + 0.0007), 0),
+      "#3a4043",
+    ),
+    ...(compound === "UNKNOWN" ? [] : band),
   ];
   const geometry = mergeGeometries(parts)!;
   parts.forEach((p) => p.dispose());

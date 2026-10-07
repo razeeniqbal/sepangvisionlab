@@ -1,11 +1,12 @@
 // Visual vocabulary is deliberately broader than today's dry synthetic fixture.
 // Unknown/unavailable data must never be presented as a confirmed compound.
 export const TYRE_COLOURS = Object.freeze({
-  SOFT: "#b54e52",
-  MEDIUM: "#c9b35d",
-  HARD: "#c6cdca",
-  INTERMEDIATE: "#4a996d",
-  WET: "#4387bb",
+  // The compound colours used on the real sidewall bands (colours only, no lettering).
+  SOFT: "#e8303a",
+  MEDIUM: "#f3c623",
+  HARD: "#eef0ec",
+  INTERMEDIATE: "#3fae4a",
+  WET: "#1f74c4",
   UNKNOWN: "#191b1c",
 });
 export type VisualTyreCompound = keyof typeof TYRE_COLOURS;

@@ -56,9 +56,9 @@ test("Livery cache is bounded by profiles and compounds, including unknown fallb
     b = shader();
   soft.onBeforeCompile(a, {} as WebGLRenderer);
   hard.onBeforeCompile(b, {} as WebGLRenderer);
-  assert.equal(a.uniforms.svlCompound.value.getHex(), 0xb54e52);
-  assert.equal(b.uniforms.svlCompound.value.getHex(), 0xc6cdca);
-  assert.equal(a.uniforms.svlCompound.value.getHex(), 0xb54e52);
+  assert.equal(a.uniforms.svlCompound.value.getHex(), Number("0x" + TYRE_COLOURS.SOFT.slice(1)));
+  assert.equal(b.uniforms.svlCompound.value.getHex(), Number("0x" + TYRE_COLOURS.HARD.slice(1)));
+  assert.equal(a.uniforms.svlCompound.value.getHex(), Number("0x" + TYRE_COLOURS.SOFT.slice(1)));
   assert.equal(soft.customProgramCacheKey(), hard.customProgramCacheKey());
   library.dispose();
   assert.equal(library.size, 0);
@@ -74,7 +74,7 @@ test("Compound accent is a masked shader sidewall treatment and unknown has no i
   library.get(undefined, "WET").onBeforeCompile(wet, {} as WebGLRenderer);
   assert.equal(unknown.uniforms.svlHasCompound.value, 0);
   assert.equal(wet.uniforms.svlHasCompound.value, 1);
-  assert.equal(wet.uniforms.svlCompound.value.getHex(), 0x4387bb);
+  assert.equal(wet.uniforms.svlCompound.value.getHex(), Number("0x" + TYRE_COLOURS.WET.slice(1)));
   assert.ok(wet.fragmentShader.includes("svlRing"));
   assert.ok(wet.fragmentShader.includes("svlTyre*svlHasCompound"));
   assert.ok(wet.vertexShader.includes("#include <begin_vertex>"));
