@@ -54,3 +54,20 @@ console.log("causes", cause);
 const q = (a: number[], p: number) => (a.sort((x, y) => x - y)[Math.floor(p * a.length)] / G).toFixed(2);
 console.log(`longitudinal g p50 ${q(longs, 0.5)} p95 ${q(longs, 0.95)} p99 ${q(longs, 0.99)} | lateral g p50 ${q(lats, 0.5)} p95 ${q(lats, 0.95)} p99 ${q(lats, 0.99)}`);
 console.log("frames in the pit lane:", pitFrames);
+
+// The g-forces the app shows (gForcesAt), over the same race.
+{
+  const { gForcesAt } = await import("../src/domain/recordedSession.ts");
+  const longs: number[] = [], lats: number[] = [];
+  for (const dr of session.drivers.slice(0, 6)) {
+    const d = prepareDriver(read(`../public/sessions/1308/${slug}/drivers/${dr.driver_number}.json`) as DriverFile, transform, track, pit);
+    for (let t = d.t[0] + 1000; t < d.t[d.t.length - 1] - 1000; t += 250) {
+      const g = gForcesAt(d, track, t);
+      if (g.long === 0 && g.lat === 0) continue;
+      longs.push(g.long);
+      lats.push(Math.abs(g.lat));
+    }
+  }
+  const q = (a: number[], p: number) => a.slice().sort((x, y) => x - y)[Math.floor(p * a.length)].toFixed(2);
+  console.log(`shown g (6 cars): braking p1 ${q(longs, 0.01)}, acceleration p99 ${q(longs, 0.99)}, cornering p50 ${q(lats, 0.5)} p99 ${q(lats, 0.99)}`);
+}

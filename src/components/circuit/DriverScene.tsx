@@ -55,6 +55,9 @@ import { SimplifiedCar } from "../cars/CarRepresentation";
 import { FORMULA_VISUAL_LENGTH } from "../cars/formulaVisual";
 import { visualTyreCompound } from "../cars/carVisualState";
 import {
+  BRAKE_AMBIENT,
+  brakeGlow,
+  brakeTemperature,
   attitudeTarget,
   curvatureAt,
   ease,
@@ -321,6 +324,8 @@ function DriverCar({
     spin: 0,
     heading: NaN,
     pathCurvature: 0,
+    gear: 0,
+    brakeTemp: BRAKE_AMBIENT,
     pitch: 0,
     pitchV: 0,
     roll: 0,
@@ -412,7 +417,12 @@ function DriverCar({
     m.distance = distance;
     m.speed = speed;
     m.time = clock.current;
-    const target = attitudeTarget(m.acceleration, speed, m.pathCurvature);
+    // Body attitude from the real forces (recorded motion, gForcesAt), not a track estimate.
+    const rec = state as Posed & { gLong?: number; gLat?: number; gear?: number; throttle?: number };
+    const target =
+      rec.gLong !== undefined && rec.gLat !== undefined && speed > 3
+        ? attitudeTarget(rec.gLong * 9.81, speed, (rec.gLat * 9.81) / (speed * speed))
+        : attitudeTarget(m.acceleration, speed, m.pathCurvature);
     // Bicycle model on the real path: δ = atan(L·k), drawn at STEER_GAIN so it reads on screen.
     const steerTarget =
       Math.abs(travelled) > 0.05
@@ -426,6 +436,11 @@ function DriverCar({
     );
     // Sprung body: dives, squats and rolls with a little overshoot; a paused replay holds still.
     const step = dt > 0 && dt < 1 ? delta : 0;
+    // Gear-shift kick: an upshift under power briefly cuts drive, so the nose dips, then squats.
+    if (rec.gear !== undefined) {
+      if (step > 0 && rec.gear > m.gear && m.gear > 0 && (rec.throttle ?? 0) > 50) m.pitchV += 0.09;
+      m.gear = rec.gear;
+    }
     [m.pitch, m.pitchV] = spring(m.pitch, m.pitchV, target.pitch, step);
     [m.roll, m.rollV] = spring(m.roll, m.rollV, target.roll, step);
     const shake = roadShake(clock.current, speed, index * 1.37);
@@ -434,6 +449,9 @@ function DriverCar({
     else attitude.current?.rotation.set(m.roll + shake.roll, m.pitch + shake.pitch, 0);
     if (pivot.current) pivot.current.position.z = HUB_Z - rideDrop(speed) / CAR_SCALE;
     wheels.blur.opacity = wheelBlur(speed);
+    // Illustrative brake temperature from braking power; glows above ~550 °C.
+    m.brakeTemp = brakeTemperature(m.brakeTemp, rec.gLong ?? m.acceleration / 9.81, speed, dt > 0 && dt < 1 ? dt : 0);
+    wheels.glow.opacity = brakeGlow(m.brakeTemp) * 0.9;
     if (rainLight.current) {
       const inPit = (state as Posed & { inPit?: boolean }).inPit === true;
       rainLight.current.visible =

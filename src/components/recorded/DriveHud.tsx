@@ -1,4 +1,5 @@
 import type { RecordedCarState } from "../../domain/recordedSession";
+import GMeter from "./GMeter";
 
 const RPM_MAX = 12500;
 // 240° gauge arc, open at the bottom.
@@ -53,6 +54,9 @@ export default function DriveHud({
         <strong>{Math.round(car.speedKph)}</strong>
         <small>km/h</small>
         <b className="sv-hud-gear">{car.gear || "N"}</b>
+      </div>
+      <div className="sv-hud-g">
+        <GMeter long={car.gLong} lat={car.gLat} size={58} />
       </div>
       <div className="sv-hud-meta">
         <span className="sv-hud-pos">P{car.position}</span>

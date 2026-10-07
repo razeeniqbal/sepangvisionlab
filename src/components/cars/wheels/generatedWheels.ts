@@ -8,6 +8,7 @@ import {
   Float32BufferAttribute,
   Group,
   LatheGeometry,
+  AdditiveBlending,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -141,6 +142,8 @@ function blurTexture() {
 }
 // Covers the wheel face only (inside the rim lip), never the tyre sidewall.
 const blurDisc = new CircleGeometry(WHEEL_RADIUS * COVER * 0.69, 24);
+// Brake-disc glow seen through the wheel: a ring just inside the rim lip.
+const glowRing = new RingGeometry(WHEEL_RADIUS * COVER * 0.36, WHEEL_RADIUS * COVER * 0.62, 28);
 
 /** Four generated wheels at the derived hubs: hub → steer → spin → mesh, plus a blur disc. */
 export function createGeneratedWheels(compound: VisualTyreCompound) {
@@ -152,6 +155,15 @@ export function createGeneratedWheels(compound: VisualTyreCompound) {
     transparent: true,
     opacity: 0,
     depthWrite: false,
+  });
+  // Per car: hot brake discs glow through the wheel (front and rear share one temperature).
+  const glow = new MeshBasicMaterial({
+    color: "#ff6a1a",
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    blending: AdditiveBlending,
+    toneMapped: false,
   });
   const rigs: WheelRig[] = WHEEL_HUBS.map((hub) => {
     const steer = new Group(),
@@ -169,10 +181,15 @@ export function createGeneratedWheels(compound: VisualTyreCompound) {
     disc.position.y = hub.side * ((WHEEL_WIDTH * COVER * scale) / 2 + 0.0016) + mesh.position.y;
     disc.renderOrder = 1;
     steer.add(disc);
+    const hot = new Mesh(glowRing, glow);
+    hot.rotation.x = disc.rotation.x;
+    hot.position.y = disc.position.y + hub.side * 0.0006;
+    hot.renderOrder = 2;
+    steer.add(hot);
     root.add(steer);
     return { id: hub.id, front: hub.front, steer, spin };
   });
-  return { root, rigs, blur };
+  return { root, rigs, blur, glow };
 }
 
 /** Blur opacity for a road speed in m/s: none below ~55 km/h, full by ~200 km/h. */

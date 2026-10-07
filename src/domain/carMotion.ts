@@ -111,3 +111,25 @@ export function roadShake(time: number, speed: number, seed: number) {
     roll: a * (Math.sin(time * 43 + seed * 1.7) * 0.6 + Math.sin(time * 71 + seed * 0.7) * 0.4),
   };
 }
+
+export const BRAKE_AMBIENT = 200; // °C, a warm disc between stops
+/**
+ * Illustrative carbon brake temperature (°C), stepped in replay time. Heat goes in with
+ * braking power (deceleration × speed), and the disc cools towards BRAKE_AMBIENT faster at
+ * speed (airflow). Tuned so a 300→80 km/h stop adds ~400-500 °C and a straight sheds it again.
+ * Not measured: OpenF1 has no brake temperatures.
+ */
+export function brakeTemperature(temp: number, gLong: number, speed: number, dt: number) {
+  if (!(dt > 0)) return temp;
+  const steps = Math.ceil(Math.min(dt, 1) / 0.05),
+    h = Math.min(dt, 1) / steps;
+  for (let i = 0; i < steps; i++) {
+    const heat = Math.max(0, -gLong) * speed * 2.4;
+    const cool = (temp - BRAKE_AMBIENT) * 0.35 * (1 + speed / 80);
+    temp = Math.min(1200, Math.max(BRAKE_AMBIENT, temp + (heat - cool) * h));
+  }
+  return temp;
+}
+
+/** Brake glow 0..1: none below 550 °C, full at 950 °C. */
+export const brakeGlow = (temp: number) => Math.max(0, Math.min(1, (temp - 550) / 400));

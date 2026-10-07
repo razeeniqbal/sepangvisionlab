@@ -111,3 +111,16 @@ test("suspension spring settles on the target with a small overshoot, at any fra
   assert.equal(Math.abs(roadShake(5, 0, 1).pitch), 0, "no shake when stopped");
   assert.ok(Math.abs(roadShake(5, 90, 1).pitch) <= 0.0012);
 });
+
+test("brakes heat under heavy braking, glow, and cool down again", async () => {
+  const { brakeTemperature, brakeGlow, BRAKE_AMBIENT } = await import("../src/domain/carMotion.ts");
+  let t = BRAKE_AMBIENT;
+  // 1.6 s at -4 g from 83 m/s down to ~20 m/s.
+  for (let i = 0; i < 16; i++) t = brakeTemperature(t, -4, 83 - i * 4, 0.1);
+  assert.ok(t > 600 && t < 1000, `hot ${t}`);
+  assert.ok(brakeGlow(t) > 0);
+  for (let i = 0; i < 100; i++) t = brakeTemperature(t, 1, 70, 0.1);
+  assert.ok(t < 300, `cooled ${t}`);
+  assert.equal(brakeGlow(t), 0);
+  assert.equal(brakeTemperature(500, -4, 80, 0), 500, "paused replay holds");
+});

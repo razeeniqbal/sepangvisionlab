@@ -2536,3 +2536,60 @@ button:disabled {
     scroll-margin-top: 132px;
   }
 }
+
+/* ---------- G-meter (friction circle) ---------- */
+.sv-gmeter {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  flex: none;
+}
+.sv-gmeter-ring {
+  fill: rgba(0, 0, 0, 0.25);
+  stroke: var(--panel-line);
+  stroke-width: 1;
+}
+.sv-gmeter-ring.is-inner {
+  fill: none;
+  stroke-dasharray: 2 3;
+}
+.sv-gmeter-axis {
+  stroke: var(--panel-edge);
+  stroke-width: 1;
+}
+.sv-gmeter-dot {
+  fill: var(--accent-strong);
+  stroke: #fff;
+  stroke-width: 1.2;
+  transition:
+    cx 0.1s linear,
+    cy 0.1s linear;
+}
+.sv-gmeter-dot.is-braking {
+  fill: var(--danger);
+}
+.sv-gmeter figcaption {
+  font: 600 11px var(--font);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.sv-bars-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sv-bars-row .sv-bars {
+  flex: 1;
+}
+.sv-hud-g {
+  position: absolute;
+  left: -70px;
+  bottom: 10px;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(10, 14, 16, 0.55);
+}
+.sv-hud-g figcaption {
+  color: #fff;
+}

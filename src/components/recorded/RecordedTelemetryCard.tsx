@@ -3,6 +3,7 @@ import type { RecordedCarState } from "../../domain/recordedSession";
 import { formatLap } from "../../domain/inspection";
 import TeamGlyph, { type DriverIdentity } from "../broadcast/TeamGlyph";
 import { Chevron } from "../broadcast/Chevron";
+import GMeter from "./GMeter";
 
 const LEDS = 15,
   RPM_MAX = 12500;
@@ -67,6 +68,7 @@ export default function RecordedTelemetryCard({
               <small>RPM</small>
             </div>
           </div>
+          <div className="sv-bars-row">
           <div className="sv-bars">
             <div>
               <span>Throttle</span>
@@ -78,6 +80,8 @@ export default function RecordedTelemetryCard({
               <i style={{ ["--level" as string]: car.brake / 100 }} className="is-brake" />
               <b>{car.brake > 0 ? "On" : "Off"}</b>
             </div>
+          </div>
+          <GMeter long={car.gLong} lat={car.gLat} size={56} />
           </div>
           <dl className="sv-facts">
             <div>

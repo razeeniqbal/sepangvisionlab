@@ -280,6 +280,30 @@ export function telemetryAt(d: DriverTrack, time: number): TelemetrySample {
   };
 }
 
+/**
+ * Forces on the car (in g) from its recorded motion, as a passenger would feel them.
+ * Longitudinal: the change of smoothed speed along the track over ±150 ms (positive under
+ * acceleration). Lateral: speed × yaw rate of the car's real path over the same window
+ * (positive turning left). Clamped to ±6.5 g, the envelope of a real car; zero when stopped,
+ * off the track model or stale.
+ */
+export function gForcesAt(d: DriverTrack, track: TrackProfile, time: number, h = 150) {
+  const a = motionAt(d, track, time - h),
+    b = motionAt(d, track, time),
+    c = motionAt(d, track, time + h);
+  if (!a.onTrack || !b.onTrack || !c.onTrack || b.stale || !b.present) return { long: 0, lat: 0 };
+  const dt = h / 1000;
+  const v1 = Math.hypot(b.x - a.x, b.y - a.y) / dt,
+    v2 = Math.hypot(c.x - b.x, c.y - b.y) / dt;
+  const v = (v1 + v2) / 2;
+  if (v < 3) return { long: 0, lat: 0 };
+  const h1 = Math.atan2(b.y - a.y, b.x - a.x),
+    h2 = Math.atan2(c.y - b.y, c.x - b.x);
+  const yawRate = Math.atan2(Math.sin(h2 - h1), Math.cos(h2 - h1)) / dt;
+  const clamp = (g: number) => Math.max(-6.5, Math.min(6.5, g));
+  return { long: clamp((v2 - v1) / dt / 9.81), lat: clamp((v * yawRate) / 9.81) };
+}
+
 // ---- timing, tyres and session state ----
 export function latestFor<T extends { d: number; t: number }>(rows: readonly T[], time: number): Map<number, T> {
   const out = new Map<number, T>();
@@ -433,6 +457,9 @@ export interface RecordedCarState extends CarState {
   lastLap: number | null;
   gapText: string | null;
   intervalText: string | null;
+  /** Longitudinal and lateral g from the recorded motion (see gForcesAt). */
+  gLong: number;
+  gLat: number;
 }
 
 export interface RecordedSession {
@@ -450,7 +477,7 @@ export function recordedFieldAt(session: RecordedSession, time: number): Recorde
   const positions = latestFor(file.position, t);
   const intervals = latestFor(file.intervals, t);
   const cars = session.drivers.map((d) => {
-    const m = motionAt(d, track, t), tel = telemetryAt(d, t);
+    const m = motionAt(d, track, t), tel = telemetryAt(d, t), g = gForcesAt(d, track, t);
     const laps = lapsCompleted(file.laps, d.number, t);
     let stints = reconciled.get(file.stints);
     if (!stints) reconciled.set(file.stints, (stints = reconcileStints(file.stints, file.laps)));
@@ -482,6 +509,8 @@ export function recordedFieldAt(session: RecordedSession, time: number): Recorde
       lastLap: laps.last,
       gapText: fmtGap(iv?.gap),
       intervalText: fmtGap(iv?.int),
+      gLong: g.long,
+      gLat: g.lat,
     } satisfies RecordedCarState;
   });
   // Cars without a position yet are ordered after classified ones by distance covered.
