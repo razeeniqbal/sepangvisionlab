@@ -504,6 +504,16 @@ export const SEPANG_SPATIAL_REFERENCES = parseSpatialReferences([
     ),
   ),
   fact(
+    "env-elevation",
+    "Driver view track elevation",
+    "visual",
+    null,
+    null,
+    "svlEnvironment",
+    "DERIVED",
+    "Surface height per 4 m profile sample from the median OpenF1 location z of about 790,000 on-track 2026 race samples, scaled like x and y and smoothed over about 40 m (scripts/derive-elevation.ts, src/data/circuits/sepangElevation.json): about 22 m from the lowest point near T2-T3 to the highest near T10-T11, steepest about 6%. Car-reference heights, not a survey; the surrounding terrain follows the nearest track height and is illustrative.",
+  ),
+  fact(
     "env-pit-lane",
     "Driver view pit lane",
     "visual",

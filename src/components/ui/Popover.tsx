@@ -8,7 +8,10 @@ export default function Popover({
   align = "end",
   placement = "bottom",
   className = "",
+  closeOnAction = false,
 }: {
+  /** Close when a button inside is pressed (menus); off for panels with several settings. */
+  closeOnAction?: boolean;
   label: string;
   button: ReactNode;
   children: ReactNode;
@@ -57,6 +60,10 @@ export default function Popover({
           role="dialog"
           aria-label={label}
           className={`sv-popover-panel glass is-${align} is-${placement}`}
+          onClick={(e) => {
+            const target = e.target as HTMLElement;
+            if (closeOnAction && target.closest("button[data-closes]")) setOpen(false);
+          }}
         >
           {children}
         </div>

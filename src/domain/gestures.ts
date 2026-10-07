@@ -4,7 +4,7 @@ export type GestureAction =
   | "forward"
   | "select"
   | "inspect"
-  | "strategy"
+  | "playPause"
   | "cancel"
   | "zoomIn"
   | "zoomOut"
@@ -28,17 +28,17 @@ export const gestureActions: {
   },
   {
     action: "select",
-    label: "Select next driver",
+    label: "Follow the next driver",
     pose: "Hold thumb–index pinch",
   },
   {
     action: "inspect",
-    label: "Show selected inspector",
+    label: "Open laps for the followed driver",
     pose: "Hold index pointing up",
   },
   {
-    action: "strategy",
-    label: "Show Strategy Lab",
+    action: "playPause",
+    label: "Play or pause the replay",
     pose: "Hold two open palms still",
   },
   { action: "cancel", label: "Pause and disarm gestures", pose: "Hold a fist" },
@@ -220,7 +220,7 @@ export class GestureDetector {
           Math.abs(turn) < 8 &&
           Math.abs(ratio - 1) < 0.08
         )
-          action = "strategy";
+          action = "playPause";
       }
     }
     if (action) {

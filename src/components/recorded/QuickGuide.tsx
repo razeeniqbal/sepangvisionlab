@@ -3,6 +3,11 @@ import Icon, { type IconName } from "../ui/Icon";
 
 const STEPS: { icon: IconName; title: string; text: string }[] = [
   {
+    icon: "info",
+    title: "Welcome to Sepang Vision Lab",
+    text: "A 3D replay of the 2026 Sepang weekend from recorded OpenF1 data. Here is how to get around in five quick steps.",
+  },
+  {
     icon: "play",
     title: "Play the weekend",
     text: "Choose FP1 to Race at the top, then press play. Drag the timeline or tap a marker to jump to an incident.",
@@ -30,15 +35,25 @@ const STEPS: { icon: IconName; title: string; text: string }[] = [
 ];
 
 /**
- * First-visit quick guide: five short steps on a glass card. "Start watching" closes it; tick
- * "Don't show again" to keep it closed. It can be reopened from the app menu.
+ * Quick guide, shown each time the app opens: one step at a time with Back/Next and progress
+ * dots. Ticking "Don't show again" (off by default) keeps it closed on later visits; it can be
+ * reopened from the app menu. Arrow keys move between steps, Escape closes.
  */
 export default function QuickGuide({ onClose }: { onClose: (remember: boolean) => void }) {
-  const [remember, setRemember] = useState(true);
-  const start = useRef<HTMLButtonElement>(null);
+  const [step, setStep] = useState(0);
+  const [remember, setRemember] = useState(false);
+  const next = useRef<HTMLButtonElement>(null);
+  const last = step === STEPS.length - 1;
+  const current = STEPS[step];
   useEffect(() => {
-    start.current?.focus();
-    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose(remember);
+    next.current?.focus();
+  }, [step]);
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose(remember);
+      if (e.key === "ArrowRight") setStep((s) => Math.min(STEPS.length - 1, s + 1));
+      if (e.key === "ArrowLeft") setStep((s) => Math.max(0, s - 1));
+    };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [onClose, remember]);
@@ -52,30 +67,48 @@ export default function QuickGuide({ onClose }: { onClose: (remember: boolean) =
         onClick={(e) => e.stopPropagation()}
       >
         <header>
-          <h2 id="sv-guide-title">Welcome to Sepang Vision Lab</h2>
-          <p>A 3D replay of the 2026 Sepang weekend, built from recorded OpenF1 data.</p>
+          <small>Quick guide · {step + 1} of {STEPS.length}</small>
+          <button className="sv-icon-button" aria-label="Close guide" onClick={() => onClose(remember)}>
+            <Icon name="close" />
+          </button>
         </header>
-        <ol>
-          {STEPS.map((s) => (
-            <li key={s.title}>
-              <span className="sv-guide-icon">
-                <Icon name={s.icon} />
-              </span>
-              <div>
-                <strong>{s.title}</strong>
-                <span>{s.text}</span>
-              </div>
-            </li>
+        <div className="sv-guide-step" key={step} aria-live="polite">
+          <span className="sv-guide-icon">
+            <Icon name={current.icon} size={26} />
+          </span>
+          <h2 id="sv-guide-title">{current.title}</h2>
+          <p>{current.text}</p>
+        </div>
+        <div className="sv-guide-dots" role="tablist" aria-label="Guide steps">
+          {STEPS.map((s, i) => (
+            <button
+              key={s.title}
+              role="tab"
+              aria-selected={i === step}
+              aria-label={`Step ${i + 1}: ${s.title}`}
+              onClick={() => setStep(i)}
+            />
           ))}
-        </ol>
+        </div>
         <footer>
           <label className="sv-switch">
             <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
             <span>Don't show again</span>
           </label>
-          <button ref={start} className="sv-guide-start" onClick={() => onClose(remember)}>
-            Start watching
-          </button>
+          <div className="sv-guide-nav">
+            {step > 0 && (
+              <button className="sv-button" onClick={() => setStep(step - 1)}>
+                Back
+              </button>
+            )}
+            <button
+              ref={next}
+              className="sv-guide-start"
+              onClick={() => (last ? onClose(remember) : setStep(step + 1))}
+            >
+              {last ? "Start watching" : "Next"}
+            </button>
+          </div>
         </footer>
       </section>
     </div>

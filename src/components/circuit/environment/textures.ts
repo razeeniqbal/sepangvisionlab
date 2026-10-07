@@ -120,23 +120,26 @@ export const chequerTexture = () =>
       }
   });
 
-/** Diamond wire mesh for the catch fence: transparent between the wires. */
-export const fenceTexture = () => {
-  const texture = canvasTexture(64, 64, (c) => {
-    c.clearRect(0, 0, 64, 64);
-    c.strokeStyle = "rgba(200,206,208,0.9)";
-    c.lineWidth = 1.4;
-    for (let k = -64; k < 128; k += 16) {
+/**
+ * Fine high-tensile diamond mesh for the debris fence: 16 diamonds across one 1.6 m repeat
+ * (about 10 cm), with a faint overall tint so it reads as a panel even when the wires blur.
+ */
+export const fenceTexture = () =>
+  canvasTexture(128, 128, (c) => {
+    c.clearRect(0, 0, 128, 128);
+    c.fillStyle = "rgba(200,206,208,0.08)";
+    c.fillRect(0, 0, 128, 128);
+    c.strokeStyle = "rgba(225,230,232,0.85)";
+    c.lineWidth = 1;
+    for (let k = -128; k < 256; k += 8) {
       c.beginPath();
       c.moveTo(k, 0);
-      c.lineTo(k + 64, 64);
-      c.moveTo(k + 64, 0);
-      c.lineTo(k, 64);
+      c.lineTo(k + 128, 128);
+      c.moveTo(k + 128, 0);
+      c.lineTo(k, 128);
       c.stroke();
     }
   });
-  return texture;
-};
 
 /** Spectators on a grass bank: people in mixed shirt colours over a transparent ground. */
 export const crowdTexture = () => {

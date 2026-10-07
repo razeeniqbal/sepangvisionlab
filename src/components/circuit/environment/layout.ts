@@ -345,6 +345,22 @@ function inBuildings(x: number, y: number, buildings: readonly Building[], pad: 
  * Low-poly broadleaf clumps behind the barriers: a clump every ~100 m on alternating sides,
  * 46-62 m out. Trees keep 38 m from the centre line and 14 m from cameras and buildings.
  */
+/**
+ * Whether a point lies inside the circuit loop (even-odd ray cast over the centre line). The
+ * infield is open grass at Sepang, so palms and tree clumps keep out of it.
+ */
+export function insideCircuit(track: TrackProfile) {
+  const n = track.count;
+  return (x: number, y: number) => {
+    let inside = false;
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      const xi = track.x[i], yi = track.y[i], xj = track.x[j], yj = track.y[j];
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  };
+}
+
 export function treeClumps(
   track: TrackProfile,
   normals: { nx: Float64Array; ny: Float64Array },
@@ -352,7 +368,9 @@ export function treeClumps(
 ): Tree[] {
   const { avoid = [], buildings = [], seed = 19 } = options;
   const next = random(seed), distance = distanceToTrack(track), out: Tree[] = [];
+  const infield = insideCircuit(track);
   const clear = (x: number, y: number) =>
+    !infield(x, y) &&
     distance(x, y, 120) >= 38 &&
     avoid.every((a) => Math.hypot(a.x - x, a.y - y) >= 14) &&
     !inBuildings(x, y, buildings, 14);
@@ -377,7 +395,7 @@ export function palmRows(
   options: { spacing?: number; near?: number; far?: number; buildings?: readonly Building[]; seed?: number } = {},
 ): Palm[] {
   const { spacing = 12, near = 90, far = 330, buildings = [], seed = 21 } = options;
-  const next = random(seed), distance = distanceToTrack(track);
+  const next = random(seed), distance = distanceToTrack(track), infield = insideCircuit(track);
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (let i = 0; i < track.count; i++) {
     minX = Math.min(minX, track.x[i]); maxX = Math.max(maxX, track.x[i]);
@@ -387,7 +405,7 @@ export function palmRows(
   for (let row = 0, y = minY - far; y <= maxY + far; y += spacing, row++)
     for (let x = minX - far + (row % 2) * spacing * 0.5; x <= maxX + far; x += spacing) {
       const d = distance(x, y, far + 60);
-      if (d < near || d > far || inBuildings(x, y, buildings, 15)) continue;
+      if (d < near || d > far || inBuildings(x, y, buildings, 15) || infield(x, y)) continue;
       out.push({ x: x + (next() - 0.5) * 1.5, y: y + (next() - 0.5) * 1.5, scale: 0.85 + next() * 0.35, rotation: next() * Math.PI * 2 });
     }
   // Seeded Fisher-Yates shuffle.
@@ -420,4 +438,40 @@ export function besideTurn(
     heading: poseAtDistance(track, track.distance[i]).heading,
   };
   return fitBuilding(track, anchor, length, depth, offset - 2);
+}
+
+/**
+ * Ground height anywhere: the surface height of the nearest track sample (0 on a flat
+ * profile), found through a coarse bucket grid so thousands of lookups stay cheap.
+ */
+export function groundHeight(track: TrackProfile, cell = 60) {
+  const z = track.z;
+  if (!z) return () => 0;
+  const buckets = new Map<string, number[]>();
+  const key = (x: number, y: number) => Math.floor(x / cell) + ":" + Math.floor(y / cell);
+  for (let i = 0; i < track.count; i++) {
+    const k = key(track.x[i], track.y[i]);
+    const list = buckets.get(k);
+    if (list) list.push(i);
+    else buckets.set(k, [i]);
+  }
+  return (x: number, y: number) => {
+    const cx = Math.floor(x / cell),
+      cy = Math.floor(y / cell);
+    let best = Infinity,
+      height = 0;
+    for (let r = 0; r < 200; r++) {
+      // Every cell in ring r is at least (r - 1) cells away: stop once nothing nearer can remain.
+      if (best < Infinity && Math.sqrt(best) <= (r - 1) * cell) break;
+      for (let dx = -r; dx <= r; dx++)
+        for (let dy = -r; dy <= r; dy++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          for (const i of buckets.get(cx + dx + ":" + (cy + dy)) ?? []) {
+            const d = (track.x[i] - x) ** 2 + (track.y[i] - y) ** 2;
+            if (d < best) (best = d), (height = z[i]);
+          }
+        }
+    }
+    return height;
+  };
 }

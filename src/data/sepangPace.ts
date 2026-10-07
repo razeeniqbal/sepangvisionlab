@@ -1,4 +1,5 @@
 import sepang from "./circuits/sepang.json";
+import elevation from "./circuits/sepangElevation.json";
 import { projectCircuit } from "../domain/circuitGeometry.ts";
 import { CIRCUIT_LENGTH_METERS } from "../domain/field.ts";
 import { buildTrackProfile } from "../domain/lapPhysics.ts";
@@ -10,3 +11,6 @@ export const sepangTrack = buildTrackProfile(
   4,
   CIRCUIT_LENGTH_METERS,
 );
+// DERIVED elevation from OpenF1 heights (scripts/derive-elevation.ts), one value per sample.
+if (elevation.heights.length === sepangTrack.count)
+  sepangTrack.z = Float64Array.from(elevation.heights);

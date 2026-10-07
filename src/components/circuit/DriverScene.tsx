@@ -20,9 +20,11 @@ import {
 import sepang from "../../data/circuits/sepang.json";
 import { sepangTrack } from "../../data/sepangPace";
 import { poseAtDistance } from "../../domain/lapPhysics";
+import { gradeAt, heightAt } from "../../domain/elevation";
 import type { CarDefinition, CarState } from "../../domain/field";
 import Environment, {
   PIT_WALL_OFFSET,
+  fenceSightTarget,
   SKY,
   useEnvironmentLayout,
   type EnvironmentLayout,
@@ -168,6 +170,11 @@ function pose(car: Posed) {
 }
 
 const TRAIL_POINTS = 32;
+/** Track surface height (m) at a distance, from the DERIVED elevation; 0 on a flat profile. */
+const trackZ = (distance: number) =>
+  sepangTrack.z ? heightAt(sepangTrack.z, sepangTrack.length, distance) : 0;
+const trackGrade = (distance: number) =>
+  sepangTrack.z ? gradeAt(sepangTrack.z, sepangTrack.length, distance) : 0;
 const tagPoint = new Vector3();
 const TAG_HEIGHT = 2.4;
 
@@ -343,7 +350,7 @@ function DriverCar({
       // Two checks in a row must agree before the fade changes, so tags at the edge of a
       // board do not flicker.
       if (near && check.current++ % 6 === 0) {
-        tagPoint.copy(group.current.position).setZ(TAG_HEIGHT);
+        tagPoint.copy(group.current.position).setZ(group.current.position.z + TAG_HEIGHT);
         const hit = blocked(camera.position, tagPoint, occluders.current, 1);
         const votes = occludedVotes.current;
         if (hit === votes.last && hit !== votes.applied) {
@@ -365,12 +372,19 @@ function DriverCar({
           sepangTrack,
           distance - (length * k) / (TRAIL_POINTS - 1),
         );
-        positions.setXYZ(k, q.x, q.y, LAYER.paint + 0.06);
+        positions.setXYZ(k, q.x, q.y, LAYER.paint + 0.06 + trackZ(distance - (length * k) / (TRAIL_POINTS - 1)));
       }
       positions.needsUpdate = true;
     }
-    group.current.position.set(p.x, p.y, LAYER.asphalt);
-    group.current.rotation.z = mounted ? (rig.current.heading ?? p.heading) : p.heading;
+    // Ride the DERIVED elevation: height from the track, nose up on climbs (rotation order ZYX:
+    // pitch in the car's own frame, then heading).
+    group.current.position.set(p.x, p.y, LAYER.asphalt + trackZ(distance));
+    group.current.rotation.order = "ZYX";
+    group.current.rotation.set(
+      0,
+      -Math.atan(trackGrade(distance)),
+      mounted ? (rig.current.heading ?? p.heading) : p.heading,
+    );
     // Acceleration in replay time: a paused or seeking replay holds the body still.
     const speed = state.speedKph / 3.6,
       dt = clock.current - m.time;
@@ -565,12 +579,13 @@ function trackside(layout: EnvironmentLayout): Vec3[] {
       dx = p.x - b.x,
       dy = p.y - b.y;
     return (
-      Math.abs(dx * c - dy * s) < b.length / 2 + 6 &&
-      Math.abs(dx * s + dy * c) < b.depth / 2 + 6
+      Math.abs(dx * c - dy * s) < b.length / 2 + 14 &&
+      Math.abs(dx * s + dy * c) < b.depth / 2 + 14
     );
   };
+  const buildings = [layout.pit, layout.stand, layout.k1, layout.hill].filter((b): b is Building => b !== null);
   return clearTvPoints(tvPoints(sepangTrack, normals), obstacles).filter(
-    (p) => !inside(p, layout.pit) && !inside(p, layout.stand),
+    (p) => !buildings.some((b) => inside(p, b)),
   );
 }
 
@@ -642,7 +657,7 @@ function CameraRig({
     if (rig.current.mode === "tv") {
       shot.current.age += delta;
       if (shot.current.age >= 0.25 || !shot.current.point) {
-        const target = { x: p.x, y: p.y, z: 0.8 };
+        const target = { x: p.x, y: p.y, z: 0.8 + trackZ(state.progress * sepangTrack.length) };
         shot.current.point =
           pickTvCamera(
             tv,
@@ -676,20 +691,26 @@ function CameraRig({
     // A light high-speed shake on the chase camera only: the onboard camera is mounted to the car.
     const shake = mode === "chase" ? roadShake(clock.current * 1.7, speed, 3.1).pitch * 10 : 0;
     const back = { x: -Math.cos(p.heading), y: -Math.sin(p.heading) };
+    // Camera poses are built on a flat track: lift them by the car's track height (trackside TV
+    // cameras already stand on their own ground, so only their aim point moves).
+    const carZ = trackZ(state.progress * sepangTrack.length);
+    const lift = mode === "tv" ? 0 : carZ;
+    fenceSightTarget.value.set(p.x, p.y, carZ + 0.8);
     camera.position.set(
       view.position.x + back.x * f.lag,
       view.position.y + back.y * f.lag,
-      view.position.z + shake,
+      view.position.z + shake + lift,
     );
-    camera.lookAt(view.target.x, view.target.y, view.target.z + shake * 0.5);
+    camera.lookAt(view.target.x, view.target.y, view.target.z + shake * 0.5 + carZ);
     const fov = view.fov + f.fov;
     if (Math.abs(camera.fov - fov) > 0.01) {
       camera.fov = fov;
       camera.updateProjectionMatrix();
     }
     if (sun.current) {
-      sun.current.position.set(p.x - 140, p.y - 220, 320);
-      sun.current.target.position.set(p.x, p.y, 0);
+      const ground = trackZ(state.progress * sepangTrack.length);
+      sun.current.position.set(p.x - 140, p.y - 220, 320 + ground);
+      sun.current.target.position.set(p.x, p.y, ground);
       sun.current.target.updateMatrixWorld();
     }
   });
@@ -813,8 +834,13 @@ function useCameraInput(rig: RefObject<CameraRigState>) {
     const el = ref.current;
     if (!el) return;
     let drag: { id: number; x: number; y: number } | null = null;
+    // The control hint shows for a few seconds, and goes as soon as the camera is used.
+    el.classList.add("show-hint");
+    const hideHint = () => el.classList.remove("show-hint");
+    const hintTimer = window.setTimeout(hideHint, 6000);
     const down = (e: PointerEvent) => {
       if (e.button !== 0 && e.button !== 2) return;
+      hideHint();
       drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
     };
     const move = (e: PointerEvent) => {
@@ -834,6 +860,7 @@ function useCameraInput(rig: RefObject<CameraRigState>) {
       el.classList.remove("is-dragging");
     };
     const wheel = (e: WheelEvent) => {
+      hideHint();
       const lines = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1;
       if (wheelRig(rig.current, e.deltaY * lines)) e.preventDefault();
     };
@@ -847,6 +874,7 @@ function useCameraInput(rig: RefObject<CameraRigState>) {
     el.addEventListener("dblclick", reset);
     el.addEventListener("contextmenu", menu);
     return () => {
+      window.clearTimeout(hintTimer);
       el.removeEventListener("pointerdown", down);
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerup", up);
@@ -862,7 +890,11 @@ function useCameraInput(rig: RefObject<CameraRigState>) {
 export default function DriverScene(props: DriverSceneProps) {
   const input = useCameraInput(props.rig);
   return (
-    <div ref={input} className="sv-camera-input" title="Drag to orbit, scroll to zoom, double-click to reset">
+    <div ref={input} className="sv-camera-input">
+      <div className="sv-camera-hint" aria-hidden="true">
+        <span className="for-mouse">Drag to orbit · Scroll to zoom · Double-click to reset</span>
+        <span className="for-touch">Swipe sideways to orbit the camera</span>
+      </div>
     <Canvas
       shadows={(props.quality ?? QUALITY.balanced).shadows}
       dpr={(props.quality ?? QUALITY.balanced).dpr}

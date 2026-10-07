@@ -136,7 +136,7 @@ test("generated environment is registered: illustrative, turn boards derived", (
     assert.equal(r.latitude, null);
     assert.equal(
       r.accuracyClass,
-      r.id === "env-turn-boards" || r.id === "env-pit-lane" ? "DERIVED" : "ILLUSTRATIVE",
+      ["env-turn-boards", "env-pit-lane", "env-elevation"].includes(r.id) ? "DERIVED" : "ILLUSTRATIVE",
     );
   }
   for (const id of ["env-pit-building", "env-main-grandstand"])

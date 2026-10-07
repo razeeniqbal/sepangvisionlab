@@ -37,14 +37,7 @@ export default function App() {
           className={"hands-sheet" + (handsOpen ? " is-open" : "")}
           aria-label="Hand tracking"
         >
-          <button
-            className="hands-sheet-close"
-            onClick={() => setHandsOpen(false)}
-            aria-label="Close hand tracking"
-          >
-            Close
-          </button>
-          <HandTrackingPanel />
+          <HandTrackingPanel onClose={() => setHandsOpen(false)} />
         </div>
       </GestureProvider>
     </div>

@@ -10,6 +10,7 @@ export interface TrackProfile {
   count: number;
   length: number;
   scale: number; // input units → profile metres, so anchors in the same frame can follow
+  z?: Float64Array; // optional surface height per sample, metres (DERIVED elevation); flat when absent
 }
 
 export type Compound = "SOFT" | "MEDIUM" | "HARD";

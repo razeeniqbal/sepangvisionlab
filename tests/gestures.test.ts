@@ -90,7 +90,7 @@ test("still palms need dwell, fist cancels, and reset discards pending action", 
     pair = [hand("open", 0.3), hand("open", 0.7, "Right")];
   let result = null;
   for (let t = 0; t <= 900; t += 100) result = d.update(pair, t);
-  assert.equal(result, "strategy");
+  assert.equal(result, "playPause");
   d.reset();
   for (let t = 0; t < 500; t += 100)
     assert.equal(d.update([hand("fist")], t), null);
@@ -138,7 +138,7 @@ test("cycleCamera is an additive action with a recorder label", () => {
       "forward",
       "select",
       "inspect",
-      "strategy",
+      "playPause",
       "cancel",
       "zoomIn",
       "zoomOut",

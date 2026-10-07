@@ -5,7 +5,7 @@ import { projectCircuit } from "../src/domain/circuitGeometry.ts";
 import { buildTrackProfile } from "../src/domain/lapPhysics.ts";
 import { leftNormals } from "../src/components/circuit/environment/ribbon.ts";
 import {
-  BARRIER_OFFSET, distanceToTrack, gravelTraps, officialTurnBoards, palmRows, treeClumps,
+  BARRIER_OFFSET, distanceToTrack, gravelTraps, insideCircuit, officialTurnBoards, palmRows, treeClumps,
 } from "../src/components/circuit/environment/layout.ts";
 import { QUALITY, readQuality, writeQuality } from "../src/components/circuit/quality.ts";
 import { presentKeyAction } from "../src/components/broadcast/presentMode.ts";
@@ -68,4 +68,21 @@ test("present mode keys: P toggles, Escape exits, never while typing", () => {
   assert.equal(presentKeyAction({ key: "p", target: { tagName: "input" } }, false), null);
   assert.equal(presentKeyAction({ key: "p", target: { isContentEditable: true } }, false), null);
   assert.equal(presentKeyAction({ key: "p", ctrlKey: true }, false), null);
+});
+
+test("the infield is open grass: no palms or tree clumps inside the circuit loop", () => {
+  const inside = insideCircuit(track);
+  assert.equal(inside(1e6, 1e6), false, "far away is outside");
+  assert.ok(palmRows(track).every((p) => !inside(p.x, p.y)));
+  assert.ok(treeClumps(track, normals).every((t) => !inside(t.x, t.y)));
+});
+
+test("ground height follows the nearest track sample, and is flat without elevation", async () => {
+  const { groundHeight, nearestSample } = await import("../src/components/circuit/environment/layout.ts");
+  assert.equal(groundHeight(track)(100, 100), 0, "no elevation, flat ground");
+  const raised = { ...track, z: Float64Array.from({ length: track.count }, (_, i) => i / 10) };
+  const ground = groundHeight(raised);
+  for (const [x, y] of [[track.x[5] + 3, track.y[5] - 2], [track.x[700] + 40, track.y[700]], [0, 0], [5000, -3000]]) {
+    assert.equal(ground(x, y), raised.z[nearestSample(track, x, y).index], `${x},${y}`);
+  }
 });

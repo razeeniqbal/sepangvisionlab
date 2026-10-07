@@ -271,7 +271,7 @@ function CircuitScene(props: Props) {
             </button>
           </div>
           <p className="sv-menu-note">
-            Flat elevation · illustrative surroundings
+            Elevation derived from OpenF1 · illustrative surroundings
           </p>
         </Popover>
       </div>

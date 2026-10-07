@@ -46,6 +46,7 @@ import {
   type Tree,
   besideTurn,
   fitBuilding,
+  groundHeight,
   gantryAt,
   kerbRuns,
   trackBearing,
@@ -78,6 +79,21 @@ import {
 export const PIT_LANE = pitLaneData as PitLane;
 /** Inner face of the pit wall, just outside the white edge line on the pit side. */
 export const PIT_WALL_OFFSET = TRACK_HALF_WIDTH + 0.25;
+
+/**
+ * The point the camera is filming (the followed car), shared with the fence shader: fence mesh
+ * along the sight line from the camera to it is cut away, like the camera holes cut in real
+ * debris fences for broadcast cameras. DriverScene updates it every frame.
+ */
+export const fenceSightTarget = { value: new Vector3(0, 0, -1e6) };
+
+// Terrain height under any point, from the DERIVED track elevation (flat without it).
+const grounds = new WeakMap<TrackProfile, (x: number, y: number) => number>();
+export function groundOf(track: TrackProfile) {
+  let g = grounds.get(track);
+  if (!g) grounds.set(track, (g = groundHeight(track)));
+  return g;
+}
 
 // Objects that block a camera's view of a car: used by TV camera picking and tag fading.
 export const OCCLUDER = { occluder: true };
@@ -422,7 +438,7 @@ function PitBuilding({ b, track }: { b: Building; track: TrackProfile }) {
   const start = (-bay * PIT_GARAGES) / 2;
   const front = face * (b.depth / 2);
   return (
-    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
+    <group position={[b.x, b.y, groundOf(track)(b.x, b.y)]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
       <mesh material={concrete} position={[0, 0, 3.25]} castShadow receiveShadow>
         <boxGeometry args={[b.length, b.depth, 6.5]} />
       </mesh>
@@ -505,7 +521,7 @@ function petalGeometry(length: number, width: number, base: number, rise: number
  * Main grandstand, double-fronted (OFFICIAL): stepped seating with spectators rising from each
  * straight to a central concourse, under a row of white petal-shaped canopies on masts.
  */
-function Grandstand({ b }: { b: Building }) {
+function Grandstand({ b, track }: { b: Building; track: TrackProfile }) {
   const rows = 10,
     half = b.depth / 2,
     rowDepth = (half - 3) / rows,
@@ -513,7 +529,7 @@ function Grandstand({ b }: { b: Building }) {
     petalLength = (b.length / count) * 1.22;
   const petal = useMemo(() => petalGeometry(petalLength, b.depth * 1.15, 21, 6), [petalLength, b.depth]);
   return (
-    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
+    <group position={[b.x, b.y, groundOf(track)(b.x, b.y)]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
       {[-1, 1].flatMap((side) =>
         Array.from({ length: rows }, (_, r) => (
           <mesh
@@ -555,7 +571,7 @@ function CoveredStand({ b, track }: { b: Building; track: TrackProfile }) {
     rowDepth = (b.depth - 4) / rows,
     top = 1 + rows * 0.8;
   return (
-    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
+    <group position={[b.x, b.y, groundOf(track)(b.x, b.y)]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
       {Array.from({ length: rows }, (_, r) => (
         <mesh
           key={r}
@@ -616,7 +632,7 @@ function Hillstand({ b, track }: { b: Building; track: TrackProfile }) {
     };
   }, [b, face]);
   return (
-    <group position={[b.x, b.y, 0]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
+    <group position={[b.x, b.y, groundOf(track)(b.x, b.y)]} rotation={[0, 0, b.heading]} userData={OCCLUDER}>
       <mesh geometry={parts.ground} material={parts.grass} castShadow receiveShadow />
       <mesh
         material={parts.people}
@@ -640,11 +656,11 @@ function Hillstand({ b, track }: { b: Building; track: TrackProfile }) {
   );
 }
 
-function Gantry({ p }: { p: Placement }) {
+function Gantry({ p, track }: { p: Placement; track: TrackProfile }) {
   const span = PIT_WALL_OFFSET + 0.25;
   return (
     <group
-      position={[p.x, p.y, 0]}
+      position={[p.x, p.y, groundOf(track)(p.x, p.y)]}
       rotation={[0, 0, p.heading]}
       userData={OCCLUDER}
     >
@@ -728,7 +744,7 @@ function TurnBoards({
       {boards.map((b) => (
         <group
           key={b.turn}
-          position={[b.x, b.y, 0]}
+          position={[b.x, b.y, groundOf(track)(b.x, b.y)]}
           rotation={[0, 0, b.heading]}
         >
           <mesh material={steel} position={[0, 0, 1.4]}>
@@ -751,7 +767,7 @@ function TurnBoards({
   );
 }
 
-function CornerBoards({ boards }: { boards: Placement[] }) {
+function CornerBoards({ boards, track }: { boards: Placement[]; track: TrackProfile }) {
   const parts = useMemo(() => {
     // Face oncoming cars: the board normal runs along the track tangent.
     const board = new PlaneGeometry(2.4, 2.4)
@@ -760,7 +776,7 @@ function CornerBoards({ boards }: { boards: Placement[] }) {
     const post = new BoxGeometry(0.2, 0.2, 2.2).translate(0, 0, 1.1);
     const o = new Object3D();
     const at = (p: Placement, z: number, face: number) => {
-      o.position.set(p.x, p.y, z);
+      o.position.set(p.x, p.y, z + groundOf(track)(p.x, p.y));
       o.rotation.set(0, 0, p.heading + face);
       o.updateMatrix();
       return o.matrix.clone();
@@ -776,7 +792,7 @@ function CornerBoards({ boards }: { boards: Placement[] }) {
         roughness: 0.6,
       }),
     };
-  }, [boards]);
+  }, [boards, track]);
   return (
     <>
       <Instanced
@@ -795,7 +811,7 @@ function CornerBoards({ boards }: { boards: Placement[] }) {
   );
 }
 
-function Palms({ palms: all, count }: { palms: readonly Palm[]; count: number }) {
+function Palms({ palms: all, count, track }: { palms: readonly Palm[]; count: number; track: TrackProfile }) {
   const parts = useMemo(() => {
     const palms = all.slice(0, count);
     const trunk = new CylinderGeometry(0.24, 0.42, 9, 7)
@@ -804,7 +820,7 @@ function Palms({ palms: all, count }: { palms: readonly Palm[]; count: number })
     const crown = palmCrown();
     const o = new Object3D();
     const matrices = palms.map((p) => {
-      o.position.set(p.x, p.y, 0);
+      o.position.set(p.x, p.y, groundOf(track)(p.x, p.y) - 0.3);
       o.rotation.set(0, 0, p.rotation);
       o.scale.setScalar(p.scale);
       o.updateMatrix();
@@ -826,7 +842,7 @@ function Palms({ palms: all, count }: { palms: readonly Palm[]; count: number })
         return new Color().setHSL(0.27 + Math.abs(k) * 0.05, 0.45, 0.2 + Math.abs(k) * 0.08);
       }),
     };
-  }, [all, count]);
+  }, [all, count, track]);
   const crowns = useRef<InstancedMesh>(null);
   useLayoutEffect(() => {
     const mesh = crowns.current;
@@ -917,13 +933,13 @@ function broadleafCrown() {
 }
 
 // Low-poly broadleaf trees: chunky crowns in a few greens (one draw call for crowns).
-function TreeClumps({ trees }: { trees: readonly Tree[] }) {
+function TreeClumps({ trees, track }: { trees: readonly Tree[]; track: TrackProfile }) {
   const parts = useMemo(() => {
     const trunk = new CylinderGeometry(0.35, 0.5, 4, 5).rotateX(Math.PI / 2).translate(0, 0, 2);
     const crown = broadleafCrown();
     const o = new Object3D();
     const matrices = trees.map((t) => {
-      o.position.set(t.x, t.y, 0);
+      o.position.set(t.x, t.y, groundOf(track)(t.x, t.y) - 0.3);
       o.rotation.set(0, 0, t.rotation);
       o.scale.setScalar(t.scale);
       o.updateMatrix();
@@ -936,7 +952,7 @@ function TreeClumps({ trees }: { trees: readonly Tree[] }) {
       bark: new MeshStandardMaterial({ color: "#5d4a38", roughness: 1 }),
       leaves: new MeshStandardMaterial({ roughness: 0.9 }),
     };
-  }, [trees]);
+  }, [trees, track]);
   const crowns = useRef<InstancedMesh>(null);
   useLayoutEffect(() => {
     const mesh = crowns.current;
@@ -1130,7 +1146,7 @@ function StartGrid({ track, gantry }: { track: TrackProfile; gantry: Placement }
       o.position.set(
         p.x - Math.sin(p.heading) * lateral,
         p.y + Math.cos(p.heading) * lateral,
-        LAYER.paint + 0.004,
+        LAYER.paint + 0.004 + groundOf(track)(p.x - Math.sin(p.heading) * lateral, p.y + Math.cos(p.heading) * lateral),
       );
       o.rotation.set(0, 0, p.heading + angle);
       o.updateMatrix();
@@ -1205,7 +1221,9 @@ function TyreWalls({ track, apexes }: { track: TrackProfile; apexes: readonly nu
         const steps = Math.max(1, Math.round(Math.hypot(bx - ax, by - ay) / 0.66));
         for (let k = 0; k < steps; k++, n++) {
           const f = k / steps;
-          o.position.set(ax + (bx - ax) * f, ay + (by - ay) * f, 0);
+          const px = ax + (bx - ax) * f,
+            py = ay + (by - ay) * f;
+          o.position.set(px, py, groundOf(track)(px, py));
           o.rotation.set(0, 0, 0);
           o.updateMatrix();
           matrices.push(o.matrix.clone());
@@ -1235,55 +1253,87 @@ function TyreWalls({ track, apexes }: { track: TrackProfile; apexes: readonly nu
   return <instancedMesh ref={ref} args={[parts.stack, parts.material, parts.matrices.length]} frustumCulled={false} />;
 }
 
-/** Catch fence above both barriers: wire mesh on posts every ~12 m, with a top rail. */
+/**
+ * Debris fence above both barriers, after the Geobrugg system Sepang installed (4.5 m at T1,
+ * steel posts every 4 m, heavy horizontal cables, fine high-tensile mesh): mesh panels from the
+ * barrier top to 4.5 m, a post at every 4 m profile sample, and five cables. The mesh is
+ * blended, so from a distance it fades to a light haze like the real thing.
+ */
 function CatchFence({ track }: { track: TrackProfile }) {
   const parts = useMemo(() => {
     const normals = leftNormals(track);
-    const top = 4;
+    const top = 4.5,
+      base = 1.1;
+    const at = (side: -1 | 1) => (i: number) => barrierOffset(track, i, side);
     const mesh = mergeStrips(
       ([-1, 1] as const).map((side) =>
         buildStrip(track, normals, {
           edges: [
-            { offset: (i: number) => barrierOffset(track, i, side), z: 1.1 },
-            { offset: (i: number) => barrierOffset(track, i, side), z: top },
+            { offset: at(side), z: base },
+            { offset: at(side), z: top },
           ],
-          uLength: 2.4,
+          uLength: 1.6,
         }),
       ),
     );
+    const cables = mergeStrips(
+      ([-1, 1] as const).flatMap((side) =>
+        [1.15, 2, 2.85, 3.7, 4.45].map((z) =>
+          buildStrip(track, normals, {
+            edges: [
+              { offset: (i: number) => at(side)(i) - side * 0.06, z },
+              { offset: (i: number) => at(side)(i) - side * 0.06, z: z + 0.04 },
+            ],
+          }),
+        ),
+      ),
+    );
     const texture = fenceTexture();
-    texture.repeat.set(1, 1.2);
-    const post = new BoxGeometry(0.12, 0.12, top).translate(0, 0, top / 2);
+    texture.repeat.set(1, (top - base) / 1.6);
+    const post = new BoxGeometry(0.14, 0.2, top).translate(0, 0, top / 2);
     const o = new Object3D();
     const posts: Matrix4[] = [];
-    for (let i = 0; i < track.count; i += 3)
+    const ground = groundOf(track);
+    for (let i = 0; i < track.count; i++)
       for (const side of [-1, 1] as const) {
-        const off = barrierOffset(track, i, side) + side * 0.08;
-        o.position.set(track.x[i] + normals.nx[i] * off, track.y[i] + normals.ny[i] * off, 0);
+        const off = barrierOffset(track, i, side) + side * 0.1;
+        const x = track.x[i] + normals.nx[i] * off,
+          y = track.y[i] + normals.ny[i] * off;
+        o.position.set(x, y, track.z?.[i] ?? ground(x, y));
+        o.rotation.set(0, 0, Math.atan2(normals.ny[i], normals.nx[i]));
         o.updateMatrix();
         posts.push(o.matrix.clone());
       }
     const material = new MeshStandardMaterial({
       map: texture,
-      alphaTest: 0.35,
-      transparent: false,
+      color: "#c9cfd2",
+      transparent: true,
+      depthWrite: false,
       side: DoubleSide,
-      roughness: 0.5,
-      metalness: 0.6,
+      roughness: 0.45,
+      metalness: 0.7,
     });
-    // Trackside cameras film through a gap in the fence: wire within 14 m of the camera is
-    // cut away, so it never fills the foreground of a TV shot.
+    // Trackside cameras film through a gap in the fence: mesh within 14 m of the camera is cut
+    // away, so it never fills the foreground of a TV shot.
     material.onBeforeCompile = (shader) => {
       shader.vertexShader = shader.vertexShader
         .replace("#include <common>", "#include <common>\nvarying vec3 vSvlFence;")
         .replace("#include <begin_vertex>", "#include <begin_vertex>\nvSvlFence = (modelMatrix * vec4(transformed, 1.0)).xyz;");
       shader.fragmentShader = shader.fragmentShader
         .replace("#include <common>", "#include <common>\nvarying vec3 vSvlFence;")
-        .replace("#include <alphatest_fragment>", "#include <alphatest_fragment>\nif (distance(vSvlFence, cameraPosition) < 14.0) discard;");
+        .replace("#include <common>", "#include <common>\nuniform vec3 svlSight;")
+        .replace(
+          "#include <alphatest_fragment>",
+          "#include <alphatest_fragment>\nif (distance(vSvlFence, cameraPosition) < 14.0) discard;" +
+            "vec3 svlRay = svlSight - cameraPosition; float svlT = clamp(dot(vSvlFence - cameraPosition, svlRay) / max(dot(svlRay, svlRay), 1e-3), 0.0, 1.0);" +
+            "if (svlT < 0.98 && distance(vSvlFence, cameraPosition + svlRay * svlT) < 2.2 + 3.0 * svlT) discard;",
+        );
+      shader.uniforms.svlSight = fenceSightTarget;
     };
-    material.customProgramCacheKey = () => "svl-fence";
+    material.customProgramCacheKey = () => "svl-fence-v3";
     return {
       geometry: toGeometry(mesh),
+      cables: toGeometry(cables),
       material,
       post,
       posts,
@@ -1291,7 +1341,8 @@ function CatchFence({ track }: { track: TrackProfile }) {
   }, [track]);
   return (
     <>
-      <mesh geometry={parts.geometry} material={parts.material} />
+      <mesh geometry={parts.geometry} material={parts.material} renderOrder={1} />
+      <mesh geometry={parts.cables} material={steel} />
       <Instanced geometry={parts.post} material={steel} matrices={parts.posts} />
     </>
   );
@@ -1301,7 +1352,7 @@ function CatchFence({ track }: { track: TrackProfile }) {
  * Low hills on the horizon, well beyond the plantation, so the view does not end in a flat
  * line. Illustrative (no terrain data): a seeded ring that the fog fades into the sky.
  */
-function Hills({ bounds, wet }: { bounds: EnvironmentLayout["bounds"]; wet: boolean }) {
+function Hills({ bounds, wet, base }: { bounds: EnvironmentLayout["bounds"]; wet: boolean; base: number }) {
   const geometry = useMemo(() => {
     const cx = (bounds.minX + bounds.maxX) / 2,
       cy = (bounds.minY + bounds.maxY) / 2;
@@ -1319,7 +1370,7 @@ function Hills({ bounds, wet }: { bounds: EnvironmentLayout["bounds"]; wet: bool
           60 + 70 * Math.sin(a * 3 + 1.1) + 45 * Math.sin(a * 7 + 0.4) + 25 * Math.sin(a * 17 + 2.3);
         const h = Math.max(0, ridge) * Math.sin(Math.PI * t) * (0.6 + 0.4 * t);
         const radius = inner + depth * t;
-        positions.push(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius, h - 2);
+        positions.push(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius, base + h - 2);
         if (r && k) {
           const i = r * (seg + 1) + k;
           index.push(i - seg - 2, i - 1, i, i - seg - 2, i, i - seg - 1);
@@ -1330,7 +1381,7 @@ function Hills({ bounds, wet }: { bounds: EnvironmentLayout["bounds"]; wet: bool
     g.setIndex(index);
     g.computeVertexNormals();
     return g;
-  }, [bounds]);
+  }, [bounds, base]);
   const material = useMemo(() => new MeshStandardMaterial({ color: "#3f5a36", roughness: 1, side: DoubleSide }), []);
   useLayoutEffect(() => {
     material.color.set(wet ? "#3d4a3c" : "#3f5a36");
@@ -1349,12 +1400,53 @@ export default function Environment({
   wet?: boolean;
   quality?: QualitySettings;
 }) {
+  // Terrain: a height grid around the circuit following the track's DERIVED elevation (each
+  // point takes its nearest sample's height, 0.25 m below the surfaces), fading to a level plain
+  // 600 m beyond the circuit so it meets the distant ground plane.
   const ground = useMemo(() => {
     const { minX, maxX, minY, maxY } = layout.bounds,
-      pad = 1600;
+      pad = 700,
+      cell = 20;
+    const x0 = minX - pad,
+      y0 = minY - pad,
+      w = maxX - minX + pad * 2,
+      h = maxY - minY + pad * 2;
+    const nx = Math.ceil(w / cell),
+      ny = Math.ceil(h / cell);
+    const height = groundOf(track);
+    let level = 0;
+    for (let i = 0; i < track.count; i++) level += track.z?.[i] ?? 0;
+    level /= track.count;
+    const positions = new Float32Array((nx + 1) * (ny + 1) * 3),
+      uvs = new Float32Array((nx + 1) * (ny + 1) * 2);
+    for (let j = 0; j <= ny; j++)
+      for (let i = 0; i <= nx; i++) {
+        const x = x0 + (i / nx) * w,
+          y = y0 + (j / ny) * h;
+        const outside = Math.max(minX - x, x - maxX, minY - y, y - maxY, 0);
+        const fade = Math.min(1, outside / 600);
+        const z = (height(x, y) - 0.25) * (1 - fade) + (level - 0.4) * fade;
+        const k = j * (nx + 1) + i;
+        positions.set([x, y, z + LAYER.ground], k * 3);
+        uvs.set([i / nx, j / ny], k * 2);
+      }
+    const index: number[] = [];
+    for (let j = 0; j < ny; j++)
+      for (let i = 0; i < nx; i++) {
+        const a = j * (nx + 1) + i;
+        index.push(a, a + 1, a + nx + 2, a, a + nx + 2, a + nx + 1);
+      }
+    const geometry = new BufferGeometry();
+    geometry.setAttribute("position", new BufferAttribute(positions, 3));
+    geometry.setAttribute("uv", new BufferAttribute(uvs, 2));
+    geometry.setIndex(index);
+    geometry.computeVertexNormals();
+    const plain = new PlaneGeometry(w + 9000, h + 9000);
     return {
-      geometry: new PlaneGeometry(maxX - minX + pad * 2, maxY - minY + pad * 2),
-      position: [(minX + maxX) / 2, (minY + maxY) / 2, LAYER.ground] as const,
+      geometry,
+      plain,
+      plainPosition: [x0 + w / 2, y0 + h / 2, level - 0.45 + LAYER.ground] as const,
+      position: [0, 0, 0] as const,
       material: withMacroVariation(new MeshStandardMaterial({
         color: "#4f6b3c",
         roughness: 1,
@@ -1362,9 +1454,10 @@ export default function Environment({
         polygonOffsetFactor: 4,
         polygonOffsetUnits: 4,
       })),
-      size: [maxX - minX + pad * 2, maxY - minY + pad * 2] as const,
+      size: [w, h] as const,
+      level,
     };
-  }, [layout]);
+  }, [layout, track]);
   // Grass detail on Balanced and High: one 24 m repeat over the whole ground plane.
   useLayoutEffect(() => {
     const m = ground.material;
@@ -1383,30 +1476,26 @@ export default function Environment({
   return (
     <>
       <Sky wet={wet} sunDisc={quality.sunDisc} />
-      {quality.terrain && <Hills bounds={layout.bounds} wet={wet} />}
-      <mesh
-        geometry={ground.geometry}
-        material={ground.material}
-        position={[...ground.position]}
-        receiveShadow
-      />
+      {quality.terrain && <Hills bounds={layout.bounds} wet={wet} base={ground.level} />}
+      <mesh geometry={ground.geometry} material={ground.material} receiveShadow />
+      <mesh geometry={ground.plain} material={ground.material} position={[...ground.plainPosition]} />
       <Surfaces track={track} wet={wet} apexes={layout.apexes} />
       <PitLaneSurfaces track={track} lane={PIT_LANE} terrain={quality.terrain} />
       <StartGrid track={track} gantry={layout.gantry} />
       <TyreWalls track={track} apexes={layout.apexes} />
       {quality.terrain && <CatchFence track={track} />}
       <PitBuilding b={layout.pit} track={track} />
-      <Grandstand b={layout.stand} />
+      <Grandstand b={layout.stand} track={track} />
       {layout.k1 && <CoveredStand b={layout.k1} track={track} />}
       {layout.hill && <Hillstand b={layout.hill} track={track} />}
-      <Gantry p={layout.gantry} />
+      <Gantry p={layout.gantry} track={track} />
       {layout.turns.length ? (
         <TurnBoards turns={layout.turns} track={track} />
       ) : (
-        <CornerBoards boards={layout.boards} />
+        <CornerBoards boards={layout.boards} track={track} />
       )}
-      <Palms palms={layout.palms} count={quality.palms} />
-      {quality.trees && <TreeClumps trees={layout.trees} />}
+      <Palms palms={layout.palms} count={quality.palms} track={track} />
+      {quality.trees && <TreeClumps trees={layout.trees} track={track} />}
     </>
   );
 }

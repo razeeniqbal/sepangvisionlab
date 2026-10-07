@@ -83,7 +83,7 @@ export function buildStrip(
         [
           track.x[i] + normals.nx[i] * o,
           track.y[i] + normals.ny[i] * o,
-          edge.z,
+          edge.z + (track.z?.[i] ?? 0),
         ],
         s * 6 + e * 3,
       );

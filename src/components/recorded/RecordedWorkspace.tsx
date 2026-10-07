@@ -257,18 +257,18 @@ function RecordedReplay({
           >
             <Icon name="list" /> <span>Laps</span>
           </button>
-          <Popover label="App menu" button={<Icon name="menu" />}>
+          <Popover label="App menu" button={<Icon name="menu" />} closeOnAction>
             <div className="sv-menu-section">
               <h3>Theme</h3>
               <ThemeToggle />
             </div>
             <div className="sv-menu-section">
-              <button className="sv-chip" aria-pressed={handsOpen} onClick={onHands}>
+              <button className="sv-chip" aria-pressed={handsOpen} onClick={onHands} data-closes>
                 <Icon name="hand" /> Hand tracking
               </button>
             </div>
             <div className="sv-menu-section">
-              <button className="sv-chip" onClick={() => setGuideOpen(true)}>
+              <button className="sv-chip" onClick={() => setGuideOpen(true)} data-closes>
                 <Icon name="info" /> Quick guide
               </button>
             </div>
@@ -458,7 +458,7 @@ function RecordedReplay({
       {guideOpen && <QuickGuide onClose={closeGuide} />}
       <footer className="sv-footer">
         <span>{ATTRIBUTION}</span>
-        <span>Flat elevation · illustrative surroundings</span>
+        <span>Elevation derived from OpenF1 · illustrative surroundings</span>
       </footer>
     </div>
   );

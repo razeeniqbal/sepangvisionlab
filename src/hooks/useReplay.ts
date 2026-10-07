@@ -71,6 +71,10 @@ export default function useReplay(
       seek(clock.current, true);
       return true;
     }
+    if (action === "playPause") {
+      toggle();
+      return true;
+    }
     return false;
   });
   return { clock, time, running, speed, setSpeed, seek, toggle };

@@ -6,6 +6,21 @@ import {
 } from "../../domain/gestures";
 import type { TrackedHand } from "../../domain/hands";
 import { useGestureCommands } from "./GestureContext";
+import Icon, { type IconName } from "../ui/Icon";
+
+const ACTION_ICON: Record<GestureAction, IconName> = {
+  rewind: "back",
+  forward: "forward",
+  select: "list",
+  inspect: "inspect",
+  playPause: "play",
+  cancel: "close",
+  zoomIn: "plus",
+  zoomOut: "minus",
+  rotateLeft: "rotateLeft",
+  rotateRight: "rotateRight",
+  cycleCamera: "tv",
+};
 export default function GestureControls({
   hands,
   live,
@@ -24,7 +39,7 @@ export default function GestureControls({
   const fire = (action: GestureAction) => {
     const handled = send(action);
     setLast(
-      `${gestureActions.find((a) => a.action === action)!.label}${handled ? "" : " — unavailable in this workspace"}`,
+      `${gestureActions.find((a) => a.action === action)!.label}${handled ? "" : " (not available here)"}`,
     );
     if (action === "cancel") {
       setArmed(false);
@@ -64,62 +79,51 @@ export default function GestureControls({
     return () => document.removeEventListener("keydown", reset);
   }, []);
   return (
-    <div className="gesture-controls">
-      <h3>Gesture controls · experimental rules</h3>
-      <label>
-        <input
-          type="checkbox"
-          checked={armed && live}
-          disabled={!live}
-          onChange={(e) => {
-            detector.current.reset();
-            setArmed(e.target.checked);
-          }}
-        />{" "}
-        Enable gesture actions
-      </label>
-      <p>
-        {armed && live
-          ? "ARMED · show a neutral pose between actions."
-          : "DISARMED · camera tracking alone cannot operate the app."}
-      </p>
-      <p role="status" data-testid="gesture-feedback">
-        {last}
-      </p>
-      <div className="strategy-table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Gesture</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {gestureActions.map((a) => (
-              <tr key={a.action}>
-                <td>{a.pose}</td>
-                <td>{a.label}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="sv-hands-gestures">
+      <div className="sv-hands-arm">
+        <label className="sv-switch">
+          <input
+            type="checkbox"
+            checked={armed && live}
+            disabled={!live}
+            onChange={(e) => {
+              detector.current.reset();
+              setArmed(e.target.checked);
+            }}
+          />
+          <span>Gesture control</span>
+        </label>
+        <span className={"sv-hands-pill" + (armed && live ? " is-on" : "")}>
+          {armed && live ? "Armed" : live ? "Off" : "Camera off"}
+        </span>
       </div>
-      <p>
-        Pinch cycles through the driver list; point reveals the currently
-        selected inspector. Swipe direction follows the mirrored preview. Poses
-        need a 0.5-second hold; two still palms need 0.9 seconds. Each action
-        fires once, then needs a neutral pose or hand release. Fist pauses
-        replay and disarms actions. Camera stays on until Stop or Escape.
+      <p className="sv-hands-note">
+        {armed && live
+          ? "Hold each pose for half a second, then relax your hand before the next one. A fist pauses and switches gestures off."
+          : "Turn the camera on, then switch gestures on. The camera alone never controls the app."}
       </p>
-      <details>
-        <summary>Test actions without camera</summary>
-        <p>
-          These buttons operate the current workspace through the same command
-          path. They test action wiring, not gesture recognition.
-        </p>
-        <div className="hand-actions">
+      <p className="sv-hands-last" role="status" data-testid="gesture-feedback">
+        <Icon name="hand" /> {last}
+      </p>
+      <h3>Gestures</h3>
+      <ul className="sv-hands-grid">
+        {gestureActions.map((a) => (
+          <li key={a.action}>
+            <span className="sv-hands-icon">
+              <Icon name={ACTION_ICON[a.action]} />
+            </span>
+            <div>
+              <strong>{a.label}</strong>
+              <span>{a.pose}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <details className="sv-hands-more">
+        <summary>Try the actions without a camera</summary>
+        <div className="sv-row">
           {gestureActions.map((a) => (
-            <button key={a.action} onClick={() => fire(a.action)}>
+            <button key={a.action} className="sv-chip" onClick={() => fire(a.action)}>
               {a.label}
             </button>
           ))}

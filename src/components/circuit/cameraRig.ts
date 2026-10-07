@@ -196,7 +196,7 @@ export function tvPoints(
       return {
         x: track.x[i] + normals.nx[i] * side * offset,
         y: track.y[i] + normals.ny[i] * side * offset,
-        z: 10, // camera tower height: keeps boards below a tight TV frame
+        z: 10 + (track.z?.[i] ?? 0), // camera tower height above the local ground
       };
     });
 }
