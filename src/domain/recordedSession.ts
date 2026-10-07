@@ -6,7 +6,6 @@ import { poseAtDistance, type TrackProfile } from "./lapPhysics.ts";
 import { apply, nearestOnTrack, type Similarity } from "./alignment.ts";
 import { curvatureAt } from "./carMotion.ts";
 import { pitOffsetAt, type PitLane } from "./pitLane.ts";
-import type { ResultRow } from "./pick.ts";
 
 export const STALE_AFTER_MS = 2000;
 /** |lateral| beyond this is off the racing surface (pit lane, garage): drawn raw, not snapped. */
@@ -30,6 +29,15 @@ export interface PositionRow { d: number; t: number; p: number }
 export interface IntervalRow { d: number; t: number; gap: number | string | null; int: number | string | null }
 export interface RaceControlRow { t: number; lap: number | null; category: string | null; flag: string | null; scope: string | null; sector: number | null; d: number | null; message: string | null }
 export interface WeatherRow { t: number; air: number | null; track: number | null; rain: number | null; humidity: number | null; wind: number | null }
+/** One row of the official classification (OpenF1 session_result). */
+export interface ResultRow {
+  position: number | null;
+  driver_number: number;
+  dnf?: boolean;
+  dns?: boolean;
+  dsq?: boolean;
+}
+
 export interface SessionFile {
   schemaVersion: 1;
   label: string;

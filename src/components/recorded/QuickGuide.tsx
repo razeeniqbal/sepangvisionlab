@@ -7,8 +7,6 @@ interface Step {
   text: string;
   /** The control this step points at; no target (or not on screen) shows the step centred. */
   target?: string;
-  /** Skip this step when its control does not exist (Pick winner is Race-only). */
-  optional?: boolean;
   /** Scroll this ancestor into view instead (the camera bar lives inside the 3D view). */
   scroll?: string;
 }
@@ -49,13 +47,6 @@ const STEPS: Step[] = [
     title: "Lap times",
     text: "Laps opens the followed driver's lap and sector times, plus session details.",
     target: '.sv-header button[aria-controls="sv-panel"]',
-  },
-  {
-    icon: "trophy",
-    title: "Pick your winner",
-    text: "In the Race, pick a driver before lights out and see how they finish at the chequered flag.",
-    target: ".sv-header .sv-pick",
-    optional: true,
   },
   {
     icon: "sliders",
@@ -111,16 +102,11 @@ function place(box: Box | null, cardHeight: number) {
 
 /**
  * Guided tour, shown each time the app opens: each step spotlights a real control and puts a
- * short tip beside it. Optional steps whose control is absent (Pick winner outside the Race) are
- * skipped; a step whose control is not on screen is shown centred. Back/Next, arrow keys and Escape work; "Don't show again" keeps it closed on later
+ * short tip beside it. A step whose control is not on screen is shown centred. Back/Next, arrow keys and Escape work; "Don't show again" keeps it closed on later
  * visits, and the app menu reopens it.
  */
 export default function QuickGuide({ onClose }: { onClose: (remember: boolean) => void }) {
-  const [steps, setSteps] = useState(STEPS);
-  // After the first paint the page's controls exist: drop optional steps whose control is absent.
-  useLayoutEffect(() => {
-    setSteps(STEPS.filter((s) => !s.optional || (s.target && document.querySelector(s.target))));
-  }, []);
+  const steps = STEPS;
   const [step, setStep] = useState(0);
   const [remember, setRemember] = useState(false);
   const [box, setBox] = useState<Box | null>(null);

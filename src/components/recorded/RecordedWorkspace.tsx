@@ -29,7 +29,6 @@ import RecordedTimeline, { clockText } from "./RecordedTimeline";
 import Icon from "../ui/Icon";
 import Popover from "../ui/Popover";
 import DriveHud from "./DriveHud";
-import PickWinner, { PickResult } from "./PickWinner";
 import QuickGuide from "./QuickGuide";
 import CompareTab from "./CompareTab";
 import { ghostTime } from "../../domain/compare";
@@ -43,7 +42,6 @@ const shared = parseShare(typeof window === "undefined" ? "" : window.location.h
 const sharedCamera = CAMERA_MODES.find((m) => m === shared.camera);
 import { motionAt } from "../../domain/recordedSession";
 import { guideSeen, markGuideSeen } from "./guideStorage";
-import { pickLocked, pickOutcome, readPick, writePick } from "../../domain/pick";
 import type { CameraMode } from "../circuit/cameraRig";
 
 const browserStorage = () => {
@@ -197,19 +195,12 @@ function RecordedReplay({
       () => setCopied(false),
     );
   };
-  const [pick, setPickState] = useState<number | null>(() => readPick(browserStorage(), file.sessionKey));
-  const [resultClosed, setResultClosed] = useState(false);
   // Shared links open straight at their moment, without the tour.
   const [guideOpen, setGuideOpen] = useState(() => !guideSeen(browserStorage()) && shared.time === undefined);
   const closeGuide = useCallback((remember: boolean) => {
     if (remember) markGuideSeen(browserStorage());
     setGuideOpen(false);
   }, []);
-  const setPick = (driver: number | null) => {
-    setPickState(driver);
-    setResultClosed(false);
-    writePick(browserStorage(), file.sessionKey, driver);
-  };
   useGestureReceiver((action) => {
     if (action === "select") {
       setSelectedId((id) => entries[(entries.findIndex((c) => c.id === id) + 1) % entries.length].id);
@@ -288,22 +279,6 @@ function RecordedReplay({
     .filter((l) => l.d === number && l.t !== null && l.dur && l.t + l.dur * 1000 <= time * 1000)
     .sort((a, b) => b.n - a.n)
     .slice(0, 14);
-  // Pick your winner (race only): open until lights out, revealed at the chequered flag.
-  const lightsOut = markers.find((m) => m.kind === "start")?.t ?? null;
-  const chequered = markers.find((m) => m.kind === "chequered")?.t ?? null;
-  const locked = pickLocked(time * 1000, lightsOut);
-  const pickedCar = pick === null ? undefined : cars.find((c) => Number(c.number) === pick);
-  const outcome =
-    race && pick !== null && chequered !== null && time * 1000 >= chequered
-      ? pickOutcome(file.result ?? [], pick)
-      : null;
-  const pickDrivers = useMemo(
-    () =>
-      [...identities.entries()]
-        .map(([n, d]) => ({ ...d, number: n }))
-        .sort((a, b) => a.code.localeCompare(b.code)),
-    [identities],
-  );
   const hud = cameraMode === "chase" || cameraMode === "onboard";
   const utcClock = (ms: number) => new Date(Date.parse(file.t0) + ms).toISOString().slice(11, 19);
   return (
@@ -320,15 +295,6 @@ function RecordedReplay({
         </div>
         {picker}
         <div className="sv-header-end">
-          {race && (
-            <PickWinner
-              drivers={pickDrivers}
-              pick={pick}
-              onPick={setPick}
-              locked={locked}
-              position={pickedCar?.position ?? null}
-            />
-          )}
           <span className="sv-status" title={RECORDED_LABEL}>
             <i aria-hidden="true" /> Recorded · OpenF1
           </span>
@@ -427,7 +393,6 @@ function RecordedReplay({
                 sessionBest: c.bestLap !== null && c.bestLap === sessionBest,
                 pit: c.inPit && c.present, // shown as a PIT badge; "In pit lane" on the card
                 stale: c.stale,
-                picked: race && pick !== null && Number(c.number) === pick,
               };
             }}
             footer={
@@ -455,9 +420,6 @@ function RecordedReplay({
               card is hidden by CSS there); phones keep the card and hide the gauge. */}
           <RecordedTelemetryCard car={selected} driver={identity} color={identity.color} />
           {hud && <DriveHud car={selected} code={identity.code} color={identity.color} laps={totalLaps} />}
-          {outcome && !resultClosed && pick !== null && identities.get(pick) && (
-            <PickResult driver={identities.get(pick)!} outcome={outcome} onClose={() => setResultClosed(true)} />
-          )}
           <RecordedTimeline
             time={time}
             duration={duration}

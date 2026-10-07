@@ -11,7 +11,6 @@ Live: https://sepangvisionlab.madebyrazeen.com/
 - **Mouse and touch camera control:** drag to orbit around the car (Onboard: look around) and drag up or down to raise or lower the camera; scroll to zoom (TV: zoom the lens); double-click to reset the view.
 - **Five 3D cameras:** TV (trackside, picks a clear line of sight), Chase, Onboard, Heli and Inspect. Chase and Onboard add a speed-sensitive lens, acceleration lag and a light high-speed shake.
 - **Driving HUD** in Chase and Onboard: a rev arc with shift flash, speed, gear, throttle and brake, position, lap, tyre and DRS, all from recorded channels.
-- **Pick your winner** (Race only): choose a driver before lights out. Picks lock at the start, your driver is followed live, and the official result is revealed at the chequered flag. Stored in your browser only.
 - **Broadcast overlays:** a timing tower that fits all 22 cars (intervals or gap to leader, best laps, tyres, pit badges), track map, weather, race-control messages with flag status, and a replay bar with incident markers. Scrubbing keeps the replay playing if it was playing.
 - **Laps panel:** lap and sector times for the selected driver, plus session details.
 - **Compare two drivers** (Laps → Compare): both drivers' times on the same lap, speed against distance for each, the live time gap, and an optional ghost car showing the rival at the same moment of their own lap.
@@ -19,7 +18,7 @@ Live: https://sepangvisionlab.madebyrazeen.com/
 - **Physics from the data:** g-forces measured from each car's recorded motion drive body lean and dive and a g-meter (friction circle) on the driver card and HUD; upshifts kick the body; brake discs glow after heavy stops (illustrative temperature model).
 - **Weather:** rain falls while OpenF1 reports rain; the track then dries over about 90 minutes, with a fading sheen and spray behind cars at speed.
 - **Engine sound** (off by default, ⋯ menu): synthesised from the followed car's recorded revs and throttle.
-- **Guided tour:** each time the app opens, a step-by-step tour spotlights the real controls (sessions, replay bar, timing tower, cameras, laps, pick your winner, menu) with a tip beside each. Tick "Don't show again" to skip it; reopen it from the app menu.
+- **Guided tour:** each time the app opens, a step-by-step tour spotlights the real controls (sessions, replay bar, timing tower, cameras, laps, menu) with a tip beside each. Tick "Don't show again" to skip it; reopen it from the app menu.
 - **Phones:** one scrolling column in viewing order, with a sticky slim header; swipe sideways in the 3D view to orbit.
 - **Realistic 3D:**
   - **Team-style liveries:** each 2026 team's colour scheme (body, panels, wings, stripe) with the race number on the nose. Colours only, no logos.
@@ -38,7 +37,6 @@ Live: https://sepangvisionlab.madebyrazeen.com/
 |---|---|
 | ![Chase camera with the driving HUD](docs/screenshots/chase-hud.png) | ![Pit lane](docs/screenshots/pit-lane.png) |
 | ![Onboard](docs/screenshots/onboard.png) | ![Car close-up](docs/screenshots/car-inspect.png) |
-| ![Pick your winner](docs/screenshots/pick-winner.png) | ![Result at the flag](docs/screenshots/pick-result.png) |
 
 ## Run
 
@@ -93,14 +91,14 @@ The fetcher caches every 30-minute window and reuses a cached window only if it 
 src/
   App.tsx, main.tsx, styles.css     app shell and the glass design system
   components/
-    recorded/                       workspace, replay bar, telemetry card, HUD, pick your winner
+    recorded/                       workspace, replay bar, telemetry card, HUD, compare, guided tour
     circuit/                        3D scene, cameras, quality presets
       environment/                  track surfaces, pit lane, scenery, sky
     cars/                           car model, livery, generated wheels
     standings/, broadcast/          timing tower, track map, team glyphs, theme toggle
     handtracking/, ui/              MediaPipe gestures, icons and popovers
   domain/                           pure logic: replay, recorded session, motion, g-forces, elevation, pit lane,
-                                    wetness, compare, share links, engine tone, picks, gestures
+                                    wetness, compare, share links, engine tone, gestures
   data/circuits/                    circuit GeoJSON, spatial references, derived pit lane and elevation
   services/recordedLoader.ts        loads a session and prepares each driver
 public/sessions/1308/               committed OpenF1 replay files

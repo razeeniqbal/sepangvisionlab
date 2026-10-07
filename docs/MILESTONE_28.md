@@ -17,3 +17,4 @@
 - **Engine sound (off by default):** Web Audio oscillators at the V6 firing frequency (rpm ÷ 60 × 3), brightness and volume from the throttle, silent when paused.
 - **Not done: track width.** OpenF1 positions cluster within about 0.2 m across cars at any point (cars share the racing line), so they cannot measure the real 16–22 m width. The OFFICIAL 16 m minimum stays.
 - **Housekeeping:** merged branches were deleted, and the dev server moved to port 5180.
+- **Removed: Pick your winner.** The owner judged it not worth its header space. The button, result card, tower outline, logic, tests and tour step are gone; the race classification type moved into `recordedSession.ts`.

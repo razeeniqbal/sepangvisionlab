@@ -10,13 +10,13 @@ A static React app: a 3D broadcast-style replay of the 2026 Sepang weekend from 
 
 ## Architecture rules
 
-- Keep domain logic pure and in `src/domain/` (replay, recorded-session sampling, motion and g-forces, elevation, pit lane, wetness, compare, share links, engine tone, picks).
+- Keep domain logic pure and in `src/domain/` (replay, recorded-session sampling, motion and g-forces, elevation, pit lane, wetness, compare, share links, engine tone).
 - The dev server runs on port 5180 (`vite.config.ts`, strict), not Vite's default 5173.
 - Keep the first download small: three.js and MediaPipe must stay out of the entry chunk (the theme runtime takes a `set(colour)` object, not a three.js Color; hand tracking is lazy). Rendering lives in `src/components/`.
 - The 3D scene is memoised and reads the replay clock from a ref every frame. Do not pass values that change every clock tick as props to it.
 - Circuit geometry is data-driven from `src/data/circuits/`. Derived data (alignment, pit lane) is produced by scripts in `scripts/` and labelled DERIVED with its source.
 - Prefer small focused components and avoid new dependencies.
-- The guided tour (`src/components/recorded/QuickGuide.tsx`) points at controls by CSS selector. If you rename or move `.sv-sessions`, `.sv-replay`, `.bc-tower`, `.sv-dock`, the Laps button, `.sv-pick` or the app menu button, update its `STEPS`.
+- The guided tour (`src/components/recorded/QuickGuide.tsx`) points at controls by CSS selector. If you rename or move `.sv-sessions`, `.sv-replay`, `.bc-tower`, `.sv-dock`, the Laps button or the app menu button, update its `STEPS`.
 - Derived data is rebuilt with `npm run data:align`, `data:pitlane` and `data:elevation`; never hand-edit the generated JSON.
 
 ## Data honesty
