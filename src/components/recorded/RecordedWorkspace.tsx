@@ -35,6 +35,7 @@ import CompareTab from "./CompareTab";
 import { ghostTime } from "../../domain/compare";
 import { buildShare, parseShare } from "../../domain/share";
 import { rainingAt, wetnessAt } from "../../domain/wetness";
+import useEngineSound from "../../hooks/useEngineSound";
 import { CAMERA_MODES } from "../circuit/cameraRig";
 
 // A shared link (#s=race&t=9697&d=3&cam=chase), read once when the app opens.
@@ -179,6 +180,7 @@ function RecordedReplay({
   const [panelOpen, setPanelOpen] = useState(false);
   const [cameraMode, setCameraMode] = useState<CameraMode>(sharedCamera ?? "tv");
   const [copied, setCopied] = useState(false);
+  const [sound, setSound] = useState(false);
   const copyLink = () => {
     const url = buildShare(window.location.origin, {
       slug: file.slug,
@@ -279,6 +281,7 @@ function RecordedReplay({
   );
   // Raining now (sky, rain, fog) and how wet the track is (sheen, spray), from OpenF1 rain
   // readings; wetness is rounded to 5% so the memoised 3D scene re-renders only on real change.
+  useEngineSound(sound, selected.present ? selected.rpm : 0, selected.throttle, running);
   const wet = rainingAt(file.weather, time * 1000);
   const wetness = Math.round(wetnessAt(file.weather, time * 1000) * 20) / 20;
   const lapRows = file.laps
@@ -350,6 +353,14 @@ function RecordedReplay({
               <button className="sv-chip" aria-pressed={handsOpen} onClick={onHands} data-closes>
                 <Icon name="hand" /> Hand tracking
               </button>
+            </div>
+            <div className="sv-menu-section">
+              <h3>Sound</h3>
+              <label className="sv-switch">
+                <input type="checkbox" checked={sound} onChange={(e) => setSound(e.target.checked)} />
+                <span>Engine sound for the followed car</span>
+              </label>
+              <p className="sv-menu-note">Synthesised from the recorded revs and throttle.</p>
             </div>
             <div className="sv-menu-section">
               <h3>Share</h3>

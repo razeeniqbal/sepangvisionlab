@@ -14,6 +14,11 @@ Live: https://sepangvisionlab.madebyrazeen.com/
 - **Pick your winner** (Race only): choose a driver before lights out. Picks lock at the start, your driver is followed live, and the official result is revealed at the chequered flag. Stored in your browser only.
 - **Broadcast overlays:** a timing tower that fits all 22 cars (intervals or gap to leader, best laps, tyres, pit badges), track map, weather, race-control messages with flag status, and a replay bar with incident markers. Scrubbing keeps the replay playing if it was playing.
 - **Laps panel:** lap and sector times for the selected driver, plus session details.
+- **Compare two drivers** (Laps → Compare): both drivers' times on the same lap, speed against distance for each, the live time gap, and an optional ghost car showing the rival at the same moment of their own lap.
+- **Shareable links:** ⋯ → "Copy link to this moment" gives a link such as `#s=race&t=9697&d=3&cam=chase` that opens that session, time, driver and camera.
+- **Physics from the data:** g-forces measured from each car's recorded motion drive body lean and dive and a g-meter (friction circle) on the driver card and HUD; upshifts kick the body; brake discs glow after heavy stops (illustrative temperature model).
+- **Weather:** rain falls while OpenF1 reports rain; the track then dries over about 90 minutes, with a fading sheen and spray behind cars at speed.
+- **Engine sound** (off by default, ⋯ menu): synthesised from the followed car's recorded revs and throttle.
 - **Guided tour:** each time the app opens, a step-by-step tour spotlights the real controls (sessions, replay bar, timing tower, cameras, laps, pick your winner, menu) with a tip beside each. Tick "Don't show again" to skip it; reopen it from the app menu.
 - **Phones:** one scrolling column in viewing order, with a sticky slim header; swipe sideways in the 3D view to orbit.
 - **Realistic 3D:**
@@ -44,7 +49,7 @@ npm install
 npm run dev
 ```
 
-Open the localhost URL printed by Vite. Add `?perf` to show a frame-rate meter (development only).
+Open http://127.0.0.1:5180 (the project uses port 5180, so it never clashes with other local projects on Vite's default 5173). Add `?perf` to show a frame-rate meter (development only).
 
 ```sh
 npm run build
@@ -60,6 +65,9 @@ npm test
   - Cars point along their real path, including the racing line, and steer from its curvature.
   - `npm run check:physics` samples every car at 50 Hz across the race: 99% of frames stay within 3.7 g braking or acceleration and 5.9 g cornering, the range of a real car. A data gap holds the last sample and marks the car stale after 2 s.
 - **Pit lane.** DERIVED from where cars drove during all 73 race pit stops (`npm run data:pitlane`, written to `src/data/circuits/sepangPitLane.json`). Its width, wall and apron are illustrative.
+- **G-forces.** From the change of speed and the yaw rate of each car's smoothed path over ±150 ms (`gForcesAt`), clamped to ±6.5 g. Across the race: braking to about 2.7 g, acceleration to 2.2 g, cornering to about 5.8 g (99th percentiles).
+- **Wetness.** OpenF1 only reports whether it is raining. Wetness is 1 while it rains and falls to 0 over 90 minutes afterwards, a drying time fitted to the race's intermediate stint and lap times (`src/domain/wetness.ts`).
+- **Track width.** Kept at the official 16 m minimum. Cars at any point pass within about 0.2 m of each other, so OpenF1 positions cannot reveal the real 16–22 m width.
 - **Tyres.** OpenF1's race stints change compound on lap 2 or 3 with no pit stop, so tyre sets are rebuilt from pit-out laps. A set whose OpenF1 labels disagree shows `?` instead of a guess. Practice and qualifying are unchanged by this.
 - **Verified.** All five sessions were compared with the live OpenF1 API (laps, stints, pits, race control, classification). The position and telemetry streams have no gap over 60 s.
 - **Meeting name.** OpenF1 lists meeting 1308 as the "Bahrain Grand Prix" with location Kuala Lumpur. The app never shows that name.
@@ -91,7 +99,8 @@ src/
     cars/                           car model, livery, generated wheels
     standings/, broadcast/          timing tower, track map, team glyphs, theme toggle
     handtracking/, ui/              MediaPipe gestures, icons and popovers
-  domain/                           pure logic: replay, recorded session, motion, elevation, pit lane, picks, gestures
+  domain/                           pure logic: replay, recorded session, motion, g-forces, elevation, pit lane,
+                                    wetness, compare, share links, engine tone, picks, gestures
   data/circuits/                    circuit GeoJSON, spatial references, derived pit lane and elevation
   services/recordedLoader.ts        loads a session and prepares each driver
 public/sessions/1308/               committed OpenF1 replay files
@@ -118,7 +127,7 @@ Pushing to `main` deploys production. `vercel.json` runs `npm run build`, then `
 
 ## History
 
-Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILESTONE_27.md`:
+Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILESTONE_28.md`:
 
 | Milestone | What it covers |
 |---|---|
@@ -132,6 +141,7 @@ Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILES
 | M25 | Team-style liveries and the quick guide |
 | M26 | Elevation, debris fence, step-by-step guide, hand-tracking panel, sunken-track fix |
 | M27 | Guided tour that spotlights the real controls; documentation refresh |
+| M28 | Faster first load, data-driven physics, compare, links, rain, engine sound, pit cameras |
 
 Earlier work (a synthetic physics session, the 2017 Malaysian Grand Prix replay, strategy and Monte Carlo tools, a race engineer and a flat map view) was removed to focus on the 2026 replay and remains in the git history.
 
@@ -142,7 +152,7 @@ Earlier work (a synthetic physics session, the 2017 Malaysian Grand Prix replay,
 | README.md (this file) | Current: features, accuracy, pipeline, layout |
 | docs/CIRCUIT_DATA.md | Current: what the 3D circuit is built from, with accuracy classes |
 | docs/GESTURE_CONTROLS.md | Current: hand gestures, how recognition works, privacy |
-| docs/MILESTONE_18.md to MILESTONE_27.md | Change notes, oldest to newest (later notes supersede earlier ones) |
+| docs/MILESTONE_18.md to MILESTONE_28.md | Change notes, oldest to newest (later notes supersede earlier ones) |
 | docs/MILESTONE_14.md, MILESTONE_15.md | Hand-tracking engine and the gesture dataset/trainer (still in use) |
 | docs/VISUAL_V2_*.md | Historical: the car model and spatial-reference work; parts describe removed views |
 | docs/PRD.md | Historical: the original product brief |
