@@ -22,8 +22,10 @@ import sepang from "../../data/circuits/sepang.json";
 import { sepangTrack } from "../../data/sepangPace";
 import { poseAtDistance } from "../../domain/lapPhysics";
 import { gradeAt, heightAt } from "../../domain/elevation";
+import { PIT_LANE_HALF_WIDTH } from "../../domain/pitLane";
 import type { CarDefinition, CarState } from "../../domain/field";
 import Environment, {
+  PIT_LANE,
   PIT_WALL_OFFSET,
   fenceSightTarget,
   SKY,
@@ -608,6 +610,26 @@ function trackside(layout: EnvironmentLayout): Vec3[] {
   );
 }
 
+/**
+ * Pit-lane cameras (illustrative): on the garage side of the lane, every ~60 m, 5 m up and
+ * looking across it. Trackside TV cameras stand behind the pit wall, which hides a car in the
+ * lane, so a car in the pit lane is filmed from these instead.
+ */
+function pitCameras(): Vec3[] {
+  const normals = leftNormals(sepangTrack);
+  const out: Vec3[] = [];
+  for (let k = 0; k < PIT_LANE.offsets.length; k += 15) {
+    const i = (PIT_LANE.from + k) % sepangTrack.count;
+    const off = PIT_LANE.offsets[k] + PIT_LANE.side * (PIT_LANE_HALF_WIDTH + 4);
+    out.push({
+      x: sepangTrack.x[i] + normals.nx[i] * off,
+      y: sepangTrack.y[i] + normals.ny[i] * off,
+      z: 5 + (sepangTrack.z?.[i] ?? 0),
+    });
+  }
+  return out;
+}
+
 // A board between a trackside camera and the car, inside the shot's cone, spoils the frame
 // even when it does not cut the exact line of sight.
 function boardInShot(
@@ -650,6 +672,7 @@ function CameraRig({
   const sun = useRef<DirectionalLight>(null);
   const index = entries.findIndex((car) => car.id === selectedId);
   const tv = useMemo(() => trackside(layout), [layout]);
+  const pitTv = useMemo(() => pitCameras(), []);
   const shot = useRef<{ point: Vec3 | null; age: number }>({
     point: null,
     age: Infinity,
@@ -675,10 +698,12 @@ function CameraRig({
     let cameras = tv;
     if (rig.current.mode === "tv") {
       shot.current.age += delta;
+      const inPitLane = (state as Posed & { inPit?: boolean }).inPit === true && pitTv.length > 0;
       if (shot.current.age >= 0.25 || !shot.current.point) {
         const target = { x: p.x, y: p.y, z: 0.8 + trackZ(state.progress * sepangTrack.length) };
-        shot.current.point =
-          pickTvCamera(
+        shot.current.point = inPitLane
+          ? pickTvCamera(pitTv, p, () => false, shot.current.point) ?? nearestPoint(pitTv, p.x, p.y)
+          : pickTvCamera(
             tv,
             p,
             (point) =>
