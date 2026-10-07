@@ -13,7 +13,9 @@
     "data:fetch": "python scripts/fetch_openf1.py --meeting 1308",
     "data:build": "python scripts/build_recorded_session.py --meeting 1308",
     "test:pipeline": "python -m unittest discover -s scripts -p \"test_*.py\"",
-    "data:align": "node --experimental-strip-types scripts/align_openf1.ts"
+    "data:align": "node --experimental-strip-types scripts/align_openf1.ts",
+    "data:pitlane": "node --experimental-strip-types scripts/derive-pit-lane.ts",
+    "check:physics": "node --experimental-strip-types scripts/physics-check.ts race"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",

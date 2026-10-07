@@ -1,111 +1,47 @@
-# Sepang Vision Lab — Codex Instructions
+# Sepang Vision Lab — agent instructions
 
-Read `docs/PRD.md` before making substantial architectural or product changes.
+A static React app: a 3D broadcast-style replay of the 2026 Sepang weekend from OpenF1 data (FP1, FP2, FP3, Qualifying, Race). README.md describes the features, the data pipeline and the accuracy limits. The latest milestone notes (docs/MILESTONE_18.md to docs/MILESTONE_23.md) explain why things are the way they are. docs/PRD.md is the original brief, and much of it has since been removed.
 
-## Current Development Philosophy
+## Stack
 
-Build incrementally.
+- React 19, TypeScript (strict, no `any`), Vite, Three.js through React Three Fiber and drei.
+- No backend at runtime. The optional gesture trainer in `backend/` is offline Python.
+- Tests run with `node --experimental-strip-types --test`. That means no enums, no parameter properties, and `.ts` extensions on relative imports in anything a test or script loads.
 
-Do not attempt to implement the entire PRD.
+## Architecture rules
 
-Current milestone takes priority over future requirements.
+- Keep domain logic pure and in `src/domain/` (replay, recorded-session sampling, motion, pit lane, picks). Rendering lives in `src/components/`.
+- The 3D scene is memoised and reads the replay clock from a ref every frame. Do not pass values that change every clock tick as props to it.
+- Circuit geometry is data-driven from `src/data/circuits/`. Derived data (alignment, pit lane) is produced by scripts in `scripts/` and labelled DERIVED with its source.
+- Prefer small focused components and avoid new dependencies.
 
-## Engineering Rules
+## Data honesty
 
-* Use React + TypeScript + Vite for the frontend.
-* Use Three.js through React Three Fiber for the circuit visualization.
-* Keep circuit geometry data-driven.
-* Keep race-state/domain logic separate from rendering.
-* Use strict TypeScript.
-* Avoid `any`.
-* Prefer small focused components.
-* Avoid unnecessary dependencies.
-* Do not prematurely introduce backend infrastructure.
-* Do not introduce authentication.
-* Do not introduce an LLM unless specifically requested.
-* Do not introduce ML until the ML milestone.
-* Do not introduce MediaPipe until the computer-vision milestone.
-* Do not claim synthetic race data is real.
-* Do not approximate Sepang geometry and label it accurate.
-* Preserve working functionality when implementing new features.
-* Inspect existing code before modifying it.
+- Show only real recorded channels. Never invent telemetry, positions or results. Gaps hold the last sample and mark the car stale.
+- Label accuracy honestly: DERIVED, SOURCED, OFFICIAL, illustrative. Never approximate geometry and call it accurate.
+- If OpenF1 contradicts itself (for example race tyre stints), show unknown (`?`) rather than guess, and document it.
+- After changing the pipeline, run `npm run check:physics` and the session gap checks described in docs/MILESTONE_23.md.
 
-## Visual Direction
+## Guardrails
 
-The application should resemble professional motorsport engineering software.
+- Never modify the car GLBs in `public/assets/models/cars/`, the circuit GeoJSON `src/data/circuits/sepang.json` (a test checks its bytes), or `public/vendor/mediapipe`.
+- Never use F1, team or sponsor logos, the "F1" or "Formula 1" wordmark as branding, F1 proprietary fonts, or OpenF1 `headshot_url` images.
+- Keep the footer attribution: "Data via OpenF1 (unofficial). Not associated with Formula 1."
+- Never commit `data/raw/` (OpenF1 downloads) or `docs/reference/` (third-party screenshots), and never copy branding, driver names or team names from those screenshots into the app.
 
-Prefer:
+## Visual direction
 
-* dark neutral surfaces
-* sharp geometry
-* thin borders
-* compact typography
-* technical layouts
-* restrained turquoise accents
-* high information density
+The owner chose a clean, modern glass-panel interface over a full-window 3D stage, and wants it to look realistic and feel like a racing game.
 
-Avoid:
+- Floating glass panels (soft blur, rounded corners, subtle borders and shadows), readable type, and icons on controls.
+- Theme colours are CSS tokens: `:root` for SVL teal and `:root[data-theme="broadcast"]` for red. `tests/theme.test.ts` checks their contrast.
+- High quality must never look worse than Balanced: add detail, not colour grading.
+- No emojis in the production UI.
 
-* generic SaaS styling
-* excessive rounded cards
-* excessive gradients
-* glassmorphism
-* neon cyberpunk
-* cartoon graphics
-* decorative AI effects
-* emojis in the production UI
+## Workflow
 
-## Development Workflow
-
-For each task:
-
-1. Inspect relevant existing files.
-2. Identify the smallest implementation needed.
-3. Implement the requested feature.
-4. Run relevant type checks/tests.
-5. Fix errors introduced by the change.
-6. Do not implement unrelated future functionality.
-7. Summarize the result.
-
-At completion report:
-
-* Files changed
-* Implementation completed
-* Validation performed
-* Known limitations
-* Recommended next milestone
-
-## Current Milestone
-
-Milestone 1:
-
-**Test Circuit + CAR 07**
-
-Required:
-
-* Sepang Vision Lab application shell
-* Three.js scene
-* Coordinate-driven test circuit
-* CAR 07 marker
-* Normalized track progress
-* Smooth movement
-* Lap counting
-
-Not required:
-
-* Accurate Sepang geometry
-* Multiple cars
-* Telemetry
-* Backend
-* Database
-* External race data
-* Machine learning
-* Strategy simulation
-* Monte Carlo
-* Weather
-* Webcam
-* MediaPipe
-* Gesture ML
-* LLM
-
-Stop once Milestone 1 acceptance criteria from `docs/PRD.md` are satisfied.
+1. Inspect the relevant files before changing them.
+2. Make the smallest change that does the job, and preserve working features.
+3. Run `npx tsc -b`, `npm test` and `npm run build`. For 3D changes, check the result visually.
+4. Commit with a clear message. Pushing to `main` deploys production on Vercel, so push only when the owner asks.
+5. Report what changed, how it was verified, and known limitations.

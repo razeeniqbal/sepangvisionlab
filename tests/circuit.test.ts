@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import {
   projectCircuit,
   densifyCircuit,
@@ -97,4 +98,13 @@ test("rejects invalid geometry", () => {
     ]),
   );
   assert.throws(() => densifyCircuit(points, 0));
+});
+
+test("the community circuit GeoJSON is byte-for-byte unchanged", () => {
+  const bytes = readFileSync(new URL("../src/data/circuits/sepang.json", import.meta.url));
+  // Repository-byte fingerprint (the upstream provenance hash differs).
+  assert.equal(
+    createHash("sha256").update(bytes).digest("hex"),
+    "a9b410f19db91d398f5b1bc034e875086b8fc8ee1178da9fd9ee2c2f80ad8bd6",
+  );
 });
