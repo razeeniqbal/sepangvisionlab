@@ -86,6 +86,8 @@ interface Props {
   wet?: boolean;
   /** Told when the camera mode changes (the workspace shows a driving HUD in chase/onboard). */
   onModeChange?: (mode: CameraMode) => void;
+  /** Camera to open with (shared links); later changes come from the dock. */
+  initialMode?: CameraMode;
   /** Compare: a translucent rival car (stable identity; see DriverScene). */
   ghost?: DriverSceneProps["ghost"];
 }
@@ -94,8 +96,8 @@ interface Props {
 export default memo(CircuitScene);
 function CircuitScene(props: Props) {
   // Ref-based rig read by the frame loop; React state only mirrors the mode for the toolbar.
-  const rig = useRef<CameraRigState>(createRig());
-  const [mode, setCameraMode] = useState<CameraMode>("tv");
+  const rig = useRef<CameraRigState>(createRig(props.initialMode ?? "tv"));
+  const [mode, setCameraMode] = useState<CameraMode>(props.initialMode ?? "tv");
   const [quality, setQualityState] = useState<Quality>(() =>
     readQuality(browserStorage()),
   );

@@ -33,6 +33,12 @@ import PickWinner, { PickResult } from "./PickWinner";
 import QuickGuide from "./QuickGuide";
 import CompareTab from "./CompareTab";
 import { ghostTime } from "../../domain/compare";
+import { buildShare, parseShare } from "../../domain/share";
+import { CAMERA_MODES } from "../circuit/cameraRig";
+
+// A shared link (#s=race&t=9697&d=3&cam=chase), read once when the app opens.
+const shared = parseShare(typeof window === "undefined" ? "" : window.location.hash);
+const sharedCamera = CAMERA_MODES.find((m) => m === shared.camera);
 import { motionAt } from "../../domain/recordedSession";
 import { guideSeen, markGuideSeen } from "./guideStorage";
 import { pickLocked, pickOutcome, readPick, writePick } from "../../domain/pick";
@@ -63,7 +69,7 @@ interface Sheet {
 
 export default function RecordedWorkspace(sheet: Sheet) {
   const [index, setIndex] = useState<RecordedIndex | null>(null);
-  const [slug, setSlug] = useState("race");
+  const [slug, setSlug] = useState(shared.slug ?? "race");
   const [session, setSession] = useState<RecordedSession | null>(null);
   const [progress, setProgress] = useState<[number, number]>([0, 0]);
   const [error, setError] = useState("");
@@ -87,7 +93,17 @@ export default function RecordedWorkspace(sheet: Sheet) {
   const picker = (
     <div className="sv-segmented sv-sessions" role="tablist" aria-label="Session">
       {(index?.sessions ?? Object.keys(SHORT).map((s) => ({ slug: s, name: SHORT[s] }))).map((s) => (
-        <button key={s.slug} role="tab" aria-selected={s.slug === slug} onClick={() => setSlug(s.slug)}>
+        <button
+          key={s.slug}
+          role="tab"
+          aria-selected={s.slug === slug}
+          onClick={() => {
+            // Choosing a session ends the shared link's hold on the time and driver.
+            shared.time = undefined;
+            shared.driver = undefined;
+            setSlug(s.slug);
+          }}
+        >
           {SHORT[s.slug] ?? s.name}
         </button>
       ))}
@@ -134,7 +150,9 @@ function RecordedReplay({
   const { time, running, speed } = replay;
   const start = defaultStart(file) / 1000;
   useEffect(() => {
-    replay.seek(start, true);
+    // A shared link opens at its own time in the session it names (until another is chosen).
+    const linked = shared.time !== undefined && (shared.slug ?? "race") === file.slug;
+    replay.seek(linked ? shared.time! : start, true);
     replay.setSpeed(1);
     // Open at the session start once per session; replay functions are stable enough here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,6 +167,8 @@ function RecordedReplay({
   const cars = sample(time) as RecordedCarState[];
   const previous = new Map(sample(Math.max(0, time - 10)).map((c) => [c.id, c.position]));
   const [selectedId, setSelectedId] = useState(() => {
+    const linked = shared.driver !== undefined && entries.find((e) => e.number === String(shared.driver));
+    if (linked) return linked.id;
     const leader = [...cars].sort((a, b) => a.position - b.position)[0];
     return leader?.id ?? entries[0].id;
   });
@@ -156,10 +176,28 @@ function RecordedReplay({
   const [rivalChoice, setRival] = useState<number | null>(null);
   const [ghostOn, setGhostOn] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [cameraMode, setCameraMode] = useState<CameraMode>("tv");
+  const [cameraMode, setCameraMode] = useState<CameraMode>(sharedCamera ?? "tv");
+  const [copied, setCopied] = useState(false);
+  const copyLink = () => {
+    const url = buildShare(window.location.origin, {
+      slug: file.slug,
+      time,
+      driver: number,
+      camera: cameraMode,
+    });
+    window.history.replaceState(null, "", url);
+    void navigator.clipboard?.writeText(url).then(
+      () => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+      },
+      () => setCopied(false),
+    );
+  };
   const [pick, setPickState] = useState<number | null>(() => readPick(browserStorage(), file.sessionKey));
   const [resultClosed, setResultClosed] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(() => !guideSeen(browserStorage()));
+  // Shared links open straight at their moment, without the tour.
+  const [guideOpen, setGuideOpen] = useState(() => !guideSeen(browserStorage()) && shared.time === undefined);
   const closeGuide = useCallback((remember: boolean) => {
     if (remember) markGuideSeen(browserStorage());
     setGuideOpen(false);
@@ -310,6 +348,13 @@ function RecordedReplay({
               </button>
             </div>
             <div className="sv-menu-section">
+              <h3>Share</h3>
+              <button className="sv-chip" onClick={copyLink}>
+                <Icon name="list" /> {copied ? "Link copied" : "Copy link to this moment"}
+              </button>
+              <p className="sv-menu-note">Opens at this time, driver and camera.</p>
+            </div>
+            <div className="sv-menu-section">
               <button className="sv-chip" onClick={() => setGuideOpen(true)} data-closes>
                 <Icon name="info" /> Guided tour
               </button>
@@ -338,6 +383,7 @@ function RecordedReplay({
             tags={tags}
             wet={wet}
             onModeChange={setCameraMode}
+            initialMode={sharedCamera}
             ghost={ghost}
           />
           <Standings
