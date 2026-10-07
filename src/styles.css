@@ -2598,3 +2598,244 @@ button:disabled {
   font-weight: 700;
   color: var(--team);
 }
+
+/* ---------- Race engineer: floating radio button and popout ---------- */
+/* Above the followed car's card (bottom right); on wide screens beside it, between the card and
+   the camera dock, so it never covers a reading. */
+.sv-engineer {
+  position: fixed;
+  right: 22px;
+  bottom: 316px;
+  z-index: 60;
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+.sv-engineer-fab {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  color: #fff;
+  background: var(--accent-fill);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.45),
+    0 0 0 6px color-mix(in srgb, var(--accent) 14%, transparent);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.sv-engineer-fab:hover {
+  transform: translateY(-2px);
+}
+.sv-engineer.is-open .sv-engineer-fab {
+  background: var(--panel-solid);
+  border-color: var(--panel-line);
+}
+.sv-engineer-panel {
+  box-sizing: border-box;
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100vh - 310px);
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  animation: sv-rise 0.2s ease-out;
+}
+.sv-engineer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sv-engineer-head > div {
+  flex: 1;
+  min-width: 0;
+}
+.sv-engineer-head h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.sv-engineer-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sv-engineer-head .sv-icon-button {
+  width: 32px;
+  height: 32px;
+}
+.sv-engineer-head .sv-icon-button[aria-pressed="true"] {
+  color: var(--accent-text);
+}
+.sv-engineer-badge {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.sv-engineer-panel * {
+  box-sizing: border-box;
+}
+.sv-engineer-answer {
+  min-height: 92px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--panel-edge);
+}
+.sv-engineer-answer p {
+  margin: 0;
+}
+.sv-engineer-q {
+  font-size: 12px;
+  color: var(--muted);
+}
+.sv-engineer-a {
+  margin-top: 6px !important;
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+.sv-engineer-a.is-note {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--warn);
+}
+.sv-engineer-answer small {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.sv-engineer-hint {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.sv-engineer-wait {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px !important;
+  font-size: 13px;
+  color: var(--muted);
+}
+.sv-engineer-wait i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-text);
+  animation: sv-engineer-dot 1s ease-in-out infinite;
+}
+.sv-engineer-wait i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.sv-engineer-wait i:nth-child(3) {
+  animation-delay: 0.3s;
+  margin-right: 6px;
+}
+@keyframes sv-engineer-dot {
+  50% {
+    opacity: 0.25;
+    transform: translateY(-3px);
+  }
+}
+.sv-engineer-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sv-engineer-presets .sv-chip {
+  height: 30px;
+  font-size: 12px;
+}
+.sv-engineer-ask {
+  display: flex;
+  gap: 6px;
+}
+.sv-engineer-ask input,
+.sv-engineer-settings input {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 11px;
+  border: 1px solid var(--panel-line);
+  background: rgba(0, 0, 0, 0.3);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+.sv-engineer-ask input:focus,
+.sv-engineer-settings input:focus {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 1px;
+}
+.sv-engineer-ask .sv-icon-button {
+  width: 38px;
+  height: 38px;
+}
+.sv-engineer-ask .is-send:not(:disabled) {
+  color: #fff;
+  background: var(--accent-fill);
+}
+.sv-engineer-ask .is-live {
+  color: #fff;
+  background: var(--danger);
+  animation: sv-engineer-live 1.2s ease-in-out infinite;
+}
+@keyframes sv-engineer-live {
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--danger) 25%, transparent);
+  }
+}
+.sv-engineer-settings {
+  display: grid;
+  gap: 10px;
+}
+.sv-engineer-settings h3 {
+  margin: 0;
+  font-size: 13px;
+}
+.sv-engineer-settings p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.sv-engineer-settings .sv-button.is-primary {
+  color: #fff;
+  background: var(--accent-fill);
+  border-color: transparent;
+}
+@media (min-width: 1280px) {
+  .sv-engineer {
+    right: 340px;
+    bottom: 128px;
+  }
+}
+:root[data-present="true"] .sv-engineer {
+  display: none;
+}
+@media (max-width: 760px) {
+  .sv-engineer {
+    right: 12px;
+    bottom: 132px;
+  }
+  .sv-engineer-fab {
+    width: 46px;
+    height: 46px;
+  }
+  .sv-engineer-panel {
+    max-height: calc(100dvh - 200px);
+  }
+}

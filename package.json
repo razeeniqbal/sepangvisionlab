@@ -19,6 +19,7 @@
     "check:physics": "node --experimental-strip-types scripts/physics-check.ts race"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.132.0",
     "@fontsource/barlow-condensed": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
     "@mediapipe/tasks-vision": "1.0.1",

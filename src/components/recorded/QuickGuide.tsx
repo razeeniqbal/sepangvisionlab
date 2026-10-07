@@ -43,6 +43,12 @@ const STEPS: Step[] = [
     scroll: ".circuit-view-controls",
   },
   {
+    icon: "headset",
+    title: "Race engineer",
+    text: "Ask your engineer about gaps, tyres, pace, flags or weather, by tapping or by voice. Add your own Anthropic API key to ask anything.",
+    target: ".sv-engineer-fab",
+  },
+  {
     icon: "inspect",
     title: "Lap times",
     text: "Laps opens the followed driver's lap and sector times, plus session details.",

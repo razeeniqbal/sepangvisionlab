@@ -17,8 +17,10 @@ Live: https://sepangvisionlab.madebyrazeen.com/
 - **Shareable links:** ⋯ → "Copy link to this moment" gives a link such as `#s=race&t=9697&d=3&cam=chase` that opens that session, time, driver and camera.
 - **Physics from the data:** g-forces measured from each car's recorded motion drive body lean and dive and a g-meter (friction circle) on the driver card and HUD; upshifts kick the body; brake discs glow after heavy stops (illustrative temperature model).
 - **Weather:** rain falls while OpenF1 reports rain; the track then dries over about 90 minutes, with a fading sheen and spray behind cars at speed.
+- **Race engineer** (headset button): ask about gaps, tyres, pace, flags, weather or your position by tapping a preset or by voice, and hear the answer as a radio call. Presets are answered from the recorded data with no key. Add your own Anthropic API key (kept only in your browser) to ask anything; Claude answers from the same data. Each answer replaces the last.
+- **Cars keep their space:** cars that the aligned data would overlap are eased apart sideways; only pairs that race control reports as colliding may touch.
 - **Engine sound** (off by default, ⋯ menu): synthesised from the followed car's recorded revs and throttle.
-- **Guided tour:** each time the app opens, a step-by-step tour spotlights the real controls (sessions, replay bar, timing tower, cameras, laps, menu) with a tip beside each. Tick "Don't show again" to skip it; reopen it from the app menu.
+- **Guided tour:** each time the app opens, a step-by-step tour spotlights the real controls (sessions, replay bar, timing tower, cameras, race engineer, laps, menu) with a tip beside each. Tick "Don't show again" to skip it; reopen it from the app menu.
 - **Phones:** one scrolling column in viewing order, with a sticky slim header; swipe sideways in the 3D view to orbit.
 - **Realistic 3D:**
   - **Team-style liveries:** each 2026 team's colour scheme (body, panels, wings, stripe) with the race number on the nose. Colours only, no logos.
@@ -31,7 +33,7 @@ Live: https://sepangvisionlab.madebyrazeen.com/
   - **Surroundings:** oil palms, trees and distant hills.
 - **Quality presets:** Low (no shadows, grass detail or hills), Balanced (default) and High (sun shadows for every nearby car).
 - **Themes:** SVL (teal) and Broadcast (red), both glass-panel layouts. Present mode (`P`) hides the chrome.
-- **Optional hand gestures** through the webcam: swipe to rewind or skip, pinch to follow the next driver, two palms to play or pause, two hands to zoom and orbit, victory sign for the next camera. MediaPipe runs locally; see docs/GESTURE_CONTROLS.md.
+- **Optional hand gestures** through the webcam (⋯ → Hand tracking opens a popup): swipe to rewind or skip, pinch to follow the next driver, two palms to play or pause, two hands to zoom and orbit, victory sign for the next camera. MediaPipe runs locally; see docs/GESTURE_CONTROLS.md.
 
 | | |
 |---|---|
@@ -96,11 +98,13 @@ src/
       environment/                  track surfaces, pit lane, scenery, sky
     cars/                           car model, livery, generated wheels
     standings/, broadcast/          timing tower, track map, team glyphs, theme toggle
+    engineer/                       race engineer button and popout
     handtracking/, ui/              MediaPipe gestures, icons and popovers
   domain/                           pure logic: replay, recorded session, motion, g-forces, elevation, pit lane,
-                                    wetness, compare, share links, engine tone, gestures
+                                    wetness, compare, share links, engine tone, separation, race engineer, gestures
   data/circuits/                    circuit GeoJSON, spatial references, derived pit lane and elevation
   services/recordedLoader.ts        loads a session and prepares each driver
+  services/claudeEngineer.ts        optional Claude call for the engineer (viewer's own key)
 public/sessions/1308/               committed OpenF1 replay files
 scripts/                            OpenF1 fetch, build, alignment, pit-lane and elevation derivation, physics check
 tests/                              node --test suites (npm test)
@@ -114,6 +118,7 @@ docs/                               milestone notes, circuit data, gestures, scr
 - **Spatial references** (pit building, main grandstand, timing anchors) and every generated asset: `src/data/circuits/sepangSpatialReferences.ts`, with accuracy classes and sources; summarised in docs/CIRCUIT_DATA.md.
 - **Scenery** (kerbs, barriers, fences, buildings, crowd, trees, hills, sky) is generated in code and illustrative. The car is a stylized SVL model, not a replica of any race car.
 - **Hand tracking:** MediaPipe Hands, vendored in `public/vendor/mediapipe` (licence and provenance there). It runs locally and no frames leave the browser.
+- **Race engineer:** optional. With a viewer-supplied key, questions and a brief of recorded data go from the browser to the Anthropic API; nothing else does.
 - **Fonts:** Barlow Condensed and Inter, bundled through @fontsource and served locally, SIL Open Font License 1.1.
 - **Header artwork:** the owner's SVL logo.
 
@@ -125,7 +130,7 @@ Pushing to `main` deploys production. `vercel.json` runs `npm run build`, then `
 
 ## History
 
-Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILESTONE_28.md`:
+Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILESTONE_29.md`:
 
 | Milestone | What it covers |
 |---|---|
@@ -140,8 +145,9 @@ Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILES
 | M26 | Elevation, debris fence, step-by-step guide, hand-tracking panel, sunken-track fix |
 | M27 | Guided tour that spotlights the real controls; documentation refresh |
 | M28 | Faster first load, data-driven physics, compare, links, rain, engine sound, pit cameras |
+| M29 | Wheels, cars that keep their space, hand-tracking popup, race engineer |
 
-Earlier work (a synthetic physics session, the 2017 Malaysian Grand Prix replay, strategy and Monte Carlo tools, a race engineer and a flat map view) was removed to focus on the 2026 replay and remains in the git history.
+Earlier work (a synthetic physics session, the 2017 Malaysian Grand Prix replay, strategy and Monte Carlo tools, an earlier race engineer and a flat map view) was removed to focus on the 2026 replay and remains in the git history.
 
 ## Documentation
 
@@ -150,7 +156,7 @@ Earlier work (a synthetic physics session, the 2017 Malaysian Grand Prix replay,
 | README.md (this file) | Current: features, accuracy, pipeline, layout |
 | docs/CIRCUIT_DATA.md | Current: what the 3D circuit is built from, with accuracy classes |
 | docs/GESTURE_CONTROLS.md | Current: hand gestures, how recognition works, privacy |
-| docs/MILESTONE_18.md to MILESTONE_28.md | Change notes, oldest to newest (later notes supersede earlier ones) |
+| docs/MILESTONE_18.md to MILESTONE_29.md | Change notes, oldest to newest (later notes supersede earlier ones) |
 | docs/MILESTONE_14.md, MILESTONE_15.md | Hand-tracking engine and the gesture dataset/trainer (still in use) |
 | docs/VISUAL_V2_*.md | Historical: the car model and spatial-reference work; parts describe removed views |
 | docs/PRD.md | Historical: the original product brief |

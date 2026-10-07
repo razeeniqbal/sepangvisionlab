@@ -35,6 +35,8 @@ import { ghostTime } from "../../domain/compare";
 import { buildShare, parseShare } from "../../domain/share";
 import { rainingAt, wetnessAt } from "../../domain/wetness";
 import useEngineSound from "../../hooks/useEngineSound";
+import { buildBrief } from "../../domain/engineer";
+import RaceEngineer from "../engineer/RaceEngineer";
 import { CAMERA_MODES } from "../circuit/cameraRig";
 
 // A shared link (#s=race&t=9697&d=3&cam=chase), read once when the app opens.
@@ -280,6 +282,25 @@ function RecordedReplay({
     .sort((a, b) => b.n - a.n)
     .slice(0, 14);
   const hud = cameraMode === "chase" || cameraMode === "onboard";
+  // What the engineer sees, built when a question is asked (from the moment it is asked).
+  const engineerBrief = () =>
+    buildBrief({
+      sessionName: file.sessionName,
+      race,
+      time: time * 1000,
+      clock: clockText(time * 1000),
+      totalLaps,
+      cars,
+      followed: selected.number,
+      identity: (n) => {
+        const d = identities.get(Number(n))!;
+        return { code: d.code, name: d.name, team: d.team.name };
+      },
+      pit: file.pit,
+      raceControl: file.raceControl,
+      weather,
+      trackStatus: status.status,
+    });
   const utcClock = (ms: number) => new Date(Date.parse(file.t0) + ms).toISOString().slice(11, 19);
   return (
     <div className="sv-app">
@@ -536,6 +557,7 @@ function RecordedReplay({
           </aside>
         </section>
       </main>
+      <RaceEngineer brief={engineerBrief} />
       {guideOpen && <QuickGuide onClose={closeGuide} />}
       <footer className="sv-footer">
         <span>{ATTRIBUTION}</span>
