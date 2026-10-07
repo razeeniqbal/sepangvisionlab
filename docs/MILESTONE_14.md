@@ -1,5 +1,7 @@
 # Milestone 14 — Optional hand tracking
 
+> **Historical document.** It describes the project as it was at the time; parts refer to views, sessions or tools that have since been removed. For the current app see README.md, docs/CIRCUIT_DATA.md and docs/GESTURE_CONTROLS.md.
+
 The Hand Tracking Lab follows either workspace and is usable even if the historical backend is unavailable. Enable camera explicitly starts model loading and then requests video-only camera access. No camera request occurs on page load or from the camera-free engine check. MediaPipe's official HandLandmarker runs locally in a module web worker with CPU inference, up to two hands, 21 landmarks per hand, VIDEO mode, and 0.6 confidence thresholds. Frames are capped at 15/s with at most one frame in flight; stale frames are dropped. React updates only on detector results, not every animation frame.
 
 The mirrored preview overlays numbered landmarks and connections. Readouts show handedness estimate and its score, five fingertip coordinates, a screen-plane orientation and measured inference duration. Orientation uses the wrist-to-middle-MCP vector, corrects for image aspect ratio, mirrors X, and measures clockwise from vertical. It is not full 3D palm orientation. Coordinates in the table remain in the original image system. Relative Z is a model estimate, not metric depth. Hand indices are not stable identities.

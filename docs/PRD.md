@@ -1,5 +1,7 @@
 # SEPANG VISION LAB
 
+> **Historical document.** It describes the project as it was at the time; parts refer to views, sessions or tools that have since been removed. For the current app see README.md, docs/CIRCUIT_DATA.md and docs/GESTURE_CONTROLS.md.
+
 ## Product Requirements & Engineering Specification
 
 **Version:** 1.0

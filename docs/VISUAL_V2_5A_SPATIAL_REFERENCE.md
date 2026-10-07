@@ -1,5 +1,7 @@
 # Visual V2.5A — Spatial Reference Integration
 
+> **Historical document.** It describes the project as it was at the time; parts refer to views, sessions or tools that have since been removed. For the current app see README.md, docs/CIRCUIT_DATA.md and docs/GESTURE_CONTROLS.md.
+
 ## Overview
 
 V2.5A adds a typed provenance register, eight sourced geographic anchors, fixed-frame projection diagnostics and an opt-in development overlay. It does not add environment models, change the circuit path, replace the V2.4 foundation or modify race behavior. V2.5B has not started.

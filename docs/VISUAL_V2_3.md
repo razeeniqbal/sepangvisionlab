@@ -1,5 +1,7 @@
 # Visual V2.3 — Runtime asset optimization and car readability
 
+> **Historical document.** It describes the project as it was at the time; parts refer to views, sessions or tools that have since been removed. For the current app see README.md, docs/CIRCUIT_DATA.md and docs/GESTURE_CONTROLS.md.
+
 Completed 2026-09-26. V2.2 is the visual baseline. Geometry, camera behaviour, circuit, race state, replay, telemetry, backend, strategy/weather and ML were not changed. V2.4 is not started.
 
 ## Runtime asset

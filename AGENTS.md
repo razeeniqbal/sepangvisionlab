@@ -1,6 +1,6 @@
 # Sepang Vision Lab — agent instructions
 
-A static React app: a 3D broadcast-style replay of the 2026 Sepang weekend from OpenF1 data (FP1, FP2, FP3, Qualifying, Race). README.md describes the features, the data pipeline and the accuracy limits. The latest milestone notes (docs/MILESTONE_18.md to docs/MILESTONE_26.md) explain why things are the way they are. docs/PRD.md is the original brief, and much of it has since been removed.
+A static React app: a 3D broadcast-style replay of the 2026 Sepang weekend from OpenF1 data (FP1, FP2, FP3, Qualifying, Race). README.md describes the features, the data pipeline and the accuracy limits. docs/CIRCUIT_DATA.md describes what the 3D circuit is built from and how accurate each part is; docs/GESTURE_CONTROLS.md covers hand gestures. The milestone notes (docs/MILESTONE_18.md to docs/MILESTONE_27.md) explain why things are the way they are. Documents marked "Historical document" (PRD, VISUAL_V2_*, older milestones) describe removed features.
 
 ## Stack
 
@@ -14,6 +14,8 @@ A static React app: a 3D broadcast-style replay of the 2026 Sepang weekend from 
 - The 3D scene is memoised and reads the replay clock from a ref every frame. Do not pass values that change every clock tick as props to it.
 - Circuit geometry is data-driven from `src/data/circuits/`. Derived data (alignment, pit lane) is produced by scripts in `scripts/` and labelled DERIVED with its source.
 - Prefer small focused components and avoid new dependencies.
+- The guided tour (`src/components/recorded/QuickGuide.tsx`) points at controls by CSS selector. If you rename or move `.sv-sessions`, `.sv-replay`, `.bc-tower`, `.sv-dock`, the Laps button, `.sv-pick` or the app menu button, update its `STEPS`.
+- Derived data is rebuilt with `npm run data:align`, `data:pitlane` and `data:elevation`; never hand-edit the generated JSON.
 
 ## Data honesty
 

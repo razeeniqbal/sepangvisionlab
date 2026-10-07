@@ -1,5 +1,7 @@
 # M18 — 3D driver simulation and UI refresh
 
+> **Historical document.** It describes the project as it was at the time; parts refer to views, sessions or tools that have since been removed. For the current app see README.md, docs/CIRCUIT_DATA.md and docs/GESTURE_CONTROLS.md.
+
 Brief: `docs/MILESTONE_18_PLAN.md`. Each phase below is committed separately. Session data in the synthetic workspace is labelled "Simulated session · physics pace"; it is never recorded or live data.
 
 ## Phase 1 — physics pace

@@ -1,5 +1,7 @@
 # M15 — gesture dataset and offline training
 
+> **Historical document.** It describes the project as it was at the time; parts refer to views, sessions or tools that have since been removed. For the current app see README.md, docs/CIRCUIT_DATA.md and docs/GESTURE_CONTROLS.md.
+
 Implemented the local landmark recorder and reproducible four-model experiment. This milestone is **awaiting real labeled recordings and evaluation**; no gesture model has been trained on real examples or installed in live controls.
 
 ## Collect examples

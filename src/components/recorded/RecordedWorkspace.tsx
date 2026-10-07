@@ -269,7 +269,7 @@ function RecordedReplay({
             </div>
             <div className="sv-menu-section">
               <button className="sv-chip" onClick={() => setGuideOpen(true)} data-closes>
-                <Icon name="info" /> Quick guide
+                <Icon name="info" /> Guided tour
               </button>
             </div>
             <div className="sv-menu-section">

@@ -1,21 +1,48 @@
-# Rule-based gesture controls — M14 interaction follow-up
+# Hand-gesture controls
 
-This step completes a practical interaction layer before M15 gesture dataset collection. It uses deterministic landmark heuristics, not a newly trained gesture model. The MediaPipe landmark estimator from M14 is unchanged. Live accuracy has not been established with a user's hands.
+Optional webcam control of the replay. Open it from the app menu (⋯ → Hand tracking). Everything runs in the browser: frames are never uploaded or recorded, and no microphone is used.
 
-The separate Enable gesture actions checkbox is disabled until camera tracking is live and defaults off on every camera session. One open-hand horizontal swipe seeks ±10 seconds and pauses, following the mirrored preview. Thumb/index pinch selects the next driver in historical grid order or synthetic entry order. Index pointing reveals the selected inspector; there is no calibrated pointing cursor. Two open palms moving apart/together adjust circuit zoom by 20%; rotating their connecting line adjusts view by 15 degrees. Two still open palms reveal Strategy Lab in historical mode without creating a branch or running simulations. Fist pauses replay and disarms gesture actions; it does not delete strategy work. Escape also stops the camera. Camera/session stop resets arming.
+## Using it
 
-Rule details: handedness score >=0.8; palm span >=0.025 of normalized image height after aspect correction; thumb/index distance <0.28 palm widths for pinch. Four tip-to-wrist/PIP-to-wrist ratios >1.2 imply open, all <0.95 imply fist; index >1.2 and others <1.05 imply point. Poses dwell 500 ms. Mirrored swipe requires horizontal displacement >0.18 and vertical drift <0.12 in 100–700 ms. Two hands require separation >=0.12, a 150 ms observation, then a ratio >1.3/<0.75 for zoom or >20 degrees rotation. Still palms dwell 900 ms with <8 degrees and <8% distance variation. One-shot latching requires 250 ms neutral or hand loss to release, with 1-second cooldown. A held fist bypasses the latch so cancel is available immediately after another action. Gaps >350 ms reset pose continuity; duplicate timestamps and invalid/low-confidence data do not dispatch commands. Slow inference >350 ms disables interpretation for those frames.
+1. **Turn on camera.** The preview is mirrored and shows the detected hand skeleton, the number of hands found and the inference time.
+2. **Switch on "Gesture control".** The camera alone never controls the app. Gestures are off at the start of every camera session, and the switch is disabled until tracking is live.
+3. **Make a gesture.** Hold each pose for about half a second, then relax your hand (or take it out of view) before the next one. The last recognised action is shown under the switch.
+4. **Stop.** A held fist pauses the replay and switches gestures off. Escape, switching browser tab, switching session or closing the panel turns the camera off.
 
-Commands are routed through a per-session React context to the existing replay, selection and view handlers. No synthetic DOM clicks or global cross-session event bus. Circuit controls also have ordinary buttons and a reset, so gestures never become the only way to move the view. Zoom is bounded 0.75–2.5×. Test actions without camera exposes the same action path for wiring checks; it is clearly labeled and does not pretend to test recognition. Unavailable actions report that status.
+| Gesture | Action |
+|---|---|
+| One open hand swipes left | Rewind 10 seconds |
+| One open hand swipes right | Forward 10 seconds |
+| Hold a thumb–index pinch | Follow the next driver |
+| Hold the index pointing up | Open laps for the followed driver (also switches to the Inspect camera at 0.5×) |
+| Hold two open palms still | Play or pause the replay |
+| Hold a fist | Pause and switch gestures off |
+| Move two open hands apart / together | Zoom in / out (camera distance; the lens in TV) |
+| Rotate the line between two open hands | Orbit left / right (Onboard: look around; TV is fixed) |
+| Hold a victory sign (index and middle up) | Next camera view |
 
-Files added: domain/gestures.ts; handtracking/GestureContext.tsx and GestureControls.tsx; tests/gestures.test.ts. Updated App, historical workspace, CircuitScene, useReplay, HandTrackingPanel, CSS and README. Tests use explicitly synthetic landmark fixtures for geometry, dwell, latching, neutral release, stale frames, mirrored swipe, pair ordering and zoom. They are not an accuracy evaluation. No camera activation, frame storage or external transmission is needed for these tests.
+Swipes follow the mirrored preview, so a swipe to your left on screen rewinds. Rewind and forward keep the replay playing if it was playing. Every action also has an ordinary control. "Try the actions without a camera" in the panel fires each action through the same path, to check the wiring; it does not test recognition.
 
-Known limits: no full 3D hand rotation, no spatial car picking, occlusions and ambiguous poses can misclassify. Commands are experimental and opt-in. M15 still requires consented, labeled hand-landmark examples and a proper held-out evaluation before any gesture-ML accuracy claim or model deployment.
+## How recognition works
 
-Verification (2026-09-24): all 65 frontend and 32 backend tests pass. Browser camera-free command checks verified historical forward/backward seek, next-driver selection, zoom/rotation and reset, inspector/Strategy Lab navigation, and replay pause. Synthetic session switching resets controls; next-driver selection and pause work, and Strategy Lab reports unavailable. Camera remained off; these checks validate routing, not live recognition accuracy.
+Rule-based landmark heuristics (`src/domain/gestures.ts`), not a trained model:
 
-## M18 camera additions
+- **Hands:** handedness score ≥ 0.8; palm span ≥ 0.025 of the image height after aspect correction.
+- **Pinch:** thumb–index distance < 0.28 palm widths.
+- **Open hand and fist:** open when four tip-to-wrist / PIP-to-wrist ratios are > 1.2, a fist when all are < 0.95.
+- **Point and victory:** point is index > 1.2 with the others < 1.05. Victory is index and middle > 1.2 with ring and little < 1.05.
+- **Hold times:** poses dwell 500 ms; two still palms dwell 900 ms, with < 8° and < 8% distance variation.
+- **Swipes:** horizontal displacement > 0.18 and vertical drift < 0.12, within 100–700 ms.
+- **Two-hand zoom and rotate:** separation ≥ 0.12 and a 150 ms observation, then a distance ratio > 1.3 / < 0.75 for zoom, or > 20° for rotation.
+- **One action per pose:** each action fires once, then needs 250 ms of neutral pose (or the hand leaving view) and a 1-second cooldown. A held fist bypasses the latch, so cancel is always available.
+- **Stale frames:** gaps > 350 ms reset pose continuity, and frames with inference > 350 ms are ignored.
 
-Additive only: the ten existing actions, poses and thresholds are unchanged. New action `cycleCamera` ("Next camera view") fires on a held victory pose: index and middle tip/PIP ratios >1.2, ring and little <1.05, 500 ms dwell, the same latch and cooldown as other held poses. The M15 recorder gains a `victory` label, appended last so existing label indices do not move; `backend/gesture_training.py` mirrors it and now sizes its metrics and XGBoost classes from `LABELS`.
+Commands reach the replay, driver selection and camera through a per-session React context (`GestureContext`), never through synthetic clicks.
 
-The circuit viewport has five 3D camera modes: TV, Chase, Onboard, Heli and Inspect. Two-hand zoom changes camera distance in Chase, Heli and Inspect and the lens in TV, and rotation orbits ±0.4 rad (Onboard: limited look-around; TV: no rotation). Pinch still selects the next driver and the camera follows it. Point (inspect) also switches to the Inspect orbit and sets the replay to 0.5×. Rewind, forward and cancel are unchanged. Every camera command also has a toolbar button.
+## Engine and privacy
+
+MediaPipe HandLandmarker (`@mediapipe/tasks-vision` 1.0.1) runs in a web worker on the CPU, tracking up to two hands with 21 landmarks each, capped at 15 frames a second. The model and WASM are vendored in `public/vendor/mediapipe` (licence and hashes there), so no third-party CDN is contacted. Startup, permission and no-frame watchdogs release the camera if anything stalls. The Advanced section of the panel has a camera-free engine check, live landmark readouts and the dataset recorder.
+
+## Limits and training
+
+Accuracy has not been measured on real hands. Occlusion and ambiguous poses can misclassify, there is no full 3D hand rotation, and there is no pointing cursor. The optional dataset recorder and the offline trainer (`backend/`, `npm run train:gestures`) are described in docs/MILESTONE_15.md. No trained model is used in live controls.

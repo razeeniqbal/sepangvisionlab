@@ -2451,3 +2451,88 @@ button:disabled {
     padding: 14px;
   }
 }
+
+/* ---------- Guided tour: spotlight a real control, tip beside it ---------- */
+.sv-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+}
+.sv-tour-dim {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 6, 7, 0.62);
+  animation: sv-fade 0.25s ease-out;
+}
+/* A transparent box over the target; its huge shadow dims everything else. */
+.sv-tour-spot {
+  position: fixed;
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 2px var(--accent-strong),
+    0 0 24px 4px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 0 0 9999px rgba(3, 6, 7, 0.62);
+  pointer-events: none;
+  /* Follows its control every frame (the page may be scrolling), so it must not animate its
+     position; it only fades in. */
+  animation: sv-fade 0.3s ease-out;
+}
+.sv-tour-card {
+  position: fixed;
+  padding: 12px 14px 14px;
+  animation: sv-rise 0.25s ease-out;
+}
+.sv-tour-body {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 8px 2px 2px;
+}
+.sv-tour-body .sv-guide-icon {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+}
+.sv-tour-body h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.sv-tour-body p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.sv-tour-card.is-centred .sv-tour-body {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: 14px;
+}
+.sv-tour-card.is-centred .sv-guide-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+}
+.sv-tour-card.is-centred h2 {
+  font-size: 19px;
+}
+.sv-tour-card .sv-guide-dots {
+  margin: 12px 0 14px;
+}
+
+/* Tour targets scroll to just below the sticky header on phones. */
+.sv-replay,
+.bc-tower,
+.sv-dock,
+.sv-viewport > .circuit-view-controls {
+  scroll-margin-top: 16px;
+}
+@media (max-width: 760px) {
+  .sv-replay,
+  .bc-tower,
+  .sv-viewport > .circuit-view-controls {
+    scroll-margin-top: 132px;
+  }
+}

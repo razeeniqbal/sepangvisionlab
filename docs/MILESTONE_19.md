@@ -1,5 +1,7 @@
 # M19 — recorded Sepang 2026, broadcast polish and theme
 
+> **Historical document.** It describes the project as it was at the time; parts refer to views, sessions or tools that have since been removed. For the current app see README.md, docs/CIRCUIT_DATA.md and docs/GESTURE_CONTROLS.md.
+
 Branch `m19-recorded`, from `m18-broadcast`. Reference screenshots stay in `docs/reference/` (gitignored); nothing from their branding, driver names or team names is copied.
 
 Pre-check (2026-10-05): OpenF1 `/meetings?meeting_key=1308` returns "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX IN MALAYSIA 2026", circuit key 12 (Kuala Lumpur), 2026-10-02 to 2026-10-04. `/sessions?meeting_key=1308` lists Practice 1 to 3 (11727 to 11729), Qualifying (11730) and Race (11731). OpenF1 is unofficial and not associated with Formula 1.

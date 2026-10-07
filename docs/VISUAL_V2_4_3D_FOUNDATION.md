@@ -1,5 +1,7 @@
 # Visual V2.4 — Sepang 3D Digital Twin Foundation
 
+> **Historical document.** It describes the project as it was at the time; parts refer to views, sessions or tools that have since been removed. For the current app see README.md, docs/CIRCUIT_DATA.md and docs/GESTURE_CONTROLS.md.
+
 ## Overview
 
 The circuit now uses a physical world-space road mesh, shallow pavement sides, a ground foundation, edge paint, shoulders, raised kerbs, sparse gravel zones and short barrier runs. A default oblique engineering camera reveals the spatial layers. Top view, orbit increments, pan, focus-selected and overview reset remain controlled engineering interactions.

@@ -14,7 +14,8 @@ Live: https://sepangvisionlab.madebyrazeen.com/
 - **Pick your winner** (Race only): choose a driver before lights out. Picks lock at the start, your driver is followed live, and the official result is revealed at the chequered flag. Stored in your browser only.
 - **Broadcast overlays:** a timing tower that fits all 22 cars (intervals or gap to leader, best laps, tyres, pit badges), track map, weather, race-control messages with flag status, and a replay bar with incident markers. Scrubbing keeps the replay playing if it was playing.
 - **Laps panel:** lap and sector times for the selected driver, plus session details.
-- **Quick guide:** a step-by-step walkthrough each time the app opens (or never, if you tick "Don't show again"), reopened from the app menu.
+- **Guided tour:** each time the app opens, a step-by-step tour spotlights the real controls (sessions, replay bar, timing tower, cameras, laps, pick your winner, menu) with a tip beside each. Tick "Don't show again" to skip it; reopen it from the app menu.
+- **Phones:** one scrolling column in viewing order, with a sticky slim header; swipe sideways in the 3D view to orbit.
 - **Realistic 3D:**
   - **Team-style liveries:** each 2026 team's colour scheme (body, panels, wings, stripe) with the race number on the nose. Colours only, no logos.
   - **Cars:** clear-coat paint lit by the sky, steering and spinning 18-inch style wheels with speed blur, sprung body pitch and roll, downforce squat, and a rain light in the wet and in the pit lane.
@@ -24,9 +25,9 @@ Live: https://sepangvisionlab.madebyrazeen.com/
   - **Pit lane:** a separate lane with a pit wall.
   - **The venue, after the circuit's own description:** a 33-garage pit building, the double-fronted main grandstand under hibiscus-inspired petal canopies, the covered K1 stand at Turn 1, and the C2 grass hillstand over Turns 9–11, all with crowds.
   - **Surroundings:** oil palms, trees and distant hills.
-- **Quality presets:** Low, Balanced (default) and High; High adds sun shadows for every nearby car.
+- **Quality presets:** Low (no shadows, grass detail or hills), Balanced (default) and High (sun shadows for every nearby car).
 - **Themes:** SVL (teal) and Broadcast (red), both glass-panel layouts. Present mode (`P`) hides the chrome.
-- **Optional hand gestures** through the webcam, from a redesigned hand-tracking panel (MediaPipe, runs locally; see docs/GESTURE_CONTROLS.md).
+- **Optional hand gestures** through the webcam: swipe to rewind or skip, pinch to follow the next driver, two palms to play or pause, two hands to zoom and orbit, victory sign for the next camera. MediaPipe runs locally; see docs/GESTURE_CONTROLS.md.
 
 | | |
 |---|---|
@@ -90,11 +91,11 @@ src/
     cars/                           car model, livery, generated wheels
     standings/, broadcast/          timing tower, track map, team glyphs, theme toggle
     handtracking/, ui/              MediaPipe gestures, icons and popovers
-  domain/                           pure logic: replay, recorded session, motion, pit lane, picks
+  domain/                           pure logic: replay, recorded session, motion, elevation, pit lane, picks, gestures
   data/circuits/                    circuit GeoJSON, spatial references, derived pit lane and elevation
   services/recordedLoader.ts        loads a session and prepares each driver
 public/sessions/1308/               committed OpenF1 replay files
-scripts/                            OpenF1 fetch, build, alignment, pit-lane derivation, physics check
+scripts/                            OpenF1 fetch, build, alignment, pit-lane and elevation derivation, physics check
 tests/                              node --test suites (npm test)
 backend/                            optional gesture-model trainer (npm run train:gestures)
 docs/                               milestone notes, circuit data, gestures, screenshots
@@ -103,7 +104,7 @@ docs/                               milestone notes, circuit data, gestures, scr
 ## Provenance and licences
 
 - **Circuit geometry:** Tomislav Bacinger, f1-circuits (MIT), unchanged in `src/data/circuits/sepang.json`. A test checks its bytes. Provenance and limitations are in docs/CIRCUIT_DATA.md. The track is rescaled to the official 5.543 km. Its elevation is DERIVED from OpenF1 heights (car-reference, not a survey).
-- **Spatial references** (pit building, main grandstand, timing anchors): `src/data/circuits/sepangSpatialReferences.ts`, with accuracy classes and sources; see docs/VISUAL_V2_5A_SPATIAL_REFERENCE.md.
+- **Spatial references** (pit building, main grandstand, timing anchors) and every generated asset: `src/data/circuits/sepangSpatialReferences.ts`, with accuracy classes and sources; summarised in docs/CIRCUIT_DATA.md.
 - **Scenery** (kerbs, barriers, fences, buildings, crowd, trees, hills, sky) is generated in code and illustrative. The car is a stylized SVL model, not a replica of any race car.
 - **Hand tracking:** MediaPipe Hands, vendored in `public/vendor/mediapipe` (licence and provenance there). It runs locally and no frames leave the browser.
 - **Fonts:** Barlow Condensed and Inter, bundled through @fontsource and served locally, SIL Open Font License 1.1.
@@ -117,7 +118,7 @@ Pushing to `main` deploys production. `vercel.json` runs `npm run build`, then `
 
 ## History
 
-Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILESTONE_26.md`:
+Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILESTONE_27.md`:
 
 | Milestone | What it covers |
 |---|---|
@@ -129,6 +130,20 @@ Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILES
 | M23 | Physical motion, pit lane, and the race data fix |
 | M24 | Steady labels, tyres, and the Sepang venue |
 | M25 | Team-style liveries and the quick guide |
-| M26 | Elevation, debris fence, step-by-step guide, hand-tracking panel |
+| M26 | Elevation, debris fence, step-by-step guide, hand-tracking panel, sunken-track fix |
+| M27 | Guided tour that spotlights the real controls; documentation refresh |
 
-Earlier work (a synthetic physics session, the 2017 Malaysian Grand Prix replay, strategy and Monte Carlo tools, a race engineer and a flat map view) was removed to focus on the 2026 replay and remains in the git history. `docs/PRD.md` is the original product brief.
+Earlier work (a synthetic physics session, the 2017 Malaysian Grand Prix replay, strategy and Monte Carlo tools, a race engineer and a flat map view) was removed to focus on the 2026 replay and remains in the git history.
+
+## Documentation
+
+| Document | Status |
+|---|---|
+| README.md (this file) | Current: features, accuracy, pipeline, layout |
+| docs/CIRCUIT_DATA.md | Current: what the 3D circuit is built from, with accuracy classes |
+| docs/GESTURE_CONTROLS.md | Current: hand gestures, how recognition works, privacy |
+| docs/MILESTONE_18.md to MILESTONE_27.md | Change notes, oldest to newest (later notes supersede earlier ones) |
+| docs/MILESTONE_14.md, MILESTONE_15.md | Hand-tracking engine and the gesture dataset/trainer (still in use) |
+| docs/VISUAL_V2_*.md | Historical: the car model and spatial-reference work; parts describe removed views |
+| docs/PRD.md | Historical: the original product brief |
+| AGENTS.md | Rules for coding agents working on this repository |

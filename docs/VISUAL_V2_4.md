@@ -1,5 +1,7 @@
 # Visual V2.4 — Formula Car Asset System
 
+> **Historical document.** It describes the project as it was at the time; parts refer to views, sessions or tools that have since been removed. For the current app see README.md, docs/CIRCUIT_DATA.md and docs/GESTURE_CONTROLS.md.
+
 ## Overview
 
 V2.4 establishes reusable asset, livery, identity and tyre interfaces around the V2.3 standard Formula car. It retains the existing circuit, camera, representation thresholds, replay, selection, telemetry and race domain. No environment work or V2.5 implementation is included.
