@@ -6,6 +6,7 @@ import { poseAtDistance, type TrackProfile } from "./lapPhysics.ts";
 import { apply, nearestOnTrack, type Similarity } from "./alignment.ts";
 import { curvatureAt } from "./carMotion.ts";
 import { pitOffsetAt, type PitLane } from "./pitLane.ts";
+import { contactAllowed, contactsFrom, separationShifts, type Contact } from "./separation.ts";
 
 export const STALE_AFTER_MS = 2000;
 /** |lateral| beyond this is off the racing surface (pit lane, garage): drawn raw, not snapped. */
@@ -479,6 +480,8 @@ export interface RecordedSession {
 const fmtGap = (v: number | string | null | undefined) =>
   v === null || v === undefined ? null : typeof v === "number" ? "+" + v.toFixed(3) : String(v);
 
+const contactCache = new WeakMap<readonly RaceControlRow[], Contact[]>();
+
 export function recordedFieldAt(session: RecordedSession, time: number): RecordedCarState[] {
   const { file, track } = session;
   const t = Math.max(0, Math.min(file.durationMs, time));
@@ -519,9 +522,42 @@ export function recordedFieldAt(session: RecordedSession, time: number): Recorde
       intervalText: fmtGap(iv?.int),
       gLong: g.long,
       gLat: g.lat,
-    } satisfies RecordedCarState;
+      sep: { distance: (((m.distance % L) + L) % L), lateral: m.lateral, active: m.present && m.onTrack && !m.pitLane && !m.stale, speed: tel.speed / 3.6 },
+    } satisfies RecordedCarState & { sep: { distance: number; lateral: number; active: boolean; speed: number } };
   });
   // Cars without a position yet are ordered after classified ones by distance covered.
+  // Keep cars from passing through each other (position error), unless race control reports
+  // contact between them around now: a sideways nudge along the track normal.
+  let contacts = contactCache.get(file.raceControl);
+  if (!contacts) contactCache.set(file.raceControl, (contacts = contactsFrom(file.raceControl, file.t0)));
+  // Blended over ±0.4 s (weights 1-2-3-2-1) so a nudge builds and fades smoothly in time; each
+  // moment comes straight from the recorded data, so any seek shows the same result.
+  const L2 = track.length;
+  const at = (time: number) =>
+    session.drivers.map((d) => {
+      const m = motionAt(d, track, time);
+      return {
+        number: d.number,
+        distance: ((m.distance % L2) + L2) % L2,
+        lateral: m.lateral,
+        active: m.present && m.onTrack && !m.pitLane && !m.stale,
+        speed: telemetryAt(d, time).speed / 3.6,
+      };
+    });
+  const shifts = new Map<number, number>();
+  const blend: [number, number][] = [[-400, 1], [-200, 2], [0, 3], [200, 2], [400, 1]];
+  for (const [dt, w] of blend) {
+    const cars0 = dt === 0 ? cars.map((c) => ({ number: Number(c.number), ...c.sep })) : at(t + dt);
+    const s = separationShifts(cars0, track.length, (a, b) => contactAllowed(contacts!, a, b, t + dt));
+    for (const [n, k] of s) shifts.set(n, (shifts.get(n) ?? 0) + (k * w) / 9);
+  }
+  for (const c of cars) {
+    const k = shifts.get(Number(c.number)) ?? 0;
+    if (k !== 0) {
+      const h = poseAtDistance(track, c.sep.distance).heading;
+      c.pose = { x: c.pose.x - Math.sin(h) * k, y: c.pose.y + Math.cos(h) * k, heading: c.pose.heading };
+    }
+  }
   const ordered = [...cars].sort((a, b) => a.position - b.position || b.completedLaps + b.progress - (a.completedLaps + a.progress));
   ordered.forEach((car, i) => { if (car.position === 99) car.position = i + 1; });
   return cars;
