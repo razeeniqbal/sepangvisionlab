@@ -283,7 +283,10 @@ function RecordedReplay({
         </div>
       </header>
       <main id="race-view" tabIndex={-1} className="sv-stage">
-        <section className="sv-viewport" aria-label="Sepang circuit with recorded car positions">
+        <section
+          className={"sv-viewport" + (hud ? " has-hud" : "")}
+          aria-label="Sepang circuit with recorded car positions"
+        >
           <CircuitScene
             clock={replay.clock}
             session={scene}
@@ -343,12 +346,10 @@ function RecordedReplay({
             yellowSectors={status.yellowSectors}
             clock={utcClock}
           />
-          {/* Chase and onboard swap the telemetry card for a game-style gauge in the same corner. */}
-          {hud ? (
-            <DriveHud car={selected} code={identity.code} color={identity.color} laps={totalLaps} />
-          ) : (
-            <RecordedTelemetryCard car={selected} driver={identity} color={identity.color} />
-          )}
+          {/* Chase and onboard show a game-style gauge in the card's corner on wide screens (the
+              card is hidden by CSS there); phones keep the card and hide the gauge. */}
+          <RecordedTelemetryCard car={selected} driver={identity} color={identity.color} />
+          {hud && <DriveHud car={selected} code={identity.code} color={identity.color} laps={totalLaps} />}
           {outcome && !resultClosed && pick !== null && identities.get(pick) && (
             <PickResult driver={identities.get(pick)!} outcome={outcome} onClose={() => setResultClosed(true)} />
           )}

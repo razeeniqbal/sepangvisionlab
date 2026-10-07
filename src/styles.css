@@ -1427,36 +1427,96 @@ button:disabled {
     max-width: 100%;
     overflow-x: auto;
   }
+  /* Phones: one scrolling column in viewing order. A sticky slim header, then race control,
+     the 3D view, replay controls, the followed driver, map and weather, and the timing tower. */
   .sv-app {
     height: auto;
     min-height: 100vh;
     overflow: visible;
   }
   .sv-header {
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 6px);
+    z-index: 50;
     height: auto;
     flex-wrap: wrap;
-    padding: 10px;
+    gap: 8px;
+    margin: 6px 8px 0;
+    padding: 8px 10px;
+  }
+  .sv-brand .svl-logo {
+    width: 132px;
+    height: 19px;
+  }
+  .sv-brand .svl-logo img {
+    width: 257px;
+    height: 171px;
+    left: -17px;
+    top: -78px;
+  }
+  .sv-header-end {
+    margin-left: auto;
+    gap: 6px;
+  }
+  .sv-clock {
+    display: none; /* the replay bar shows the time */
+  }
+  .sv-header .sv-button {
+    width: 36px;
+    padding: 0;
+  }
+  .sv-header .sv-button span,
+  .sv-pick-chip.is-empty b {
+    display: none;
+  }
+  .sv-pick-chip {
+    padding: 0 10px;
   }
   .sv-sessions {
     order: 3;
     width: 100%;
     overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .sv-sessions button {
+    flex: 1 0 auto;
+    justify-content: center;
+  }
+  .sv-stage {
+    padding: 8px;
   }
   .sv-viewport {
     height: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     overflow: visible;
     background: none;
     border: 0;
+    border-radius: 0;
+  }
+  .sv-toast {
+    order: 1;
   }
   .sv-viewport > .circuit-view-controls {
+    order: 2;
     position: relative !important;
-    height: 56vh;
-    min-height: 320px;
-    border-radius: 18px;
+    height: min(52vh, 460px);
+    min-height: 280px;
+    border-radius: 16px;
     overflow: hidden;
+  }
+  .sv-replay {
+    order: 3;
+  }
+  .sv-telemetry {
+    order: 4;
+  }
+  .sv-top-right {
+    order: 5;
+  }
+  .bc-tower {
+    order: 6;
   }
   .bc-tower,
   .sv-telemetry,
@@ -1468,36 +1528,78 @@ button:disabled {
     max-height: none;
     transform: none;
   }
-  .sv-top-right {
+  .sv-toast {
+    min-width: 0;
+    max-width: none;
+    border-radius: 14px;
+    padding: 6px 12px 6px 6px;
+  }
+  .sv-toast time {
     display: none;
   }
+  .sv-top-right {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .bc-minimap {
+    width: auto;
+  }
+  .bc-minimap svg {
+    max-height: 200px;
+  }
+  .sv-weather {
+    max-width: none;
+    justify-content: flex-start;
+  }
   .sv-replay {
-    order: -1;
     height: auto;
     flex-wrap: wrap;
-    padding: 10px;
+    gap: 6px 10px;
+    padding: 8px 12px 12px 8px;
+    border-radius: 16px;
+  }
+  .sv-replay-buttons {
+    order: 1;
+  }
+  .sv-time {
+    order: 2;
+    flex: 1;
+  }
+  .sv-time span {
+    display: none;
+  }
+  .sv-speed {
+    order: 3;
   }
   .sv-scrub {
-    order: 5;
+    order: 4;
     flex-basis: 100%;
   }
   .sv-dock {
-    bottom: 12px;
+    bottom: 10px;
+    padding: 4px;
+  }
+  .sv-dock .sv-segmented button {
+    height: 34px;
+    padding: 0 10px;
+  }
+  .sv-telemetry {
+    padding: 12px;
   }
   .sv-panel {
     position: fixed;
-    inset: auto 8px 8px 8px;
+    inset: auto 8px calc(env(safe-area-inset-bottom, 0px) + 8px) 8px;
     width: auto;
     height: 70vh;
     transform: translateY(110%);
   }
-  .bc-tower {
-    max-height: none;
-  }
   .sv-footer {
     height: auto;
     flex-direction: column;
-    padding: 8px 16px 16px;
+    gap: 2px;
+    padding: 6px 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1790,6 +1892,11 @@ button:disabled {
 }
 
 /* ---------- Driving HUD (chase and onboard cameras) ---------- */
+@media (min-width: 761px) {
+  .sv-viewport.has-hud .sv-telemetry {
+    display: none;
+  }
+}
 .sv-hud {
   position: absolute;
   z-index: 11;
