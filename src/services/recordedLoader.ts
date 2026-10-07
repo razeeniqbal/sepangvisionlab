@@ -90,6 +90,7 @@ export function recordedEntries(file: SessionFile): CarDefinition[] {
     id: "d" + d.driver_number,
     number: String(d.driver_number),
     color: ids.get(d.driver_number)!.color,
+    team: d.team_name,
     initialProgress: 0,
     lapSeconds: 20, // unused in recorded mode: gaps and laps come from timing data
     compound: "UNKNOWN",

@@ -1,4 +1,5 @@
 import {
+  CanvasTexture,
   Color,
   DoubleSide,
   MeshPhysicalMaterial,
@@ -20,7 +21,12 @@ export interface FormulaLiveryDefinition {
     readonly rubber: string;
     readonly accent: string;
     readonly technical: string;
+    /** Front and rear wing colour; defaults to the accent. */
+    readonly wing?: string;
   };
+  /** Race number painted on top of the nose, and its colour. */
+  readonly number?: string;
+  readonly numberColor?: string;
   readonly surface: {
     readonly bodyRoughness: number;
     readonly carbonRoughness: number;
@@ -56,7 +62,7 @@ const meshSpan = new Vector3(0.442462, 1.142766, 0.248286);
 const declarations = `
 varying vec3 vSvlSurface;
 varying float vSvlSideNormal;
-uniform vec3 svlBody,svlSecondary,svlMechanical,svlRubber,svlAccent,svlTechnical,svlCompound;
+uniform vec3 svlBody,svlSecondary,svlMechanical,svlRubber,svlAccent,svlTechnical,svlCompound,svlWing;
 uniform vec3 svlRoughness;
 uniform vec2 svlMetalness;
 uniform float svlHasCompound,svlHasLivery,svlHideWheels;
@@ -75,6 +81,13 @@ svlFinish=mix(svlFinish,svlAccent,svlStripe);
 // A small technical nose tick, not decorative lettering or a sponsor mark.
 float svlTick=(1.0-step(.075,svlAcross))*svlBand(vSvlSurface.y,.925,.930)*step(.15,vSvlSurface.z);
 svlFinish=mix(svlFinish,svlTechnical,svlTick);
+// Team-style zones: nose tip and engine-cover fin in the secondary colour, wings in the wing colour.
+float svlFrontWing=svlBand(vSvlSurface.y,.87,1.01)*(1.0-step(.13,vSvlSurface.z));
+float svlRearWing=(1.0-step(.11,vSvlSurface.y))*step(.42,vSvlSurface.z);
+float svlNoseTip=svlBand(vSvlSurface.y,.955,1.01)*step(.13,vSvlSurface.z);
+float svlFin=svlBand(vSvlSurface.y,.16,.5)*smoothstep(.62,.78,vSvlSurface.z)*(1.0-step(.05,svlAcross));
+svlFinish=mix(svlFinish,svlSecondary,max(svlNoseTip,svlFin));
+svlFinish=mix(svlFinish,svlWing,max(svlFrontWing,svlRearWing));
 svlFinish=mix(svlFinish,diffuseColor.rgb,svlHasLivery);
 diffuseColor.rgb=mix(svlFinish,svlRubber,svlTyre);
 // Asset-local sidewall calibration. No extra meshes, textures or draw calls.
@@ -137,6 +150,7 @@ export function createFormulaMaterialLibrary(
         svlAccent: { value: new Color(definition.palette.accent) },
         svlTechnical: { value: new Color(definition.palette.technical) },
         svlCompound: { value: new Color(TYRE_COLOURS[compound]) },
+        svlWing: { value: new Color(definition.palette.wing ?? definition.palette.accent) },
         svlHasCompound: { value: compound === "UNKNOWN" ? 0 : 1 },
         svlHasLivery: { value: definition.liveryTexture ? 1 : 0 },
         svlHideWheels: { value: 1 },
@@ -182,7 +196,7 @@ export function createFormulaMaterialLibrary(
           "#include <lights_physical_fragment>\nmaterial.clearcoat*=(1.0-svlTyre)*(1.0-svlLow*0.85);",
         );
     };
-    material.customProgramCacheKey = () => "svl-formula-v26-physical";
+    material.customProgramCacheKey = () => "svl-formula-v27-team";
     materials.set(key, material);
     return material;
   }
@@ -203,6 +217,84 @@ export function createFormulaMaterialLibrary(
     },
   };
 }
+// One small white-on-transparent texture per race number, shared by every car carrying it.
+const numberTextures = new Map<string, CanvasTexture | null>();
+export function numberTexture(number: string | undefined) {
+  if (!number) return null;
+  if (numberTextures.has(number)) return numberTextures.get(number)!;
+  let texture: CanvasTexture | null = null;
+  if (typeof document !== "undefined") {
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 64;
+    const c = canvas.getContext("2d");
+    if (c) {
+      // Heavy glyphs that fill the texture, thickened with a stroke, so they survive mipmapping.
+      c.fillStyle = c.strokeStyle = "#ffffff";
+      c.lineWidth = 5;
+      c.lineJoin = "round";
+      c.font = "700 62px 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+      c.strokeText(number, 64, 35);
+      c.fillText(number, 64, 35);
+    }
+    texture = new CanvasTexture(canvas);
+  }
+  numberTextures.set(number, texture);
+  return texture;
+}
+
+/**
+ * Team-style colour schemes for the 2026 grid: body, secondary panels, wings, centre stripe and
+ * number colour, approximating each team's public colours. Colours only: no team, sponsor or
+ * series logos or marks. Teams not listed fall back to teamLivery() from the OpenF1 colour.
+ */
+const TEAM_SCHEMES: Record<string, { body: string; secondary: string; wing: string; accent: string; number: string }> = {
+  McLaren: { body: "#f47600", secondary: "#24272b", wing: "#24272b", accent: "#f47600", number: "#ffffff" },
+  Ferrari: { body: "#d8102c", secondary: "#f2f2f0", wing: "#1c1c1e", accent: "#f2f2f0", number: "#ffffff" },
+  "Red Bull Racing": { body: "#1d2a5c", secondary: "#d8202f", wing: "#1d2a5c", accent: "#f5c518", number: "#ffffff" },
+  Mercedes: { body: "#1c1e21", secondary: "#c3c8cc", wing: "#1c1e21", accent: "#00d7b6", number: "#ffffff" },
+  "Aston Martin": { body: "#0f5a45", secondary: "#229971", wing: "#0f5a45", accent: "#cedc00", number: "#ffffff" },
+  Alpine: { body: "#0a6ed1", secondary: "#ff87bc", wing: "#1b1f2a", accent: "#ff87bc", number: "#ffffff" },
+  Williams: { body: "#1868db", secondary: "#071f45", wing: "#071f45", accent: "#00a3e0", number: "#ffffff" },
+  "Racing Bulls": { body: "#eef0f2", secondary: "#1634cc", wing: "#1634cc", accent: "#e8002d", number: "#1634cc" },
+  "Haas F1 Team": { body: "#eeeeee", secondary: "#1d1d1f", wing: "#1d1d1f", accent: "#e6002b", number: "#1d1d1f" },
+  Audi: { body: "#9aa0a6", secondary: "#141414", wing: "#141414", accent: "#f50537", number: "#ffffff" },
+  Cadillac: { body: "#141414", secondary: "#e8e8e8", wing: "#141414", accent: "#909090", number: "#ffffff" },
+};
+
+const teamStyles = new Map<string, FormulaLiveryDefinition>();
+/** The car's team-style livery with its race number; falls back to the single team colour. */
+export function teamStyle(team: string | undefined, colour: string, number?: string): FormulaLiveryDefinition {
+  const scheme = team ? TEAM_SCHEMES[team] : undefined;
+  const base = teamLivery(colour);
+  const id = (scheme ? "style-" + team : base.id) + (number ? "-" + number : "");
+  const cached = teamStyles.get(id);
+  if (cached) return cached;
+  const definition: FormulaLiveryDefinition = Object.freeze({
+    id,
+    palette: Object.freeze(
+      scheme
+        ? {
+            body: scheme.body,
+            secondary: scheme.secondary,
+            mechanical: "#2a2e31",
+            rubber: base.palette.rubber,
+            accent: scheme.accent,
+            technical: scheme.accent,
+            wing: scheme.wing,
+          }
+        : base.palette,
+    ),
+    surface: base.surface,
+    number,
+    numberColor: scheme?.number ?? "#ffffff",
+  });
+  teamStyles.set(id, definition);
+  return definition;
+}
+
 const library = createFormulaMaterialLibrary(
   [SVL_DEVELOPMENT],
   SVL_DEVELOPMENT.id,

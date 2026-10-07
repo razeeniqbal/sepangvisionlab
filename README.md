@@ -14,7 +14,9 @@ Live: https://sepangvisionlab.madebyrazeen.com/
 - **Pick your winner** (Race only): choose a driver before lights out. Picks lock at the start, your driver is followed live, and the official result is revealed at the chequered flag. Stored in your browser only.
 - **Broadcast overlays:** a timing tower that fits all 22 cars (intervals or gap to leader, best laps, tyres, pit badges), track map, weather, race-control messages with flag status, and a replay bar with incident markers. Scrubbing keeps the replay playing if it was playing.
 - **Laps panel:** lap and sector times for the selected driver, plus session details.
+- **Quick guide** on the first visit, reopened any time from the app menu.
 - **Realistic 3D:**
+  - **Team-style liveries:** each 2026 team's colour scheme (body, panels, wings, stripe) with the race number on the nose. Colours only, no logos.
   - **Cars:** clear-coat paint lit by the sky, steering and spinning 18-inch style wheels with speed blur, sprung body pitch and roll, downforce squat, and a rain light in the wet and in the pit lane.
   - **Track:** textured asphalt with rubber marks, raised kerbs, gravel traps, tyre walls, guardrails and catch fencing.
   - **Start area:** a chequered start line and painted grid boxes.
@@ -113,7 +115,7 @@ Pushing to `main` deploys production. `vercel.json` runs `npm run build`, then `
 
 ## History
 
-Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILESTONE_24.md`:
+Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILESTONE_25.md`:
 
 | Milestone | What it covers |
 |---|---|
@@ -124,5 +126,6 @@ Milestone notes for the current app are in `docs/MILESTONE_18.md` to `docs/MILES
 | M22 | HUD, pick your winner, wheels and track detail |
 | M23 | Physical motion, pit lane, and the race data fix |
 | M24 | Steady labels, tyres, and the Sepang venue |
+| M25 | Team-style liveries and the quick guide |
 
 Earlier work (a synthetic physics session, the 2017 Malaysian Grand Prix replay, strategy and Monte Carlo tools, a race engineer and a flat map view) was removed to focus on the 2026 replay and remains in the git history. `docs/PRD.md` is the original product brief.

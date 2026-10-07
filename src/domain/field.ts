@@ -11,6 +11,8 @@ export interface CarDefinition {
   id: string;
   number: string;
   color: string;
+  /** Team name (recorded sessions), used to pick the team's livery scheme. */
+  team?: string;
   initialProgress: number;
   lapSeconds: number;
   compound: TyreCompound;

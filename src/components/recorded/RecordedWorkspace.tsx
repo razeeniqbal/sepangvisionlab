@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CircuitScene from "../circuit/CircuitViewport";
 import Standings from "../standings/Standings";
 import MiniMap from "../broadcast/MiniMap";
@@ -30,6 +30,8 @@ import Icon from "../ui/Icon";
 import Popover from "../ui/Popover";
 import DriveHud from "./DriveHud";
 import PickWinner, { PickResult } from "./PickWinner";
+import QuickGuide from "./QuickGuide";
+import { guideSeen, markGuideSeen } from "./guideStorage";
 import { pickLocked, pickOutcome, readPick, writePick } from "../../domain/pick";
 import type { CameraMode } from "../circuit/cameraRig";
 
@@ -152,6 +154,11 @@ function RecordedReplay({
   const [cameraMode, setCameraMode] = useState<CameraMode>("tv");
   const [pick, setPickState] = useState<number | null>(() => readPick(browserStorage(), file.sessionKey));
   const [resultClosed, setResultClosed] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(() => !guideSeen(browserStorage()));
+  const closeGuide = useCallback((remember: boolean) => {
+    if (remember) markGuideSeen(browserStorage());
+    setGuideOpen(false);
+  }, []);
   const setPick = (driver: number | null) => {
     setPickState(driver);
     setResultClosed(false);
@@ -258,6 +265,11 @@ function RecordedReplay({
             <div className="sv-menu-section">
               <button className="sv-chip" aria-pressed={handsOpen} onClick={onHands}>
                 <Icon name="hand" /> Hand tracking
+              </button>
+            </div>
+            <div className="sv-menu-section">
+              <button className="sv-chip" onClick={() => setGuideOpen(true)}>
+                <Icon name="info" /> Quick guide
               </button>
             </div>
             <div className="sv-menu-section">
@@ -442,6 +454,7 @@ function RecordedReplay({
           </aside>
         </section>
       </main>
+      {guideOpen && <QuickGuide onClose={closeGuide} />}
       <footer className="sv-footer">
         <span>{ATTRIBUTION}</span>
         <span>Flat elevation · illustrative surroundings</span>

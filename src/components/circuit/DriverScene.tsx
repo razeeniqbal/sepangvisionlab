@@ -463,6 +463,8 @@ function DriverCar({
               <FormulaCar
                 compound={compound}
                 teamColor={car.color}
+                team={car.team}
+                number={car.number}
                 fallback={<SimplifiedCar />}
               />
               <mesh
