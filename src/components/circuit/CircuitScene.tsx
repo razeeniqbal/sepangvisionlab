@@ -50,6 +50,7 @@ const browserStorage = () => {
 import type { CarState, CarDefinition } from "../../domain/field";
 
 const DriverScene = lazy(() => import("./DriverScene"));
+import type { DriverSceneProps } from "./DriverScene";
 class DriverBoundary extends Component<
   { children: ReactNode },
   { failed: boolean }
@@ -85,6 +86,8 @@ interface Props {
   wet?: boolean;
   /** Told when the camera mode changes (the workspace shows a driving HUD in chase/onboard). */
   onModeChange?: (mode: CameraMode) => void;
+  /** Compare: a translucent rival car (stable identity; see DriverScene). */
+  ghost?: DriverSceneProps["ghost"];
 }
 // Memoised: the replay clock ticks the workspace 10 times a second for its panels, but the
 // 3D scene reads the clock from a ref every frame, so it only re-renders on real changes.
@@ -297,6 +300,7 @@ function CircuitScene(props: Props) {
             labels={labels}
             trails={trails}
             quality={QUALITY[quality]}
+            ghost={props.ghost}
           />
         </Suspense>
       </DriverBoundary>

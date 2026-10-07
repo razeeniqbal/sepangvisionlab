@@ -2593,3 +2593,96 @@ button:disabled {
 .sv-hud-g figcaption {
   color: #fff;
 }
+
+/* ---------- Compare tab (laps panel) ---------- */
+.sv-compare {
+  display: grid;
+  gap: 10px;
+  overflow-y: auto;
+}
+.sv-compare h3 {
+  margin: 2px 0 0;
+  font-size: 15px;
+}
+.sv-compare-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+.sv-compare-pick select {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-edge);
+  background: var(--panel-raise);
+  font-weight: 600;
+}
+.sv-compare-pick option {
+  background: var(--panel-solid);
+}
+.sv-compare-times {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 0;
+}
+.sv-compare-times div {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--panel-raise);
+  border-left: 3px solid var(--team, var(--panel-line));
+}
+.sv-compare-times dt {
+  font-size: 11px;
+  color: var(--muted);
+}
+.sv-compare-times dd {
+  margin: 2px 0 0;
+  font: 700 17px var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+.sv-compare-times .is-ahead {
+  color: var(--good);
+}
+.sv-compare-times .is-behind {
+  color: var(--danger);
+}
+.sv-compare-chart {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+}
+.sv-compare-line {
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+.sv-compare-grid {
+  stroke: var(--panel-edge);
+}
+.sv-compare-axis {
+  font: 500 9px var(--font);
+  fill: var(--muted);
+  text-anchor: end;
+}
+.sv-compare-now {
+  stroke: #fff;
+  stroke-width: 1;
+  opacity: 0.7;
+}
+.sv-compare-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.sv-compare-legend span {
+  font-weight: 700;
+  color: var(--team);
+}

@@ -31,6 +31,9 @@ import Popover from "../ui/Popover";
 import DriveHud from "./DriveHud";
 import PickWinner, { PickResult } from "./PickWinner";
 import QuickGuide from "./QuickGuide";
+import CompareTab from "./CompareTab";
+import { ghostTime } from "../../domain/compare";
+import { motionAt } from "../../domain/recordedSession";
 import { guideSeen, markGuideSeen } from "./guideStorage";
 import { pickLocked, pickOutcome, readPick, writePick } from "../../domain/pick";
 import type { CameraMode } from "../circuit/cameraRig";
@@ -149,7 +152,9 @@ function RecordedReplay({
     const leader = [...cars].sort((a, b) => a.position - b.position)[0];
     return leader?.id ?? entries[0].id;
   });
-  const [drawer, setDrawer] = useState<"laps" | "info">("laps");
+  const [drawer, setDrawer] = useState<"laps" | "compare" | "info">("laps");
+  const [rivalChoice, setRival] = useState<number | null>(null);
+  const [ghostOn, setGhostOn] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [cameraMode, setCameraMode] = useState<CameraMode>("tv");
   const [pick, setPickState] = useState<number | null>(() => readPick(browserStorage(), file.sessionKey));
@@ -192,6 +197,43 @@ function RecordedReplay({
   const leaderBest = ordered[0]?.bestLap ?? null;
   // Stable props for the memoised 3D scene (the clock ticks this component 10× a second).
   const scene = useMemo(() => ({ entries, sample }), [entries, sample]);
+  // Compare: default rival is the car one place ahead (or behind, for the leader).
+  const rival =
+    rivalChoice !== null && rivalChoice !== number
+      ? rivalChoice
+      : Number(
+          (ordered.find((c) => c.position === selected.position - 1) ??
+            ordered.find((c) => c.position === selected.position + 1) ??
+            ordered.find((c) => c.id !== selected.id))!.number,
+        );
+  // Ghost: the rival at the same moment of the same lap (stable while me/rival are unchanged).
+  const ghost = useMemo(() => {
+    if (!ghostOn) return undefined;
+    const d = session.drivers.find((x) => x.number === rival);
+    if (!d) return undefined;
+    return {
+      id: "ghost-" + rival,
+      sample: (seconds: number) => {
+        const t = ghostTime(file.laps, number, rival, seconds * 1000);
+        if (t === null) return null;
+        const m = motionAt(d, session.track, t);
+        if (!m.present) return null;
+        const L = session.track.length;
+        return {
+          ...entries[0],
+          id: "ghost-" + rival,
+          number: String(rival),
+          position: 0,
+          progress: (((m.distance % L) + L) % L) / L,
+          completedLaps: 0,
+          speedKph: 0,
+          compound: "UNKNOWN" as const,
+          tyreAge: 0,
+          pose: { x: m.x, y: m.y, heading: m.heading },
+        };
+      },
+    };
+  }, [ghostOn, session, rival, number, file.laps, entries]);
   const tags = useMemo(
     () => entries.map((e) => identities.get(Number(e.number))!.code),
     [entries, identities],
@@ -296,6 +338,7 @@ function RecordedReplay({
             tags={tags}
             wet={wet}
             onModeChange={setCameraMode}
+            ghost={ghost}
           />
           <Standings
             cars={cars}
@@ -376,6 +419,9 @@ function RecordedReplay({
                 <button role="tab" aria-selected={drawer === "laps"} onClick={() => setDrawer("laps")}>
                   Laps
                 </button>
+                <button role="tab" aria-selected={drawer === "compare"} onClick={() => setDrawer("compare")}>
+                  Compare
+                </button>
                 <button role="tab" aria-selected={drawer === "info"} onClick={() => setDrawer("info")}>
                   Session
                 </button>
@@ -421,6 +467,17 @@ function RecordedReplay({
                 </table>
                 {lapRows.length === 0 && <p className="sv-muted">No completed laps yet at this time.</p>}
               </section>
+            ) : drawer === "compare" ? (
+              <CompareTab
+                session={session}
+                me={number}
+                rival={rival}
+                onRival={setRival}
+                ghost={ghostOn}
+                onGhost={setGhostOn}
+                time={time * 1000}
+                identities={identities}
+              />
             ) : (
               <section className="sv-info" aria-label="Session information">
                 <dl>

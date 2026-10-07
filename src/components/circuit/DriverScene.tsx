@@ -100,7 +100,8 @@ export interface DriverSceneProps {
   mode: CameraMode;
   /** Short broadcast tag per entry (same order as entries). */
   tags?: readonly string[];
-  ghost?: { id: string; sample: (time: number) => CarState };
+  /** Translucent rival (Compare): its pose at a replay time (seconds), or null to hide it. */
+  ghost?: { id: string; sample: (time: number) => Posed | null };
   labels?: boolean;
   trails?: boolean;
   /** Real rainfall (recorded sessions): wetter asphalt, greyer sky, shorter fog. */
@@ -166,7 +167,7 @@ function blocked(
 
 // Recorded cars carry their own aligned pose (with lateral offset, raw in the pit lane);
 // simulated cars sit on the profile at their progress.
-type Posed = CarState & {
+export type Posed = CarState & {
   pose?: { x: number; y: number; heading: number };
   present?: boolean;
   stale?: boolean;
@@ -549,14 +550,17 @@ function GhostCar({
   ghost,
   clock,
 }: {
-  ghost: { sample: (time: number) => CarState };
+  ghost: { sample: (time: number) => Posed | null };
   clock: RefObject<number>;
 }) {
   const group = useRef<Group>(null);
   useFrame(() => {
     if (!group.current) return;
-    const p = pose(ghost.sample(clock.current));
-    group.current.position.set(p.x, p.y, LAYER.asphalt + 0.01);
+    const state = ghost.sample(clock.current);
+    group.current.visible = state !== null;
+    if (!state) return;
+    const p = pose(state);
+    group.current.position.set(p.x, p.y, LAYER.asphalt + 0.01 + trackZ(state.progress * sepangTrack.length));
     group.current.rotation.z = p.heading;
     group.current.traverse((object) => {
       if (object instanceof Mesh && object.material !== ghostMaterial) {
