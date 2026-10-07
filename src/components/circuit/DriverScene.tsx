@@ -32,6 +32,9 @@ import { leftNormals } from "./environment/ribbon";
 import {
   cameraPose,
   clearTvPoints,
+  dragRig,
+  resetView,
+  wheelRig,
   nearestPoint,
   pickTvCamera,
   smoothHeading,
@@ -235,7 +238,12 @@ function DriverCar({
   wet,
   shadowCaster,
   registry,
+  mounted,
+  rig,
 }: {
+  /** Followed car in the onboard camera: drawn with the camera's heading and no body motion. */
+  mounted: boolean;
+  rig: RefObject<CameraRigState>;
   wet: boolean;
   shadowCaster: boolean;
   registry: TagRegistry;
@@ -362,7 +370,7 @@ function DriverCar({
       positions.needsUpdate = true;
     }
     group.current.position.set(p.x, p.y, LAYER.asphalt);
-    group.current.rotation.z = p.heading;
+    group.current.rotation.z = mounted ? (rig.current.heading ?? p.heading) : p.heading;
     // Acceleration in replay time: a paused or seeking replay holds the body still.
     const speed = state.speedKph / 3.6,
       dt = clock.current - m.time;
@@ -406,7 +414,9 @@ function DriverCar({
     [m.pitch, m.pitchV] = spring(m.pitch, m.pitchV, target.pitch, step);
     [m.roll, m.rollV] = spring(m.roll, m.rollV, target.roll, step);
     const shake = roadShake(clock.current, speed, index * 1.37);
-    attitude.current?.rotation.set(m.roll + shake.roll, m.pitch + shake.pitch, 0);
+    // Onboard, the camera rides on the car: the car's own body motion would read as shaking.
+    if (mounted) attitude.current?.rotation.set(0, 0, 0);
+    else attitude.current?.rotation.set(m.roll + shake.roll, m.pitch + shake.pitch, 0);
     if (pivot.current) pivot.current.position.z = HUB_Z - rideDrop(speed) / CAR_SCALE;
     wheels.blur.opacity = wheelBlur(speed);
     if (rainLight.current) {
@@ -440,6 +450,8 @@ function DriverCar({
       ref={group}
       onClick={(event) => {
         event.stopPropagation();
+        // A drag that ends over a car moved the camera; only a real click selects.
+        if (event.delta > 6) return;
         onSelect(car.id);
       }}
     >
@@ -645,7 +657,7 @@ function CameraRig({
     const view = cameraPose(
       rig.current,
       p,
-      smoothHeading(rig.current, p.heading, delta),
+      smoothHeading(rig.current, p.heading, delta, rig.current.mode === "onboard" ? 12 : 5),
       cameras,
     );
     const f = feel.current,
@@ -659,7 +671,8 @@ function CameraRig({
     const lagTarget = mode === "chase" ? Math.max(-1.2, Math.min(1.2, accel * 0.05)) : 0;
     [f.lag, f.lagV] = spring(f.lag, f.lagV, lagTarget, dt > 0 && dt < 1 ? delta : 0, 40, 9);
     f.fov = ease(f.fov, moving ? Math.max(0, Math.min(1, (speed - 25) / 60)) * (mode === "chase" ? 9 : 7) : 0, delta, 3);
-    const shake = moving ? roadShake(clock.current * 1.7, speed, 3.1).pitch * (mode === "onboard" ? 30 : 12) : 0;
+    // A light high-speed shake on the chase camera only: the onboard camera is mounted to the car.
+    const shake = mode === "chase" ? roadShake(clock.current * 1.7, speed, 3.1).pitch * 10 : 0;
     const back = { x: -Math.cos(p.heading), y: -Math.sin(p.heading) };
     camera.position.set(
       view.position.x + back.x * f.lag,
@@ -778,6 +791,8 @@ function World({
               wet={wet}
               shadowCaster={car.id === selectedId || quality.allCarShadows}
               registry={registry}
+              mounted={car.id === selectedId && mode === "onboard"}
+              rig={rig}
             />
           ),
       )}
@@ -786,8 +801,66 @@ function World({
   );
 }
 
+/**
+ * Mouse and touch camera control: drag to orbit (or look around onboard) and tilt, scroll to
+ * zoom, double-click to reset. The wheel listener is non-passive so the page never scrolls.
+ */
+function useCameraInput(rig: RefObject<CameraRigState>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let drag: { id: number; x: number; y: number } | null = null;
+    const down = (e: PointerEvent) => {
+      if (e.button !== 0 && e.button !== 2) return;
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    };
+    const move = (e: PointerEvent) => {
+      if (!drag || drag.id !== e.pointerId) return;
+      const dx = e.clientX - drag.x,
+        dy = e.clientY - drag.y;
+      if (!el.classList.contains("is-dragging") && Math.hypot(dx, dy) < 4) return;
+      if (!el.classList.contains("is-dragging")) el.setPointerCapture(e.pointerId);
+      el.classList.add("is-dragging");
+      dragRig(rig.current, dx, dy);
+      drag.x = e.clientX;
+      drag.y = e.clientY;
+    };
+    const up = (e: PointerEvent) => {
+      if (drag?.id !== e.pointerId) return;
+      drag = null;
+      el.classList.remove("is-dragging");
+    };
+    const wheel = (e: WheelEvent) => {
+      const lines = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1;
+      if (wheelRig(rig.current, e.deltaY * lines)) e.preventDefault();
+    };
+    const reset = () => resetView(rig.current);
+    const menu = (e: MouseEvent) => e.preventDefault();
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+    el.addEventListener("wheel", wheel, { passive: false });
+    el.addEventListener("dblclick", reset);
+    el.addEventListener("contextmenu", menu);
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+      el.removeEventListener("wheel", wheel);
+      el.removeEventListener("dblclick", reset);
+      el.removeEventListener("contextmenu", menu);
+    };
+  }, [rig]);
+  return ref;
+}
+
 export default function DriverScene(props: DriverSceneProps) {
+  const input = useCameraInput(props.rig);
   return (
+    <div ref={input} className="sv-camera-input" title="Drag to orbit, scroll to zoom, double-click to reset">
     <Canvas
       shadows={(props.quality ?? QUALITY.balanced).shadows}
       dpr={(props.quality ?? QUALITY.balanced).dpr}
@@ -803,5 +876,6 @@ export default function DriverScene(props: DriverSceneProps) {
       <World {...props} />
       <PerfStats />
     </Canvas>
+    </div>
   );
 }

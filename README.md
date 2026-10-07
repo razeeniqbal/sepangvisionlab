@@ -8,6 +8,7 @@ Live: https://sepangvisionlab.madebyrazeen.com/
 
 ## Features
 
+- **Mouse and touch camera control:** drag to orbit around the car (Onboard: look around) and drag up or down to raise or lower the camera; scroll to zoom (TV: zoom the lens); double-click to reset the view.
 - **Five 3D cameras:** TV (trackside, picks a clear line of sight), Chase, Onboard, Heli and Inspect. Chase and Onboard add a speed-sensitive lens, acceleration lag and a light high-speed shake.
 - **Driving HUD** in Chase and Onboard: a rev arc with shift flash, speed, gear, throttle and brake, position, lap, tyre and DRS, all from recorded channels.
 - **Pick your winner** (Race only): choose a driver before lights out. Picks lock at the start, your driver is followed live, and the official result is revealed at the chequered flag. Stored in your browser only.

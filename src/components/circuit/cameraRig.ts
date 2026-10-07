@@ -27,7 +27,9 @@ export interface CameraRigState {
   targetDist: number;
   zoom: number; // TV lens multiplier
   targetZoom: number;
-  heading: number | null; // eased car heading for chase
+  tilt: number; // camera height offset from mouse drag: -1 low .. +1 high (onboard: look up/down)
+  targetTilt: number;
+  heading: number | null; // eased car heading for chase and onboard
 }
 
 const DIST = {
@@ -49,6 +51,8 @@ export function createRig(mode: CameraMode = "tv"): CameraRigState {
     targetDist: dist,
     zoom: 1,
     targetZoom: 1,
+    tilt: 0,
+    targetTilt: 0,
     heading: null,
   };
 }
@@ -62,6 +66,7 @@ export function setMode(rig: CameraRigState, mode: CameraMode) {
   rig.mode = mode;
   rig.targetYaw = 0;
   rig.targetZoom = 1;
+  rig.targetTilt = 0;
   if (orbiting(mode)) rig.targetDist = DIST[mode][1];
 }
 
@@ -106,6 +111,44 @@ export function stepRig(rig: CameraRigState, dt: number) {
   rig.yaw = approach(rig.yaw, rig.targetYaw, dt, 6);
   rig.dist = approach(rig.dist, rig.targetDist, dt, 5);
   rig.zoom = approach(rig.zoom, rig.targetZoom, dt, 5);
+  rig.tilt = approach(rig.tilt, rig.targetTilt, dt, 6);
+}
+
+/** Radians of orbit per pixel of horizontal drag, and tilt per pixel of vertical drag. */
+export const DRAG_YAW = 0.006;
+export const DRAG_TILT = 0.004;
+const TILT_RANGE = { onboard: [-0.35, 0.35], default: [-0.6, 1] } as const;
+
+/**
+ * Mouse drag: horizontal orbits the camera around the car (onboard: look around), vertical
+ * raises or lowers it (onboard: look up or down). TV cameras are fixed, so drag does nothing.
+ * Returns false when the mode ignores it.
+ */
+export function dragRig(rig: CameraRigState, dx: number, dy: number): boolean {
+  if (rig.mode === "tv") return false;
+  rig.targetYaw -= dx * DRAG_YAW;
+  if (rig.mode === "onboard") rig.targetYaw = Math.max(-1.2, Math.min(1.2, rig.targetYaw));
+  const [lo, hi] = rig.mode === "onboard" ? TILT_RANGE.onboard : TILT_RANGE.default;
+  rig.targetTilt = Math.max(lo, Math.min(hi, rig.targetTilt + dy * DRAG_TILT));
+  return true;
+}
+
+/** Scroll wheel: zoom in (negative deltaY) or out, smoothly in proportion to the scroll. */
+export function wheelRig(rig: CameraRigState, deltaY: number): boolean {
+  const factor = Math.exp(Math.max(-1, Math.min(1, deltaY * 0.0015)));
+  if (rig.mode === "tv") {
+    rig.targetZoom = Math.max(0.5, Math.min(4, rig.targetZoom / factor));
+    return true;
+  }
+  if (!orbiting(rig.mode)) return false;
+  const [min, , max] = DIST[rig.mode];
+  rig.targetDist = Math.max(min, Math.min(max, rig.targetDist * factor));
+  return true;
+}
+
+/** Double-click: back to the mode's default view. */
+export function resetView(rig: CameraRigState) {
+  setMode(rig, rig.mode);
 }
 
 /**
@@ -116,6 +159,7 @@ export function smoothHeading(
   rig: CameraRigState,
   heading: number,
   dt: number,
+  rate = 5,
 ) {
   if (rig.heading === null || Math.abs(wrapAngle(heading - rig.heading)) > 0.6)
     rig.heading = heading;
@@ -123,7 +167,7 @@ export function smoothHeading(
     rig.heading = wrapAngle(
       rig.heading +
         wrapAngle(heading - rig.heading) *
-          (1 - Math.exp(-5 * Math.max(0, Math.min(dt, 0.25)))),
+          (1 - Math.exp(-rate * Math.max(0, Math.min(dt, 0.25)))),
     );
   return rig.heading;
 }
@@ -204,14 +248,15 @@ export function cameraPose(
   });
   switch (rig.mode) {
     case "onboard": {
-      // T-cam above the roll hoop, looking along the car with limited look-around.
-      const look = car.heading + rig.yaw;
+      // T-cam above the roll hoop, mounted to the car: it uses the same eased heading the
+      // followed car is drawn with, so the car stays still in frame. Limited look-around.
+      const look = chaseHeading + rig.yaw;
       return {
-        position: at(car.heading, 0.35, 1.32),
+        position: at(chaseHeading, 0.35, 1.32),
         target: {
           x: car.x + Math.cos(look) * 40,
           y: car.y + Math.sin(look) * 40,
-          z: 0.9,
+          z: 0.9 + rig.tilt * 30,
         },
         fov: 72,
       };
@@ -227,7 +272,7 @@ export function cameraPose(
     case "heli": {
       const h = car.heading + rig.yaw + 0.5;
       return {
-        position: at(h, rig.dist * 0.75, rig.dist * 0.65),
+        position: at(h, rig.dist * 0.75 * (1 - rig.tilt * 0.4), rig.dist * 0.65 * (1 + rig.tilt)),
         target: { x: car.x, y: car.y, z: 0 },
         fov: 40,
       };
@@ -235,7 +280,7 @@ export function cameraPose(
     case "inspect": {
       const h = car.heading + rig.yaw + Math.PI * 0.8;
       return {
-        position: at(h, rig.dist, 1.4 + rig.dist * 0.18),
+        position: at(h, rig.dist, Math.max(0.35, 1.4 + rig.dist * (0.18 + rig.tilt * 0.6))),
         target: { x: car.x, y: car.y, z: 0.55 },
         fov: 45,
       };
@@ -243,7 +288,7 @@ export function cameraPose(
     default: {
       const h = chaseHeading + rig.yaw;
       return {
-        position: at(h, rig.dist, 1.6 + rig.dist * 0.22),
+        position: at(h, rig.dist, Math.max(0.6, (1.6 + rig.dist * 0.22) * (1 + rig.tilt))),
         target: {
           x: car.x + Math.cos(h) * 14,
           y: car.y + Math.sin(h) * 14,

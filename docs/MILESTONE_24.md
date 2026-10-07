@@ -17,3 +17,22 @@ Sources: sepangcircuit.com/architecture (accessed 2026-10-07) and spectator guid
 - **C2 hillstand:** a grass bank with spectators and a partial roof beside the Turns 9–11 complex.
 - **Pit lane:** registered as DERIVED (from the 73 race pit stops).
 - **Turn boards:** now show a plain back instead of mirrored numbers.
+
+## Mouse camera control
+- **Drag** orbits the camera around the car. Up and down raises or lowers it. Onboard, drag looks around (limited to ±1.2 rad) and up or down.
+- **Scroll** zooms smoothly in proportion to the scroll: distance in Chase, Heli and Inspect, and the lens on TV.
+- **Double-click** resets the view.
+- A click that ends a drag no longer selects a car. The page never scrolls under the wheel. On touch, horizontal drags orbit while vertical swipes still scroll the page.
+
+## Onboard camera steadied
+The onboard view looked shaky for three reasons:
+- a high-speed camera shake that is far too strong this close to the car;
+- the car's own sprung body motion and road vibration, which a camera mounted on the car would not see;
+- frame-to-frame heading jitter, magnified across the 40 m look-ahead.
+
+Now:
+- the onboard camera has no shake;
+- the car you ride in is drawn rigid, though its wheels still steer and spin;
+- the camera and that car share one lightly eased heading.
+
+The chase camera keeps a smaller shake.

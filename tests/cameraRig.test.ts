@@ -144,3 +144,30 @@ test("TV camera skips blocked views, holds a clear shot and keeps clearance", as
   assert.deepEqual(clearTvPoints(pts, [{ x: 17, y: 3 }]), [pts[0], pts[2]]);
   assert.equal(clearTvPoints(pts, [{ x: 20, y: 5.9 }]).includes(pts[1]), false);
 });
+
+test("mouse drag orbits and tilts, scroll zooms, double-click resets", async () => {
+  const { dragRig, wheelRig, resetView, DRAG_YAW } = await import("../src/components/circuit/cameraRig.ts");
+  const rig = createRig("chase");
+  assert.equal(dragRig(rig, 100, 0), true);
+  assert.ok(Math.abs(rig.targetYaw + 100 * DRAG_YAW) < 1e-12, "drag right orbits");
+  dragRig(rig, 0, 1000);
+  assert.equal(rig.targetTilt, 1, "tilt is clamped");
+  const before = rig.targetDist;
+  assert.equal(wheelRig(rig, -200), true);
+  assert.ok(rig.targetDist < before, "scroll up zooms in");
+  for (let i = 0; i < 50; i++) wheelRig(rig, 500);
+  assert.equal(rig.targetDist, 30, "zoom out is clamped");
+  resetView(rig);
+  assert.equal(rig.targetYaw, 0);
+  assert.equal(rig.targetTilt, 0);
+  assert.equal(rig.targetDist, 13);
+  const tv = createRig("tv");
+  assert.equal(dragRig(tv, 50, 50), false, "trackside cameras are fixed");
+  wheelRig(tv, -300);
+  assert.ok(tv.targetZoom > 1, "scroll zooms the TV lens");
+  const onboard = createRig("onboard");
+  dragRig(onboard, -10000, -10000);
+  assert.equal(onboard.targetYaw, 1.2, "onboard look-around is limited");
+  assert.equal(onboard.targetTilt, -0.35);
+  assert.equal(wheelRig(onboard, 100), false, "onboard has a fixed lens");
+});

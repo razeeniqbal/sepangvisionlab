@@ -1187,6 +1187,17 @@ button:disabled {
   will-change: transform;
   transition: opacity 0.2s linear;
 }
+/* Mouse camera control surface (DriverScene): drag to orbit, scroll to zoom. */
+.sv-camera-input {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+  touch-action: pan-y;
+}
+.sv-camera-input.is-dragging {
+  cursor: grabbing;
+}
+
 /* Overlay for car tags, positioned each frame by TagLayer (DriverScene). */
 .sv-tag-layer {
   position: absolute;
