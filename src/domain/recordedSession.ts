@@ -5,12 +5,22 @@ import type { CarState, TyreCompound } from "./field.ts";
 import { poseAtDistance, type TrackProfile } from "./lapPhysics.ts";
 import { apply, nearestOnTrack, type Similarity } from "./alignment.ts";
 import { curvatureAt } from "./carMotion.ts";
-import { pitOffsetAt, type PitLane } from "./pitLane.ts";
+import { PIT_LANE_CAPTURE, pathDistance, pathFrame, pitOffsetAt, projectOnPath, type PitLane } from "./pitLane.ts";
 import { contactAllowed, contactsFrom, separationShifts, type Contact } from "./separation.ts";
 
 export const STALE_AFTER_MS = 2000;
 /** |lateral| beyond this is off the racing surface (pit lane, garage): drawn raw, not snapped. */
 export const ON_TRACK_METRES = 10; // the DERIVED pit lane runs ~12 m off the centre line, so it must fall outside
+/** Smoothing (σ, ms) of positions off the race track and where cars switch roads. */
+const OFF_TRACK_SIGMA = 500;
+/** Snapped and world positions are blended over this long (ms) around leaving or rejoining the track. */
+const BLEND_MS = 1500;
+/** A retired car is parked this far (m) off the centre line: on the run-off, inside the barrier. */
+export const PARK_OFFSET = 14;
+/** It steers there over the last few seconds before it stops (ILLUSTRATIVE). */
+const PULL_OFF_MS = 4000;
+/** Parked at a slight angle to the track, as a stopped car usually is (rad). */
+const PARK_ANGLE = 0.3;
 
 // ---- file formats (written by scripts/build_recorded_session.py) ----
 export interface DriverIdentity {
@@ -81,8 +91,15 @@ export interface DriverTrack {
   lateral: Float64Array; // signed offset from the centre line, metres (+ left)
   wx: Float64Array; // aligned world position, metres
   wy: Float64Array;
+  /** Drawn position per sample: snapped to the track on it (road 1), smoothed world position off it. */
+  px: Float64Array;
+  py: Float64Array;
+  /** 1 where the car is off the race track or within BLEND_MS of it: drawn from px/py, not snapped. */
+  free: Uint8Array;
   /** Per sample: 1 on the race track, 2 in the DERIVED pit lane, 0 elsewhere (garage, grass). */
   road: Uint8Array;
+  /** Set for a classified DNF that stopped on the track: where and when it stopped, and where it parks. */
+  retired?: Retirement;
   tel: { t: Float64Array; speed: Float64Array; rpm: Float64Array; gear: Float64Array; throttle: Float64Array; brake: Float64Array; drs: Float64Array };
 }
 
@@ -109,25 +126,90 @@ export function prepareDriver(file: DriverFile, transform: Similarity, track: Tr
     previous = along;
     s[i] = along + offset;
   }
-  // Classify on the raw offsets, then smooth along both roads: the pit lane gets the same
-  // jitter-free, curve-following motion as the race track.
+  // Classify on the raw offsets. On the race track, distance and offset are smoothed and the
+  // car is drawn on the track curve. In the pit lane (whose entry leaves the track sideways at
+  // the final hairpin) the same is done along the pit road's own centre line, so cars follow
+  // the road they really drove. Elsewhere (garages) the world position itself is smoothed.
   const road = new Uint8Array(n);
+  const toPit = pit && pitDistance(pit);
   for (let i = 0; i < n; i++) {
-    const k = Math.floor((((s[i] % L) + L) % L / L) * track.count) % track.count;
-    const lane = pit ? pitOffsetAt(pit, k, track.count) : null;
-    road[i] = Math.abs(lateral[i]) <= ON_TRACK_METRES ? 1 : lane !== null && Math.abs(lateral[i] - lane) <= 4.5 ? 2 : 0;
+    if (Math.abs(lateral[i]) <= ON_TRACK_METRES) road[i] = 1;
+    else if (toPit && toPit(wx[i], wy[i]) <= PIT_LANE_CAPTURE) road[i] = 2;
   }
-  const onRoad = (k: number) => road[k] > 0;
-  smoothDistance(t, s, lateral, onRoad);
-  smoothLateral(t, lateral, onRoad);
+  const onTrack = (k: number) => road[k] === 1;
+  smoothDistance(t, s, lateral, onTrack);
+  smoothLateral(t, lateral, onTrack);
+  // Drawn position from each sample's own road: snapped on the track, along the pit road's
+  // centre line in the pit lane, the aligned world position elsewhere.
+  const bx = Float64Array.from(wx), by = Float64Array.from(wy);
+  for (let i = 0; i < n; i++) {
+    if (road[i] !== 1) continue;
+    const pose = poseAtDistance(track, s[i]);
+    bx[i] = pose.x - Math.sin(pose.heading) * lateral[i];
+    by[i] = pose.y + Math.cos(pose.heading) * lateral[i];
+  }
+  if (pit) {
+    const inLane = (k: number) => road[k] === 2;
+    const u = new Float64Array(n), across = new Float64Array(n);
+    for (let i = 0; i < n; i++)
+      if (road[i] === 2) {
+        const q = projectOnPath(pit.path, wx[i], wy[i]);
+        u[i] = q.u;
+        across[i] = q.offset;
+      }
+    // As on the track: jitter-free distance along the road (never backwards) and offset.
+    u.set(localLinear(t, u, inLane, 500));
+    for (let i = 1; i < n; i++)
+      if (inLane(i) && inLane(i - 1) && t[i] - t[i - 1] <= STALE_AFTER_MS && u[i] < u[i - 1]) u[i] = u[i - 1];
+    across.set(localLinear(t, across, inLane, 600));
+    const frame = pathFrame(pit.path);
+    for (let i = 0; i < n; i++) {
+      if (!inLane(i)) continue;
+      const f = frame(u[i]);
+      bx[i] = f.x + f.nx * across[i];
+      by[i] = f.y + f.ny * across[i];
+    }
+  }
+  // The roads' positions differ by the alignment residual (~3 m) where a car switches between
+  // them, so there they are smoothed together and eased back over BLEND_MS: no lurch where the
+  // car leaves or rejoins the track. Garage positions are smoothed throughout.
+  const near = new Float64Array(n).fill(Infinity); // ms to the nearest sample on another road
+  for (let i = 1, last = -Infinity; i < n; i++) {
+    if (t[i] - t[i - 1] > STALE_AFTER_MS) last = -Infinity;
+    else if (road[i] !== road[i - 1]) last = t[i - 1];
+    near[i] = t[i] - last;
+  }
+  for (let i = n - 2, last = Infinity; i >= 0; i--) {
+    if (t[i + 1] - t[i] > STALE_AFTER_MS) last = Infinity;
+    else if (road[i] !== road[i + 1]) last = t[i + 1];
+    near[i] = Math.min(near[i], last - t[i]);
+  }
+  const blended = (k: number) => road[k] === 0 || near[k] <= BLEND_MS;
+  const sx = localLinear(t, bx, blended, OFF_TRACK_SIGMA), sy = localLinear(t, by, blended, OFF_TRACK_SIGMA);
+  const px = Float64Array.from(bx), py = Float64Array.from(by);
+  const free = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    free[i] = road[i] !== 1 || near[i] <= BLEND_MS ? 1 : 0;
+    if (!blended(i)) continue;
+    const w = road[i] === 0 ? 1 : 1 - near[i] / BLEND_MS;
+    px[i] += (sx[i] - bx[i]) * w;
+    py[i] += (sy[i] - by[i]) * w;
+  }
   const c = file.telemetry;
   return {
-    number: file.number, t, s, lateral, wx, wy, road,
+    number: file.number, t, s, lateral, wx, wy, px, py, free, road,
     tel: {
       t: undelta(c.t), speed: Float64Array.from(c.speed), rpm: Float64Array.from(c.rpm), gear: Float64Array.from(c.gear),
       throttle: Float64Array.from(c.throttle), brake: Float64Array.from(c.brake), drs: Float64Array.from(c.drs),
     },
   };
+}
+
+const pitDistances = new WeakMap<PitLane, (x: number, y: number) => number>();
+function pitDistance(pit: PitLane) {
+  let f = pitDistances.get(pit);
+  if (!f) pitDistances.set(pit, (f = pathDistance(pit.path, PIT_LANE_CAPTURE)));
+  return f;
 }
 
 /**
@@ -202,11 +284,49 @@ export function lastAtOrBefore(arr: ArrayLike<number>, value: number): number {
   return out;
 }
 
+export interface Retirement {
+  at: number; // ms: the car's last movement
+  s: number; // unwrapped distance where it stopped
+  park: number; // signed offset it is parked at
+}
+
+/**
+ * Where a retired car stopped. OpenF1 keeps reporting its last position to the end of the
+ * session, so it would sit on the racing line. Null if it was still moving at the end or
+ * stopped off the track (pit lane, garage), where it is already out of the way.
+ */
+export function findRetirement(d: DriverTrack, track: TrackProfile, pit?: PitLane): Retirement | null {
+  const n = d.t.length;
+  if (n < 2) return null;
+  // The first sample from which the car never leaves its final spot (3 m, for position noise).
+  let last = n - 1;
+  while (last > 0 && Math.hypot(d.wx[last - 1] - d.wx[n - 1], d.wy[last - 1] - d.wy[n - 1]) < 3) last--;
+  if (last === 0 || d.t[n - 1] - d.t[last] < 30000 || d.road[last] !== 1) return null;
+  const L = track.length, k = Math.floor(((((d.s[last] % L) + L) % L) / L) * track.count) % track.count;
+  // The nearer side, unless the pit road runs there; pulled in on the inside of a tight bend.
+  let side = d.lateral[last] < 0 ? -1 : 1;
+  if (pit && side === pit.side && pitOffsetAt(pit, k, track.count) !== null) side = -side;
+  const c = track.curvature[k];
+  const park = side * (side * c > 0 ? Math.min(PARK_OFFSET, 0.6 / Math.abs(c)) : PARK_OFFSET);
+  return { at: d.t[last], s: d.s[last], park };
+}
+
+/** Mark the classified DNFs of a session so they pull off and park beside the track. */
+export function markRetirements(file: SessionFile, drivers: DriverTrack[], track: TrackProfile, pit?: PitLane) {
+  for (const r of file.result ?? []) {
+    if (!r.dnf) continue;
+    const d = drivers.find((x) => x.number === r.driver_number);
+    const retired = d && findRetirement(d, track, pit);
+    if (d && retired) d.retired = retired;
+  }
+}
+
 export interface MotionSample {
   present: boolean; // false before the first sample
   stale: boolean; // no fresh sample for more than STALE_AFTER_MS: held, not invented
-  onTrack: boolean; // snapped to the profile (race track or DERIVED pit lane); false = raw aligned position
+  onTrack: boolean; // on the race track, snapped to the profile; false = smoothed world position
   pitLane: boolean; // in the DERIVED pit lane
+  retired?: boolean; // a DNF parked beside the track (ILLUSTRATIVE position)
   distance: number; // unwrapped metres
   lateral: number;
   x: number;
@@ -249,13 +369,27 @@ export function motionAt(d: DriverTrack, track: TrackProfile, time: number): Mot
   const hold = j === i || gap > STALE_AFTER_MS;
   const stale = hold && time - d.t[i] > STALE_AFTER_MS;
   const f = hold || gap <= 0 ? 0 : (time - d.t[i]) / gap;
-  const onTrack = d.road[i] > 0 && d.road[j] > 0;
+  const onTrack = d.road[i] === 1 && d.road[j] === 1;
   const pitLane = d.road[i] === 2 || d.road[j] === 2;
   const along = smoothBetween(d.t, d.s, i, hold ? i : j, f);
   const across = smoothBetween(d.t, d.lateral, i, hold ? i : j, f);
+  const r = d.retired;
+  if (r && time >= r.at) {
+    // Parked beside the track where it stopped, angled away from the track.
+    const pose = poseAtDistance(track, r.s);
+    return {
+      present: true, stale: false, onTrack: false, pitLane: false, retired: true, distance: r.s, lateral: r.park,
+      x: pose.x - Math.sin(pose.heading) * r.park, y: pose.y + Math.cos(pose.heading) * r.park,
+      heading: pose.heading + Math.sign(r.park) * PARK_ANGLE,
+    };
+  }
   const distance = along.value;
-  const lateral = across.value;
-  if (onTrack) {
+  let lateral = across.value;
+  // Pulling off: steer from the recorded line to the parking spot while slowing to a stop.
+  const pull = r && time > r.at - PULL_OFF_MS ? (time - (r.at - PULL_OFF_MS)) / PULL_OFF_MS : 0;
+  const ease = pull * pull * (3 - 2 * pull);
+  if (pull > 0) lateral += (r!.park - lateral) * ease;
+  if (onTrack && !d.free[i] && !d.free[j]) {
     const pose = poseAtDistance(track, distance);
     const nx = -Math.sin(pose.heading), ny = Math.cos(pose.heading);
     // Point the car along its true path: on a racing line it crosses the track diagonally, and
@@ -263,15 +397,26 @@ export function motionAt(d: DriverTrack, track: TrackProfile, time: number): Mot
     // Faded in from 8 m/s: at walking pace the lateral noise would swing the nose around.
     const fade = Math.max(0, Math.min(1, (along.rate - 0.008) / 0.012));
     const forward = along.rate * Math.max(0.2, 1 - curvatureAt(track, distance) * lateral);
-    const yaw = fade * Math.max(-MAX_LANE_YAW, Math.min(MAX_LANE_YAW, Math.atan2(across.rate, forward)));
+    let yaw = fade * Math.max(-MAX_LANE_YAW, Math.min(MAX_LANE_YAW, Math.atan2(across.rate, forward)));
+    if (pull > 0) yaw = yaw * (1 - ease) + Math.sign(r!.park) * (Math.sin(Math.PI * pull) * MAX_LANE_YAW + ease * PARK_ANGLE);
     return { present: true, stale, onTrack, pitLane, distance, lateral, x: pose.x + nx * lateral, y: pose.y + ny * lateral, heading: pose.heading + yaw };
   }
-  // Off the profile (pit lane centre line is UNAVAILABLE): raw aligned position, no snapping.
-  const x = d.wx[i] + (d.wx[j] - d.wx[i]) * f, y = d.wy[i] + (d.wy[j] - d.wy[i]) * f;
-  let k = j;
-  while (k < d.t.length - 1 && Math.hypot(d.wx[k] - d.wx[i], d.wy[k] - d.wy[i]) < 1) k++;
-  const heading = k > i ? Math.atan2(d.wy[k] - d.wy[i], d.wx[k] - d.wx[i]) : 0;
-  return { present: true, stale, onTrack, pitLane, distance, lateral, x, y, heading };
+  // Off the race track (pit lane, entry road, garage) or joining it: the drawn positions, which
+  // meet the snapped track positions at the samples where the car leaves or rejoins it.
+  const ax = smoothBetween(d.t, d.px, i, hold ? i : j, f), ay = smoothBetween(d.t, d.py, i, hold ? i : j, f);
+  // Point along the path while moving; when (nearly) stopped, towards where the car goes next.
+  let heading: number;
+  if (Math.hypot(ax.rate, ay.rate) > 0.003) heading = Math.atan2(ay.rate, ax.rate);
+  else {
+    let k = j;
+    while (k < d.t.length - 1 && Math.hypot(d.px[k] - d.px[i], d.py[k] - d.py[i]) < 1) k++;
+    let b = i;
+    while (b > 0 && Math.hypot(d.px[i] - d.px[b], d.py[i] - d.py[b]) < 1) b--;
+    heading = k > i && Math.hypot(d.px[k] - d.px[i], d.py[k] - d.py[i]) >= 1
+      ? Math.atan2(d.py[k] - d.py[i], d.px[k] - d.px[i])
+      : Math.atan2(d.py[i] - d.py[b], d.px[i] - d.px[b]);
+  }
+  return { present: true, stale, onTrack, pitLane, distance, lateral, x: ax.value, y: ay.value, heading };
 }
 
 export interface TelemetrySample { speed: number; rpm: number; gear: number; throttle: number; brake: number; drs: number; fresh: boolean }
@@ -455,6 +600,8 @@ export interface RecordedCarState extends CarState {
   stale: boolean;
   inPit: boolean;
   onTrack: boolean;
+  /** A DNF that has stopped: parked beside the track. */
+  retired: boolean;
   throttle: number;
   brake: number;
   gear: number;
@@ -507,8 +654,9 @@ export function recordedFieldAt(session: RecordedSession, time: number): Recorde
       pose: { x: m.x, y: m.y, heading: m.heading },
       present: m.present,
       stale: m.stale,
-      inPit: inPitLane(file.pit, d.number, t) || (m.present && (m.pitLane || !m.onTrack)),
+      inPit: !m.retired && (inPitLane(file.pit, d.number, t) || (m.present && (m.pitLane || !m.onTrack))),
       onTrack: m.onTrack,
+      retired: m.retired === true,
       throttle: tel.throttle,
       brake: tel.brake,
       gear: tel.gear,

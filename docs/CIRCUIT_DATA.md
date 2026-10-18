@@ -44,9 +44,9 @@ The terrain around the circuit is ILLUSTRATIVE:
 
 ## Pit lane (DERIVED)
 
-`scripts/derive-pit-lane.ts` (`npm run data:pitlane`) builds `src/data/circuits/sepangPitLane.json` from where cars drove during all 73 race pit stops: the median across-track offset per profile sample, smoothed.
+`scripts/derive-pit-lane.ts` (`npm run data:pitlane`) builds `src/data/circuits/sepangPitLane.json` from where cars drove during all 73 race pit stops. Each stop gives one pass, from the last position on the track to the first one back on it. The centre line (`path`, world metres every 4 m) starts from the longest pass and is refined five times to the median across-road position of all passes. An end that stops short of the track (positions are sparse right at the turn-off) is joined to the track edge. `offsets` holds the same line as a signed across-track offset per profile sample, for the pit wall, barrier and cameras.
 
-The result is about 600 m long beside the main straight, about 12 m right of the centre line and 17 m at the entry. Its width, the pit wall, fence and apron are ILLUSTRATIVE.
+The road is about 900 m long. It leaves the track on the outside of the final hairpin, loops up to ~60 m out, and runs about 12 m right of the centre line beside the main straight to rejoin after the line. The circuit barrier on that side runs outside the loop, and the ground stays flat around it. Its width, the pit wall, fence and apron are ILLUSTRATIVE.
 
 ## Turns, buildings and scenery
 

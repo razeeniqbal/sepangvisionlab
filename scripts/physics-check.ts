@@ -14,6 +14,7 @@ const transform = read("../public/sessions/1308/alignment.json").transform;
 const slug = process.argv[2] ?? "race";
 const pit = read("../src/data/circuits/sepangPitLane.json");
 let pitFrames = 0;
+const pitLongs: number[] = [], pitLats: number[] = [];
 const session = read(`../public/sessions/1308/${slug}/session.json`);
 const G = 9.81, LIMIT = 6 * G, H = 0.02;
 const cause: Record<string, number> = { "sample gap > 600 ms": 0, "near pit / off-track edge": 0, other: 0 };
@@ -24,15 +25,22 @@ for (const dr of session.drivers.slice(0, Number(process.argv[3] ?? 22))) {
   const end = d.t[d.t.length - 1];
   for (let t = d.t[0] + 1000; t < end - 1000; t += H * 1000 * 5) {
     const p = [-1, 0, 1].map((k) => motionAt(d, track, t + k * H * 1000));
-    if (p.some((m) => !m.onTrack || m.stale || !m.present)) continue;
+    // On the race track or in the pit lane (including its entry road); not garage or grass.
+    if (p.some((m) => !(m.onTrack || m.pitLane) || m.stale || !m.present)) continue;
     const v1 = [(p[1].x - p[0].x) / H, (p[1].y - p[0].y) / H], v2 = [(p[2].x - p[1].x) / H, (p[2].y - p[1].y) / H];
     const speed = Math.hypot(v1[0] + v2[0], v1[1] + v2[1]) / 2;
     if (speed < 15) continue;
     const a = [(v2[0] - v1[0]) / H, (v2[1] - v1[1]) / H];
     const ux = (v1[0] + v2[0]) / 2 / speed, uy = (v1[1] + v2[1]) / 2 / speed;
     const along = a[0] * ux + a[1] * uy, across = -a[0] * uy + a[1] * ux;
+    // Pit-lane frames (including its entry road) are reported on their own.
+    if (p.some((m) => m.pitLane)) {
+      pitFrames++;
+      pitLongs.push(Math.abs(along));
+      pitLats.push(Math.abs(across));
+      continue;
+    }
     frames++;
-    if (p[1].pitLane) pitFrames++;
     longs.push(Math.abs(along));
     lats.push(Math.abs(across));
     if (Math.abs(along) > LIMIT || Math.abs(across) > LIMIT) {
@@ -53,7 +61,7 @@ console.log(`${slug}: ${frames} moving frames; over 6 g longitudinal ${pct(longB
 console.log("causes", cause);
 const q = (a: number[], p: number) => (a.sort((x, y) => x - y)[Math.floor(p * a.length)] / G).toFixed(2);
 console.log(`longitudinal g p50 ${q(longs, 0.5)} p95 ${q(longs, 0.95)} p99 ${q(longs, 0.99)} | lateral g p50 ${q(lats, 0.5)} p95 ${q(lats, 0.95)} p99 ${q(lats, 0.99)}`);
-console.log("frames in the pit lane:", pitFrames);
+console.log(`frames in the pit lane: ${pitFrames}; longitudinal g p99 ${q([...pitLongs], 0.99)}, lateral g p99 ${q([...pitLats], 0.99)}, worst ${(Math.max(...pitLongs, ...pitLats) / G).toFixed(1)} g`);
 
 // The g-forces the app shows (gForcesAt), over the same race.
 {

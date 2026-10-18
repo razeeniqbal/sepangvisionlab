@@ -5,6 +5,7 @@ import {
   poseAtDistance,
   type TrackProfile,
 } from "../../../domain/lapPhysics.ts";
+import { PIT_LANE_HALF_WIDTH, pitOffsetAt, type PitLane } from "../../../domain/pitLane.ts";
 import { clampInside } from "./ribbon.ts";
 
 // Official minimum width (16 m, register "width-min") used as a constant visual width.
@@ -152,13 +153,37 @@ export function cornerBoards(
   });
 }
 
-/** Signed barrier offset at a sample, pulled in on the inside of tight bends. */
+// Barrier distance needed on the pit side to keep the pit road inside it, per sample.
+const pitClearances = new WeakMap<PitLane, Float64Array>();
+function pitClearance(track: TrackProfile, lane: PitLane) {
+  let c = pitClearances.get(lane);
+  if (c) return c;
+  const n = track.count;
+  c = new Float64Array(n);
+  // Spread over ±6 samples so the barrier swings out ahead of the road and back after it.
+  for (let i = 0; i < n; i++)
+    for (let k = -6; k <= 6; k++) {
+      const o = pitOffsetAt(lane, i + k, n);
+      if (o !== null) c[i] = Math.max(c[i], Math.abs(o) + PIT_LANE_HALF_WIDTH + 4);
+    }
+  pitClearances.set(lane, c);
+  return c;
+}
+
+/**
+ * Signed barrier offset at a sample, pulled in on the inside of tight bends. With the pit lane,
+ * the barrier on its side runs outside the pit road wherever the road goes beyond it (the
+ * entry road loops out ~60 m around the final hairpin).
+ */
 export function barrierOffset(
   track: TrackProfile,
   index: number,
   side: -1 | 1,
+  lane?: PitLane,
 ) {
-  return clampInside(track, wrap(index, track.count), side * BARRIER_OFFSET);
+  const i = wrap(index, track.count);
+  const out = lane && side === lane.side ? Math.max(BARRIER_OFFSET, pitClearance(track, lane)[i]) : BARRIER_OFFSET;
+  return clampInside(track, i, side * out);
 }
 
 export interface Palm {
@@ -485,14 +510,23 @@ export function groundHeight(track: TrackProfile, cell = 60) {
  * lap) the ground falls towards it instead of burying it. Run-off, barriers and fences drape
  * onto this surface (StripEdge.drape), so the grass between the two roads forms the bank.
  */
-export function terrainHeight(track: TrackProfile, reach = 150, slope = 0.15, cell = 60) {
-  const z = track.z;
-  if (!z) return () => -0.25;
-  const n = track.count;
+export function terrainHeight(
+  track: TrackProfile,
+  reach = 150,
+  slope = 0.15,
+  cell = 60,
+  /** Other roads (the pit lane) as points with their surface height: flat around them too. */
+  extra: readonly { x: number; y: number; z: number }[] = [],
+) {
+  if (!track.z) return () => -0.25;
+  const n = track.count + extra.length;
+  const px = Float64Array.from([...track.x, ...extra.map((p) => p.x)]),
+    py = Float64Array.from([...track.y, ...extra.map((p) => p.y)]),
+    z = Float64Array.from([...track.z, ...extra.map((p) => p.z)]);
   const buckets = new Map<string, number[]>();
   const key = (x: number, y: number) => Math.floor(x / cell) + ":" + Math.floor(y / cell);
   for (let i = 0; i < n; i++) {
-    const k = key(track.x[i], track.y[i]);
+    const k = key(px[i], py[i]);
     const list = buckets.get(k);
     if (list) list.push(i);
     else buckets.set(k, [i]);
@@ -506,7 +540,7 @@ export function terrainHeight(track: TrackProfile, reach = 150, slope = 0.15, ce
     for (let dx = -r; dx <= r; dx++)
       for (let dy = -r; dy <= r; dy++)
         for (const i of buckets.get(cx + dx + ":" + (cy + dy)) ?? []) {
-          const d = Math.hypot(track.x[i] - x, track.y[i] - y);
+          const d = Math.hypot(px[i] - x, py[i] - y);
           // Flat across the road and run-off (26 m from the centre line), then the slope.
           if (d <= reach) h = Math.min(h, z[i] + slope * Math.max(0, d - 26));
         }

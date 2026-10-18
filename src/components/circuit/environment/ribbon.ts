@@ -1,6 +1,7 @@
 // Offset strips swept along the metric track profile. Pure maths (no three.js) so it runs in
 // node --test. Frame: x east, y north, z up, metres. Positive offsets are left of travel.
 import type { TrackProfile } from "../../../domain/lapPhysics.ts";
+import { pathNormals, type PitPath } from "../../../domain/pitLane.ts";
 
 export type Offset = number | ((index: number) => number);
 export interface StripEdge {
@@ -91,6 +92,41 @@ export function buildStrip(
         [x, y, edge.z + (edge.drape ? Math.min(road, edge.drape(x, y)) : road)],
         s * 6 + e * 3,
       );
+      uvs.set([u, e], s * 4 + e * 2);
+    });
+  }
+  for (let s = 0; s < stations - 1; s++) {
+    const a = s * 2;
+    indices.set([a, a + 2, a + 1, a + 1, a + 2, a + 3], s * 6);
+  }
+  return { positions, uvs, indices };
+}
+
+/**
+ * A strip along its own centre line (the pit road), not the track: offsets are from that line
+ * (+ left of its direction), heights are above `ground` at each point.
+ */
+export function buildPathStrip(
+  path: PitPath,
+  spec: {
+    edges: readonly [{ offset: number; z: number }, { offset: number; z: number }];
+    ground: (x: number, y: number) => number;
+    uLength?: number;
+  },
+): StripMesh {
+  const stations = path.x.length,
+    uLength = spec.uLength ?? 10;
+  const { nx, ny } = pathNormals(path);
+  const positions = new Float32Array(stations * 6),
+    uvs = new Float32Array(stations * 4),
+    indices = new Uint32Array(Math.max(0, stations - 1) * 6);
+  let u = 0;
+  for (let s = 0; s < stations; s++) {
+    if (s > 0) u += Math.hypot(path.x[s] - path.x[s - 1], path.y[s] - path.y[s - 1]) / uLength;
+    spec.edges.forEach((edge, e) => {
+      const x = path.x[s] + nx[s] * edge.offset,
+        y = path.y[s] + ny[s] * edge.offset;
+      positions.set([x, y, edge.z + spec.ground(x, y)], s * 6 + e * 3);
       uvs.set([u, e], s * 4 + e * 2);
     });
   }

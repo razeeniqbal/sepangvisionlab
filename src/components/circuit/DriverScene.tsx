@@ -670,7 +670,7 @@ function trackside(layout: EnvironmentLayout): Vec3[] {
   const obstacles: { x: number; y: number }[] = [...layout.boards];
   for (let i = 0; i < sepangTrack.count; i++)
     for (const side of [-1, 1] as const) {
-      const o = barrierOffset(sepangTrack, i, side);
+      const o = barrierOffset(sepangTrack, i, side, PIT_LANE);
       obstacles.push({
         x: sepangTrack.x[i] + normals.nx[i] * o,
         y: sepangTrack.y[i] + normals.ny[i] * o,

@@ -27,9 +27,11 @@ export default function RecordedTelemetryCard({
     ? "Not running"
     : car.stale
       ? "Stale data"
-      : car.inPit
-        ? "In pit lane"
-        : "On track";
+      : car.retired
+        ? "Retired"
+        : car.inPit
+          ? "In pit lane"
+          : "On track";
   return (
     <section
       className={"sv-card sv-telemetry glass" + (collapsed ? " is-collapsed" : "")}

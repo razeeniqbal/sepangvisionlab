@@ -64,7 +64,8 @@ npm test
   - The track itself is a smooth curve.
   - Cars point along their real path, including the racing line, and steer from its curvature.
   - `npm run check:physics` samples every car at 50 Hz across the race: 99% of frames stay within 3.7 g braking or acceleration and 5.9 g cornering, the range of a real car. A data gap holds the last sample and marks the car stale after 2 s.
-- **Pit lane.** DERIVED from where cars drove during all 73 race pit stops (`npm run data:pitlane`, written to `src/data/circuits/sepangPitLane.json`). Its width, wall and apron are illustrative.
+- **Pit lane.** DERIVED from where cars drove during all 73 race pit stops (`npm run data:pitlane`, written to `src/data/circuits/sepangPitLane.json`), including the entry road that leaves the track at the final hairpin and loops ~60 m out before running beside the straight. Cars in it follow the lane's own centre line, smoothed like on track. Its width, wall and apron are illustrative.
+- **Retirements.** OpenF1 keeps reporting a retired car's last position, so a classified DNF that stopped on track steers off over its last 4 s and is parked on the run-off beside the track (ILLUSTRATIVE position), shown as "Retired".
 - **G-forces.** From the change of speed and the yaw rate of each car's smoothed path over ±150 ms (`gForcesAt`), clamped to ±6.5 g. Across the race: braking to about 2.7 g, acceleration to 2.2 g, cornering to about 5.8 g (99th percentiles).
 - **Wetness.** OpenF1 only reports whether it is raining. Wetness is 1 while it rains and falls to 0 over 90 minutes afterwards, a drying time fitted to the race's intermediate stint and lap times (`src/domain/wetness.ts`).
 - **Track width.** Kept at the official 16 m minimum. Cars at any point pass within about 0.2 m of each other, so OpenF1 positions cannot reveal the real 16–22 m width.

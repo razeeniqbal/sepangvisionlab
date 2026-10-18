@@ -4,6 +4,7 @@ import type { PitLane } from "../domain/pitLane";
 import type { Similarity } from "../domain/alignment";
 import type { CarDefinition } from "../domain/field";
 import {
+  markRetirements,
   prepareDriver,
   type DriverFile,
   type RecordedSession,
@@ -54,6 +55,7 @@ export async function loadRecordedSession(
     onProgress(i + 1, files.length);
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
+  markRetirements(file, drivers, sepangTrack, pitLaneData as PitLane);
   return { file, track: sepangTrack, drivers };
 }
 

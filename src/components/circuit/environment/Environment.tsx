@@ -56,6 +56,7 @@ import {
   type TurnBoard,
 } from "./layout";
 import {
+  buildPathStrip,
   buildStrip,
   leftNormals,
   mergeStrips,
@@ -105,7 +106,12 @@ function drapeOf(track: TrackProfile) {
 const terrains = new WeakMap<TrackProfile, (x: number, y: number) => number>();
 function terrainOf(track: TrackProfile) {
   let t = terrains.get(track);
-  if (!t) terrains.set(track, (t = terrainHeight(track)));
+  if (!t) {
+    // The pit road loops ~60 m out around the final hairpin: keep the ground flat there too.
+    const ground = groundOf(track);
+    const pit = PIT_LANE.path.x.map((x, i) => ({ x, y: PIT_LANE.path.y[i], z: ground(x, PIT_LANE.path.y[i]) }));
+    terrains.set(track, (t = terrainHeight(track, undefined, undefined, undefined, pit)));
+  }
   return t;
 }
 
@@ -232,7 +238,10 @@ export function useEnvironmentLayout(
       bounds: { minX, maxX, minY, maxY },
       apexes: turns.length ? turns.map((t) => t.apex) : findCorners(track),
       // Clumps keep clear of every trackside camera position, so TV shots stay open.
-      trees: treeClumps(track, normals, { avoid: tvPoints(track, normals), buildings }),
+      trees: treeClumps(track, normals, {
+        avoid: [...tvPoints(track, normals), ...PIT_LANE.path.x.map((x, i) => ({ x, y: PIT_LANE.path.y[i] }))],
+        buildings,
+      }),
       palms: palmRows(track, { buildings }),
     };
   }, [track, coordinates]);
@@ -288,8 +297,8 @@ function Surfaces({
     const barriers = ([-1, 1] as const).map((side) =>
       strip({
         edges: [
-          { offset: (i: number) => barrierOffset(track, i, side), z: 0, drape },
-          { offset: (i: number) => barrierOffset(track, i, side), z: 1.1, drape },
+          { offset: (i: number) => barrierOffset(track, i, side, PIT_LANE), z: 0, drape },
+          { offset: (i: number) => barrierOffset(track, i, side, PIT_LANE), z: 1.1, drape },
         ],
       }),
     );
@@ -1070,9 +1079,11 @@ function Sky({ wet, sunDisc }: { wet: boolean; sunDisc: boolean }) {
 }
 
 /**
- * The pit lane: asphalt along the DERIVED centre line, a concrete apron out to the garages, and
- * a concrete pit wall with catch fencing wherever the lane runs separate from the track.
- * Entry and exit blend into the track edge, so cars drive in and out on the surface they use.
+ * The pit lane: asphalt along the DERIVED centre line (its own path, so the entry road that
+ * leaves the track at the final hairpin is drawn where cars really drove), a concrete apron out
+ * to the garages beside the straight, and a concrete pit wall with catch fencing wherever the
+ * lane runs separate from the track. Both ends overlap the track edge, so cars drive in and out
+ * on the surface they use.
  */
 function PitLaneSurfaces({ track, lane, terrain }: { track: TrackProfile; lane: PitLane; terrain: boolean }) {
   const parts = useMemo(() => {
@@ -1081,23 +1092,34 @@ function PitLaneSurfaces({ track, lane, terrain }: { track: TrackProfile; lane: 
     const centre = (i: number) => pitOffsetAt(lane, i, track.count) ?? side * PIT_WALL_OFFSET;
     // Offsets are signed; work in "distance out on the pit side" and convert back.
     const out = (i: number) => centre(i) * side;
-    const inner = (i: number) => Math.max(TRACK_HALF_WIDTH - 0.2, out(i) - PIT_LANE_HALF_WIDTH);
     const outer = (i: number) => out(i) + PIT_LANE_HALF_WIDTH;
     const ordered = (a: (i: number) => number, b: (i: number) => number, za: number, zb: number) =>
       side > 0
         ? ([{ offset: a, z: za }, { offset: b, z: zb }] as const)
         : ([{ offset: (i: number) => -b(i), z: zb }, { offset: (i: number) => -a(i), z: za }] as const);
-    const range = { from: lane.from, to: lane.to };
-    const asphalt = buildStrip(track, normals, {
-      edges: ordered(inner, outer, LAYER.asphalt - 0.005, LAYER.asphalt - 0.005),
-      ...range,
+    const ground = groundOf(track);
+    const asphalt = buildPathStrip(lane.path, {
+      edges: [
+        { offset: -PIT_LANE_HALF_WIDTH, z: LAYER.asphalt - 0.005 },
+        { offset: PIT_LANE_HALF_WIDTH, z: LAYER.asphalt - 0.005 },
+      ],
+      ground,
     });
-    // Separate stretch: the lane is clear of the track edge by at least a wall's width.
-    let a = 0;
+    // Separate stretch: the lane is clear of the track edge by at least a wall's width, and the
+    // road has left the track (the wall must not close the entry where it crosses the edge).
+    const last = lane.path.x.length - 1;
+    const leaves = nearestSample(track, lane.path.x[0], lane.path.y[0]).index;
+    let a = Math.max(0, ((leaves - lane.from + track.count) % track.count) + 4);
+    if (a >= lane.offsets.length) a = 0;
     while (a < lane.offsets.length && lane.offsets[a] * side - PIT_LANE_HALF_WIDTH < PIT_WALL_OFFSET + 0.6) a++;
     let b = lane.offsets.length - 1;
     while (b > a && lane.offsets[b] * side - PIT_LANE_HALF_WIDTH < PIT_WALL_OFFSET + 0.6) b--;
     const wallRange = { from: lane.from + a, to: lane.from + b };
+    // Garage apron only beside the straight, not around the entry road's loop.
+    let g = a;
+    for (let k = a; k <= b; k++) if (Math.abs(lane.offsets[k]) > Math.abs(lane.offsets[g])) g = k;
+    while (g < b && Math.abs(lane.offsets[g]) > 16) g++;
+    const apronRange = { from: lane.from + g, to: lane.from + b };
     const w0 = () => PIT_WALL_OFFSET,
       w1 = () => PIT_WALL_OFFSET + 0.5;
     const wall = mergeStrips([
@@ -1112,14 +1134,21 @@ function PitLaneSurfaces({ track, lane, terrain }: { track: TrackProfile; lane: 
     });
     const apron = buildStrip(track, normals, {
       edges: ordered(outer, (i) => Math.max(outer(i) + 0.1, 22), LAYER.runoff + 0.02, LAYER.runoff + 0.02),
-      ...wallRange,
+      ...apronRange,
       uLength: 8,
     });
-    // Pit-lane edge line on the garage side.
-    const line = buildStrip(track, normals, {
-      edges: ordered((i) => outer(i) - 0.25, outer, LAYER.asphalt + 0.02, LAYER.asphalt + 0.02),
-      ...range,
-    });
+    // Pit-lane edge line on the garage side (the lane's own right when side is -1).
+    const edge = side * PIT_LANE_HALF_WIDTH,
+      line = buildPathStrip(
+        { x: lane.path.x.slice(2, last - 1), y: lane.path.y.slice(2, last - 1) },
+        {
+          edges: [
+            { offset: Math.min(edge, edge - side * 0.25), z: LAYER.asphalt + 0.02 },
+            { offset: Math.max(edge, edge - side * 0.25), z: LAYER.asphalt + 0.02 },
+          ],
+          ground,
+        },
+      );
     const asphaltMap = asphaltTexture();
     asphaltMap.repeat.set(1, 0.7);
     const fenceMap = fenceTexture();
@@ -1228,8 +1257,8 @@ function TyreWalls({ track, apexes }: { track: TrackProfile; apexes: readonly nu
       for (let s = run.from; s < run.to; s++) {
         const i = ((s % track.count) + track.count) % track.count,
           j = (i + 1) % track.count;
-        const oi = barrierOffset(track, i, run.side) - 0.45 * run.side,
-          oj = barrierOffset(track, j, run.side) - 0.45 * run.side;
+        const oi = barrierOffset(track, i, run.side, PIT_LANE) - 0.45 * run.side,
+          oj = barrierOffset(track, j, run.side, PIT_LANE) - 0.45 * run.side;
         const ax = track.x[i] + normals.nx[i] * oi,
           ay = track.y[i] + normals.ny[i] * oi;
         const bx = track.x[j] + normals.nx[j] * oj,
@@ -1280,7 +1309,7 @@ function CatchFence({ track }: { track: TrackProfile }) {
     const normals = leftNormals(track);
     const top = 4.5,
       base = 1.1;
-    const at = (side: -1 | 1) => (i: number) => barrierOffset(track, i, side);
+    const at = (side: -1 | 1) => (i: number) => barrierOffset(track, i, side, PIT_LANE);
     const mesh = mergeStrips(
       ([-1, 1] as const).map((side) =>
         buildStrip(track, normals, {
@@ -1311,7 +1340,7 @@ function CatchFence({ track }: { track: TrackProfile }) {
     const posts: Matrix4[] = [];
     for (let i = 0; i < track.count; i++)
       for (const side of [-1, 1] as const) {
-        const off = barrierOffset(track, i, side) + side * 0.1;
+        const off = barrierOffset(track, i, side, PIT_LANE) + side * 0.1;
         const x = track.x[i] + normals.nx[i] * off,
           y = track.y[i] + normals.ny[i] * off;
         o.position.set(x, y, Math.min(track.z?.[i] ?? 0, drapeOf(track)(x, y)));

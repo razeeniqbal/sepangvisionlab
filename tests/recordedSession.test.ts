@@ -5,7 +5,7 @@ import { projectCircuit } from "../src/domain/circuitGeometry.ts";
 import { buildTrackProfile, poseAtDistance } from "../src/domain/lapPhysics.ts";
 import type { Similarity } from "../src/domain/alignment.ts";
 import {
-  ON_TRACK_METRES, STALE_AFTER_MS, defaultStart, extractMarkers, motionAt, prepareDriver,
+  ON_TRACK_METRES, PARK_OFFSET, STALE_AFTER_MS, defaultStart, extractMarkers, markRetirements, motionAt, prepareDriver,
   recordedFieldAt, reconcileStints, trackStatusAt, tyreAt, weatherAt,
   type DriverFile, type RaceControlRow, type SessionFile,
 } from "../src/domain/recordedSession.ts";
@@ -77,7 +77,7 @@ test("a data gap holds the last sample and marks the car stale, never inventing 
   assert.ok(STALE_AFTER_MS === 2000);
 });
 
-test("off-profile samples render raw, beyond the on-track band", () => {
+test("off-profile samples follow their own smoothed world position, beyond the on-track band", () => {
   const file = fixtureDriver();
   // Move one stretch 30 m to the side (a pit lane): x offsets in decimetres.
   const x = file.location.x.map((v, i) => v);
@@ -89,7 +89,8 @@ test("off-profile samples render raw, beyond the on-track band", () => {
   const m = motionAt(d, track, d.t[50]);
   assert.equal(m.onTrack, false);
   assert.ok(Math.abs(m.lateral) > ON_TRACK_METRES);
-  assert.ok(Math.abs(m.x - d.wx[50]) < 1e-9 && Math.abs(m.y - d.wy[50]) < 1e-9, "raw aligned position");
+  assert.ok(Math.abs(m.x - d.px[50]) < 1e-9 && Math.abs(m.y - d.py[50]) < 1e-9, "drawn at the sample's own position");
+  assert.ok(Math.hypot(d.px[50] - d.wx[50], d.py[50] - d.wy[50]) < 1.5, "close to the aligned position, not snapped");
 });
 
 const control = (t: number, category: string, flag: string | null, scope: string | null, message: string, sector: number | null = null): RaceControlRow =>
@@ -193,4 +194,27 @@ test("across-track wobble is smoothed on track, pit-lane samples stay raw", asyn
   smoothLateral(t, lateral);
   for (let i = 3; i < 27; i++) assert.ok(Math.abs(lateral[i] - 2) < 0.2, `${i}: ${lateral[i]}`);
   for (let i = 30; i < 40; i++) assert.equal(lateral[i], 25, "pit lane untouched");
+});
+
+test("a retired car pulls off and parks beside the track instead of on the racing line", () => {
+  const file: SessionFile = read("../public/sessions/1308/race/session.json");
+  const alignment = read("../public/sessions/1308/alignment.json");
+  const pit = read("../src/data/circuits/sepangPitLane.json");
+  // Car 77 retired on lap 7; OpenF1 keeps reporting its last position to the end.
+  const d = prepareDriver(read("../public/sessions/1308/race/drivers/77.json"), alignment.transform, track, pit);
+  const running = prepareDriver(read("../public/sessions/1308/race/drivers/1.json"), alignment.transform, track, pit);
+  markRetirements(file, [d, running], track, pit);
+  assert.ok(d.retired, "the DNF is found");
+  assert.equal(running.retired, undefined, "a finisher is untouched");
+  const r = d.retired!;
+  const parked = motionAt(d, track, r.at + 600000);
+  assert.equal(parked.retired, true);
+  assert.equal(parked.onTrack, false, "out of the racing traffic");
+  assert.ok(Math.abs(parked.lateral) > ON_TRACK_METRES && Math.abs(parked.lateral) <= PARK_OFFSET);
+  assert.deepEqual(motionAt(d, track, r.at + 1000), motionAt(d, track, r.at + 900000), "parked, not moving");
+  const before = motionAt(d, track, r.at - 60000);
+  assert.ok(!before.retired && before.onTrack, "racing normally before");
+  const pulling = motionAt(d, track, r.at - 1000);
+  assert.ok(Math.abs(pulling.lateral) > Math.abs(before.lateral), "steering off before it stops");
+  assert.equal(file.result?.find((x) => x.driver_number === 77)?.dnf, true);
 });

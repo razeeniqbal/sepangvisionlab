@@ -521,7 +521,7 @@ export const SEPANG_SPATIAL_REFERENCES = parseSpatialReferences([
     null,
     "svlEnvironment",
     "DERIVED",
-    "Centre line DERIVED from aligned OpenF1 positions during all 73 race pit stops (median across-track offset per 4 m profile sample, smoothed; scripts/derive-pit-lane.ts, src/data/circuits/sepangPitLane.json). Lane width, pit wall, fence and apron are illustrative.",
+    "Centre line DERIVED from aligned OpenF1 positions during all 73 race pit stops (every pass from leaving the track to rejoining it, refined to the median across-road position every 4 m, including the entry road that loops ~60 m out at the final hairpin; scripts/derive-pit-lane.ts, src/data/circuits/sepangPitLane.json). Lane width, pit wall, fence and apron are illustrative.",
   ),
   fact(
     "env-turn-boards",
